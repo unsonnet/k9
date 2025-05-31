@@ -17,6 +17,8 @@
         "build": {
           "builder": "@angular/build:application",
           "options": {
+            "baseHref": "/k9/",
+            "outputPath": "dist/k9",
             "browser": "src/main.ts",
             "polyfills": [
               "zone.js"
@@ -91,6 +93,9 @@
               "src/styles.scss"
             ]
           }
+        },
+        "deploy": {
+          "builder": "angular-cli-ghpages:deploy"
         }
       }
     }
