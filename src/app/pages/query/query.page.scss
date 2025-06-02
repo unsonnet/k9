@@ -1,24 +1,107 @@
+@use "../../mixins.scss";
+
+.query-container {
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
 .query {
-  width: 50%;
-  height: 80%;
-  flex: auto;
+  width: 100%;                // ✅ ensure it doesn't collapse inside .query-container
+  max-width: 600px;           // ✅ optional, limit content width for cleaner layout
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+  @extend %text-standard;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row {
+  flex-direction: row;
+  gap: 12px;
+
+  mat-form-field {
+    flex: 1;
+    margin: 0;
+  }
+}
+
+.full-width {
+  width: 100%;
+}
+
+mat-form-field {
+  .mat-mdc-form-field-subscript-wrapper {
+    display: none;
+  }
 }
 
 .upload-box {
   border: 2px dashed #ccc;
-  padding: 20px;
+  padding: 16px;
   text-align: center;
   cursor: pointer;
   transition: background-color 0.3s ease;
+  @extend %text-standard;
+
+  p {
+    margin: 0;
+  }
+
+  &.dragover {
+    background-color: #f0f0f0;
+  }
 }
 
-.upload-box.dragover {
-  background-color: #f0f0f0;
+mat-list {
+  width: 100%;
+}
+
+mat-list-item {
+  padding: 0; // remove extra inner spacing
+}
+
+.image-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 12px;
+  padding: 8px 12px;
+  box-sizing: border-box;
 }
 
 .thumb {
   width: 50px;
   height: 50px;
-  object-fit: cover;
-  margin-right: 10px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.file-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  @extend %text-standard;
+}
+
+.image-row button[mat-icon-button] {
+  flex-shrink: 0;
+}
+
+.clickable-text {
+  color: #1976d2; // Material blue
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
 }
