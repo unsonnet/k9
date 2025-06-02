@@ -11,7 +11,7 @@
     </div>
 
     @for (entry of filteredDetails(); track entry.key) {
-      <div class="field">
+      <div class="field loop-field">
         <strong>{{ titleCase(entry.key) }}</strong>
         <div class="value">{{ entry.value }}</div>
       </div>

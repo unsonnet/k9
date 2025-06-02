@@ -21,10 +21,10 @@ import { CommonModule } from '@angular/common';
 export class ProductGalleryComponent implements AfterViewInit, OnChanges {
   @Input() urls: string[] = [];
 
-  // Emit the index of the selected image
   @Output() selectedIndexChange = new EventEmitter<number>();
 
   @ViewChild('imageContainer') imageContainerRef!: ElementRef<HTMLDivElement>;
+  @ViewChild('mainImage') mainImageRef!: ElementRef<HTMLImageElement>;
 
   selectedImage: string | null = null;
   selectedIndex: number = -1;
@@ -55,13 +55,34 @@ export class ProductGalleryComponent implements AfterViewInit, OnChanges {
   }
 
   selectImage(url: string) {
+    if (!url) return;
+
     this.selectedImage = url;
     this.selectedIndex = this.urls.indexOf(url);
-    this.selectedIndexChange.emit(this.selectedIndex); // Emit selected index
+    this.selectedIndexChange.emit(this.selectedIndex);
 
     this.rotations[url] ??= 0;
     this.scales[url] ??= 1;
-    this.pans[url] ??= { x: 0, y: 0 };
+  }
+
+  onImageLoad() {
+    if (!this.selectedImage || this.pans[this.selectedImage]) return;
+
+    const imgEl = this.mainImageRef?.nativeElement;
+    const containerEl = this.imageContainerRef?.nativeElement;
+    if (!imgEl || !containerEl) return;
+
+    const scale = this.scales[this.selectedImage] ?? 1;
+
+    const imgRect = imgEl.getBoundingClientRect();
+    const imgWidth = imgRect.width / scale;
+    const imgHeight = imgRect.height / scale;
+
+    // Set pan only if it's not already set (first time load only)
+    this.pans[this.selectedImage] = {
+      x: -imgWidth / 2,
+      y: -imgHeight / 2,
+    };
   }
 
   rotate(degrees: number) {
@@ -76,11 +97,23 @@ export class ProductGalleryComponent implements AfterViewInit, OnChanges {
     const pan = this.pans[url] || { x: 0, y: 0 };
 
     return `
-      translate(-50%, -50%)
-      translate(${pan.x}px, ${pan.y}px)
       rotate(${rotation}deg)
       scale(${scale})
+      translate(${pan.x}px, ${pan.y}px)
     `;
+  }
+
+  getOuterTransform(): string {
+    if (!this.selectedImage) return '';
+    const rotation = this.rotations[this.selectedImage] ?? 0;
+    const scale = this.scales[this.selectedImage] ?? 1;
+    return `rotate(${rotation}deg) scale(${scale})`;
+  }
+
+  getInnerTransform(): string {
+    if (!this.selectedImage) return '';
+    const pan = this.pans[this.selectedImage] ?? { x: 0, y: 0 };
+    return `translate(${pan.x}px, ${pan.y}px)`;
   }
 
   startPan(event: MouseEvent) {
@@ -92,13 +125,24 @@ export class ProductGalleryComponent implements AfterViewInit, OnChanges {
 
   onPan(event: MouseEvent) {
     if (!this.isPanning || !this.selectedImage) return;
+
     const dx = event.clientX - this.panStart.x;
     const dy = event.clientY - this.panStart.y;
     this.panStart = { x: event.clientX, y: event.clientY };
+
+    const scale = this.scales[this.selectedImage] ?? 1;
+    const rotation = this.rotations[this.selectedImage] ?? 0;
+
+    const radians = (-rotation * Math.PI) / 180;
+    const cos = Math.cos(radians);
+    const sin = Math.sin(radians);
+    const rotatedDx = dx * cos - dy * sin;
+    const rotatedDy = dx * sin + dy * cos;
+
     const current = this.pans[this.selectedImage]!;
     this.pans[this.selectedImage] = {
-      x: current.x + dx,
-      y: current.y + dy,
+      x: current.x + rotatedDx / scale,
+      y: current.y + rotatedDy / scale,
     };
   }
 
@@ -115,5 +159,10 @@ export class ProductGalleryComponent implements AfterViewInit, OnChanges {
     );
     this.scales[this.selectedImage] = newScale;
     event.preventDefault();
+
+    // recenter if user zooms while holding Shift
+    if (event.shiftKey) {
+      this.onImageLoad();
+    }
   }
 }

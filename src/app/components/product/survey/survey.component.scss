@@ -1,4 +1,4 @@
-@use '../mixins.scss';
+@use "../mixins.scss";
 
 .survey-grid {
   display: grid;
@@ -9,7 +9,6 @@
 .survey-question {
   @extend %text-standard;
 }
-
 
 .options {
   display: flex;

@@ -1,15 +1,25 @@
-@use '../mixins.scss';
+@use "../mixins.scss";
 
 .details-container {
   @extend %product-container;
   max-width: 400px;
 }
 
-.field strong {
-  @extend %text-bold;
-  margin-bottom: 4px;
+.field {
+  display: flex;
+  flex-direction: column;
+
+  strong {
+    @extend %text-bold;
+    margin-bottom: 4px;
+  }
+
+  .value {
+    @extend %text-standard;
+  }
 }
 
-.value {
-  @extend %text-standard;
+/* Space between all .field entries, but not after the last one */
+.details-container > .field:not(:last-child) {
+  margin-bottom: 20px;
 }

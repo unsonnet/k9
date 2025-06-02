@@ -1,10 +1,15 @@
-@use '../mixins.scss';
+@use "../mixins.scss";
 
 .product-cell {
   @extend %product-container;
   width: 200px;
   height: 220px;
   cursor: pointer;
+}
+
+.name {
+  @extend %text-standard; // Ensure consistent font size and weight
+  white-space: nowrap;
 }
 
 .store {
@@ -17,11 +22,6 @@
 .name-container {
   overflow-x: auto;
   margin-top: 4px;
-}
-
-.name {
-  font-size: 13px;
-  white-space: nowrap;
 }
 
 .thumbnail {

@@ -4,21 +4,24 @@
       <button (click)="rotate(-90)">⟲</button>
       <button (click)="rotate(90)">⟳</button>
     </div>
-    <div
-      #imageContainer
-      class="image-container"
-      (mousedown)="startPan($event)"
-      (mousemove)="onPan($event)"
-      (mouseup)="endPan()"
-      (mouseleave)="endPan()"
-      (wheel)="onZoom($event)"
-    >
-      <img
-        *ngIf="selectedImage"
-        [src]="selectedImage"
-        [style.transform]="getTransform(selectedImage)"
-        [style.cursor]="isPanning ? 'grabbing' : 'grab'"
-      />
+    <div class="image-container" #imageContainer (wheel)="onZoom($event)">
+      @if (selectedImage) {
+        <div class="transform-wrapper" [style.transform]="getOuterTransform()">
+          <img
+            #mainImage
+            [src]="selectedImage"
+            alt="Selected Image"
+            draggable="false"
+            class="image"
+            (load)="onImageLoad()"
+            (mousedown)="startPan($event)"
+            (mousemove)="onPan($event)"
+            (mouseup)="endPan()"
+            (mouseleave)="endPan()"
+            [style.transform]="getInnerTransform()"
+          />
+        </div>
+      }
     </div>
   </div>
 
