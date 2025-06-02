@@ -25,5 +25,10 @@
 
 .gallery-row {
   display: flex;
+  width: 100%;
   gap: 16px;
+}
+
+app-product-gallery {
+  flex: 1;
 }

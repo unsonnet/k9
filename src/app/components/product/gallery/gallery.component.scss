@@ -1,7 +1,9 @@
+@use '../mixins.scss';
+
 .gallery-container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 16px;
 }
 
 .main-image-wrapper {

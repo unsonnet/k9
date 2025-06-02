@@ -1,23 +1,15 @@
+@use '../mixins.scss';
+
 .details-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  @extend %product-container;
   max-width: 400px;
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-}
-
 .field strong {
-  font-weight: 600;
+  @extend %text-bold;
   margin-bottom: 4px;
 }
 
 .value {
-  font-size: 14px;
+  @extend %text-standard;
 }

@@ -1,19 +1,14 @@
+@use '../mixins.scss';
+
 .product-cell {
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  padding: 12px;
+  @extend %product-container;
   width: 200px;
   height: 220px;
-  box-sizing: border-box;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
 }
 
 .store {
-  font-weight: bold;
-  font-size: 14px;
+  @extend %text-bold;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

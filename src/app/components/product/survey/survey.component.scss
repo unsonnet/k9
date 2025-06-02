@@ -1,3 +1,5 @@
+@use '../mixins.scss';
+
 .survey-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -5,10 +7,9 @@
 }
 
 .survey-question {
-  display: flex;
-  flex-direction: column;
-  font-size: 14px;
+  @extend %text-standard;
 }
+
 
 .options {
   display: flex;
