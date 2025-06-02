@@ -8,8 +8,8 @@
 }
 
 .query {
-  width: 100%;                // ✅ ensure it doesn't collapse inside .query-container
-  max-width: 600px;           // ✅ optional, limit content width for cleaner layout
+  width: 100%; // ✅ ensure it doesn't collapse inside .query-container
+  max-width: 600px; // ✅ optional, limit content width for cleaner layout
   display: flex;
   flex-direction: column;
   gap: 12px;

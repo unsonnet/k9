@@ -32,13 +32,13 @@
       @extend %text-standard;
 
       .reversed-checkbox {
-  margin: 0;
-  padding: 0;
-  vertical-align: middle; // ensures tight inline alignment
-  ::part(checkbox) {
-    margin: 0;
-  }
-}
+        margin: 0;
+        padding: 0;
+        vertical-align: middle; // ensures tight inline alignment
+        ::part(checkbox) {
+          margin: 0;
+        }
+      }
     }
   }
 }
