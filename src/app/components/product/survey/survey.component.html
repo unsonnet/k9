@@ -1,7 +1,7 @@
 <div class="survey-grid">
   @for (question of questionKeys; track question) {
     <div class="survey-question">
-      <label>{{ question }}</label>
+      <strong>{{ question }}</strong>
       <div class="options">
         <span class="label-left">Different</span>
         @for (i of [1, 2, 3, 4, 5]; track i) {

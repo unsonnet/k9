@@ -8,14 +8,16 @@
           <div class="metric-label">{{ titleCase(metric) }}</div>
 
           @if (getMetricValue(category, metric) !== null) {
-            <div class="bar-container">
-              <div
-                class="bar-fill"
-                [style.width.%]="getMetricValue(category, metric)! * 100"
-              ></div>
-            </div>
-            <div class="value-label">
-              {{ getMetricValue(category, metric)! * 100 | number: "1.0-0" }}%
+            <div class="bar-value-wrapper">
+              <div class="bar-container">
+                <div
+                  class="bar-fill"
+                  [style.width.%]="getMetricValue(category, metric)! * 100"
+                ></div>
+              </div>
+              <div class="value-label">
+                {{ getMetricValue(category, metric)! * 100 | number: "1.0-0" }}%
+              </div>
             </div>
           } @else {
             <div class="no-data">No data</div>

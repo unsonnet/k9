@@ -5,28 +5,54 @@
 }
 
 .category h4 {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  font-weight: bold;
+  @extend %text-bold;
   border-bottom: 1px solid #ccc;
   padding-bottom: 4px;
+  margin: 0 0 8px 0;
+}
+
+.category:not(:last-child) {
+  margin-bottom: 20px;
 }
 
 .metric-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  justify-content: space-between;
+  margin-top: 6px;
 }
 
 .metric-label {
-  width: 120px;
-  font-size: 14px;
+  @extend %text-standard;
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 8px;
+}
+
+.value-label {
+  @extend %text-standard;
+  width: 40px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.no-data {
+  @extend %text-standard;
+  color: #999;
+  font-style: italic;
+}
+
+.bar-value-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .bar-container {
-  width: 100px;
+  width: 120px;
   background-color: #eee;
   height: 14px;
   border-radius: 7px;
@@ -38,17 +64,4 @@
   height: 100%;
   background-color: #4caf50;
   transition: width 0.3s ease;
-}
-
-.value-label {
-  width: 40px;
-  font-size: 13px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.no-data {
-  color: #999;
-  font-style: italic;
-  font-size: 13px;
 }

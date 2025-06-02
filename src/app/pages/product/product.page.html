@@ -2,13 +2,13 @@
   <div class="sidebar">
     <app-product-details [product]="product" />
 
+    <h3>Product Score</h3>
     <div class="score-section">
-      <h3>Product Score</h3>
       <app-product-scores [scores]="reducedScores()" [ix]="0" [jx]="0" />
     </div>
 
+    <h3>Image Score</h3>
     <div class="score-section">
-      <h3>Image Score</h3>
       <app-product-scores
         [scores]="product.scores"
         [ix]="selectedIx()"
