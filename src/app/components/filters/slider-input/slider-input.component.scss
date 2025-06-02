@@ -1,0 +1,40 @@
+@use "../../product/mixins.scss";
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  @extend %text-standard;
+}
+
+.filter-label {
+  flex: 1 1 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 8px;
+}
+
+.slider-field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  height: 100%; // ✅ Eliminate vertical expansion
+  margin: 0; // ✅ No external spacing
+  padding: 0; // ✅ No internal spacing
+}
+
+mat-slider {
+  width: 200px;
+  flex-shrink: 0;
+  vertical-align: middle; // ✅ Ensure inline alignment
+}
+
+.slider-value {
+  width: 40px;
+  text-align: right;
+  @extend %text-standard;
+  flex-shrink: 0;
+}

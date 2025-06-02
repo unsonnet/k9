@@ -3,25 +3,32 @@
   max-width: 800px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px; // 🔽 fully collapsed spacing
 }
 
 .filter-group {
   border: 1px solid #ccc;
   padding: 16px;
   border-radius: 8px;
+  margin: 0; // ✅ prevent default spacing between groups
+
+  h3 {
+    margin: 0 0 8px 0; // ✅ remove top margin that causes extra vertical gap
+  }
+
+  mat-checkbox {
+    margin-top: 8px; // optional fine-tune for visual spacing
+  }
+}
+
+// Optional: tighten .filter-row spacing globally, if margin persists
+.filter-row {
+  margin: 0;
 }
 
 .margin-inputs {
   display: flex;
   gap: 16px;
-}
-
-.filter-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
 }
 
 .filter-label {

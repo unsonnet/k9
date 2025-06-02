@@ -1,11 +1,13 @@
-<span class="filter-label">{{ filterData.label }}</span>
-<div class="slider-wrapper">
-  <mat-slider min="0" max="100" step="1" thumbLabel>
-    <input
-      matSliderThumb
-      [(ngModel)]="filterData.value"
-      name="{{ groupKey }}.{{ filterKey }}"
-    />
-  </mat-slider>
-  <span class="slider-value">{{ filterData.value }}</span>
+<div class="filter-row">
+  <span class="filter-label">{{ filterData.label }}</span>
+  <div class="slider-field">
+    <mat-slider min="0" max="100" step="1" thumbLabel>
+      <input
+        matSliderThumb
+        [(ngModel)]="filterData.value"
+        name="{{ groupKey }}.{{ filterKey }}"
+      />
+    </mat-slider>
+    <span class="slider-value">{{ filterData.value }}</span>
+  </div>
 </div>

@@ -1,0 +1,6 @@
+@use "../../product/mixins.scss";
+
+mat-form-field {
+  width: 100%;
+  @extend %text-standard;
+}
