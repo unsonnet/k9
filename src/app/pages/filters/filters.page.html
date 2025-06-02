@@ -1,7 +1,20 @@
 <div class="filter-container">
   @for (group of filterGroups; track group[0]) {
   <div class="filter-group">
-    <h3>{{ group[1].label }}</h3>
+    <!-- 🧱 Header row with label and checkbox -->
+    <div class="group-header">
+      <h3>{{ group[1].label }}</h3>
+      <label class="include-label">
+        Include missing
+        <mat-checkbox
+          [(ngModel)]="group[1].includeMissing"
+          name="{{ group[0] }}.includeMissing"
+          class="reversed-checkbox"
+        ></mat-checkbox>
+      </label>
+    </div>
+
+    <!-- Loop over filters -->
     @for (filter of group[1].filters; track filter[0]) {
     <div class="filter-row">
       @if (filter[1].type === 'number') {
@@ -19,14 +32,9 @@
       }
     </div>
     }
-    <mat-checkbox
-      [(ngModel)]="group[1].includeMissing"
-      name="{{ group[0] }}.includeMissing"
-    >
-      Include missing
-    </mat-checkbox>
   </div>
   }
+
   <div class="filter-button">
     <button mat-raised-button color="primary" (click)="applyFilters()">
       Filter
