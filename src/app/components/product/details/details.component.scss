@@ -1,0 +1,23 @@
+.details-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  max-width: 400px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.field strong {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.value {
+  font-size: 14px;
+}

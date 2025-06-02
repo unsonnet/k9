@@ -1,0 +1,48 @@
+<div class="filter-container">
+  @for (group of filterGroups; track group[0]) {
+  <div class="filter-group">
+    <h3>{{ group[1].label }}</h3>
+    @for (filter of group[1].filters; track filter[0]) {
+    <div class="filter-row">
+      @if (filter[1].type == 'number') {
+      <mat-form-field>
+        <mat-label>{{ filter[1].label }}</mat-label>
+        <input
+          matInput
+          type="number"
+          min="0"
+          name="{{ group[0] }}.{{ filter[0] }}"
+          [(ngModel)]="filter[1].value"
+        />
+      </mat-form-field>
+      } @else {
+      <span class="filter-label">{{ filter[1].label }}</span>
+      <div class="slider-wrapper">
+        <mat-slider min="0" max="100" step="1" thumbLabel>
+          <input
+            matSliderThumb
+            name="{{ group[0] }}.{{ filter[0] }}"
+            [(ngModel)]="filter[1].value"
+          />
+        </mat-slider>
+
+        <span class="slider-value">{{ filter[1].value }}</span>
+      </div>
+      }
+    </div>
+    }
+    <mat-checkbox
+      [(ngModel)]="group[1].includeMissing"
+      name="{{ group[0] }}.includeMissing"
+    >
+      Include missing
+    </mat-checkbox>
+  </div>
+  }
+  <!-- Filter Button -->
+  <div class="filter-button">
+    <button mat-raised-button color="primary" (click)="applyFilters()">
+      Filter
+    </button>
+  </div>
+</div>

@@ -1,0 +1,21 @@
+<div class="grid">
+  @for (product of products; track product.id) {
+  <app-product-cell
+    [product]="product"
+    (productClick)="onProductClick(product)"
+  />
+  }
+</div>
+@if (products.length === 0) {
+<p>No products found.</p>
+}
+
+<div class="layout">
+  @if (selectedProduct) {
+  <app-product
+    [product]="selectedProduct"
+    [reference]="reference"
+    [surveyValue]="surveyResponses[selectedProduct.id || '']"
+  />
+  }
+</div>

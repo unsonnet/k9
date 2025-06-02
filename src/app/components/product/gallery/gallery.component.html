@@ -1,0 +1,35 @@
+<div class="gallery-container">
+  <div class="main-image-wrapper">
+    <div class="toolbar">
+      <button (click)="rotate(-90)">⟲</button>
+      <button (click)="rotate(90)">⟳</button>
+    </div>
+    <div
+      #imageContainer
+      class="image-container"
+      (mousedown)="startPan($event)"
+      (mousemove)="onPan($event)"
+      (mouseup)="endPan()"
+      (mouseleave)="endPan()"
+      (wheel)="onZoom($event)"
+    >
+      <img
+        *ngIf="selectedImage"
+        [src]="selectedImage"
+        [style.transform]="getTransform(selectedImage)"
+        [style.cursor]="isPanning ? 'grabbing' : 'grab'"
+      />
+    </div>
+  </div>
+
+  <div class="thumbnail-strip">
+    @for (url of urls; track url) {
+      <img
+        [src]="url"
+        class="thumbnail"
+        [class.selected]="url === selectedImage"
+        (click)="selectImage(url)"
+      />
+    }
+  </div>
+</div>

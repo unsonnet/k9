@@ -1,0 +1,38 @@
+<div class="product-container">
+  <div class="sidebar">
+    <app-product-details [product]="product" />
+
+    <div class="score-section">
+      <h3>Product Score</h3>
+      <app-product-scores [scores]="reducedScores()" [ix]="0" [jx]="0" />
+    </div>
+
+    <div class="score-section">
+      <h3>Image Score</h3>
+      <app-product-scores
+        [scores]="product.scores"
+        [ix]="selectedIx()"
+        [jx]="selectedJx()"
+      />
+    </div>
+  </div>
+
+  <div class="main">
+    <app-product-survey
+      [value]="surveyValue"
+      (valueChange)="onSurveyChange($event)"
+    />
+
+    <div class="gallery-row">
+      <app-product-gallery
+        [urls]="product.images"
+        (selectedIndexChange)="selectedIx.set($event)"
+      />
+
+      <app-product-gallery
+        [urls]="reference"
+        (selectedIndexChange)="selectedJx.set($event)"
+      />
+    </div>
+  </div>
+</div>

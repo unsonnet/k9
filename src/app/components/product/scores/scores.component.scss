@@ -1,0 +1,54 @@
+.score-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.category h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: bold;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 4px;
+}
+
+.metric-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.metric-label {
+  width: 120px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.bar-container {
+  width: 100px;
+  background-color: #eee;
+  height: 14px;
+  border-radius: 7px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.bar-fill {
+  height: 100%;
+  background-color: #4caf50;
+  transition: width 0.3s ease;
+}
+
+.value-label {
+  width: 40px;
+  font-size: 13px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.no-data {
+  color: #999;
+  font-style: italic;
+  font-size: 13px;
+}

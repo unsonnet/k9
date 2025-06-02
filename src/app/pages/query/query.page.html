@@ -1,0 +1,65 @@
+<div class="query" fxLayout="column" fxLayoutGap="20px">
+  <!-- Material Dropdown -->
+  <mat-form-field appearance="outline">
+    <mat-label>Material</mat-label>
+    <mat-select [(ngModel)]="selectedMaterial">
+      @for (material of materials; track material) {
+      <mat-option [value]="material">{{ material }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <!-- Length and Width Inputs -->
+  <div fxLayout="row" fxLayoutGap="20px">
+    <mat-form-field appearance="outline" fxFlex>
+      <mat-label>Length (in)</mat-label>
+      <input matInput type="number" [(ngModel)]="length" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" fxFlex>
+      <mat-label>Width (in)</mat-label>
+      <input matInput type="number" [(ngModel)]="width" />
+    </mat-form-field>
+  </div>
+
+  <!-- Image Upload (Drag and Drop or Click) -->
+  <div
+    class="upload-box"
+    (drop)="onFileDrop($event)"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    [class.dragover]="isDragOver"
+    (click)="fileInput.click()"
+  >
+    <p>Drag & drop images here, or click to select</p>
+    <input
+      #fileInput
+      type="file"
+      multiple
+      accept="image/*"
+      (change)="onFileSelect($event)"
+      hidden
+    />
+  </div>
+
+  <!-- List of Uploaded Images -->
+  @if (uploadedImages.length > 0) {
+  <div>
+    <h4>Uploaded Images:</h4>
+    <mat-list>
+      @for (img of uploadedImages; track img.name; let i = $index) {
+      <mat-list-item>
+        <img [src]="img.url" class="thumb" />
+        <span>{{ img.name }}</span>
+        <button mat-icon-button color="warn" (click)="removeImage(i)">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </mat-list-item>
+      }
+    </mat-list>
+  </div>
+  }
+
+  <!-- Search Button -->
+  <button mat-raised-button color="primary" (click)="onSearch()">Search</button>
+</div>

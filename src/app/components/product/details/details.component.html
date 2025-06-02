@@ -1,0 +1,20 @@
+@if (product) {
+  <div class="details-container">
+    <div class="field">
+      <strong>Store</strong>
+      <div class="value">{{ product.store }}</div>
+    </div>
+
+    <div class="field">
+      <strong>Name</strong>
+      <div class="value">{{ product.name }}</div>
+    </div>
+
+    @for (entry of filteredDetails(); track entry.key) {
+      <div class="field">
+        <strong>{{ titleCase(entry.key) }}</strong>
+        <div class="value">{{ entry.value }}</div>
+      </div>
+    }
+  </div>
+}

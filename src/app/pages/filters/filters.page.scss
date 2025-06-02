@@ -1,0 +1,46 @@
+.filter-container {
+  padding: 16px;
+  max-width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.filter-group {
+  border: 1px solid #ccc;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.margin-inputs {
+  display: flex;
+  gap: 16px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.filter-label {
+  width: 150px;
+}
+
+.slider-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.slider-value {
+  width: 30px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.filter-button {
+  text-align: right;
+}
