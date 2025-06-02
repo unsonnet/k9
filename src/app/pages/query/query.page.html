@@ -1,74 +1,13 @@
 <div class="query-container">
   <div class="query">
-    <!-- Material Dropdown -->
-    <div class="form-group">
-      <mat-form-field appearance="outline" class="full-width">
-        <mat-label>Material</mat-label>
-        <mat-select [(ngModel)]="selectedMaterial">
-          @for (material of materials; track material) {
-          <mat-option [value]="material">{{ material }}</mat-option>
-          }
-        </mat-select>
-      </mat-form-field>
-    </div>
+    <!-- Material Selection -->
+    <app-query-material [(value)]="selectedMaterial" />
 
-    <!-- Length and Width Inputs -->
-    <div class="form-group row">
-      <mat-form-field appearance="outline">
-        <mat-label>Length (in)</mat-label>
-        <input matInput type="number" [(ngModel)]="length" />
-      </mat-form-field>
+    <!-- Shape (Length & Width) -->
+    <app-query-shape [(length)]="length" [(width)]="width" />
 
-      <mat-form-field appearance="outline">
-        <mat-label>Width (in)</mat-label>
-        <input matInput type="number" [(ngModel)]="width" />
-      </mat-form-field>
-    </div>
-
-    <!-- Image Upload (Drag and Drop or Click) -->
-    <div class="form-group">
-      <div
-        class="upload-box"
-        (drop)="onFileDrop($event)"
-        (dragover)="onDragOver($event)"
-        (dragleave)="onDragLeave($event)"
-        [class.dragover]="isDragOver"
-        (click)="fileInput.click()"
-      >
-        <p>
-          Drag & drop images here, or
-          <span class="clickable-text">click to select</span>
-        </p>
-        <input
-          #fileInput
-          type="file"
-          multiple
-          accept="image/*"
-          (change)="onFileSelect($event)"
-          hidden
-        />
-      </div>
-    </div>
-
-    <!-- Uploaded Image List -->
-    <div class="form-group">
-      @if (uploadedImages.length > 0) {
-      <h4>Uploaded Images</h4>
-      <mat-list>
-        @for (img of uploadedImages; track img.name; let i = $index) {
-        <mat-list-item>
-          <div class="image-row">
-            <img [src]="img.url" class="thumb" />
-            <div class="file-name">{{ img.name }}</div>
-            <button mat-icon-button color="warn" (click)="removeImage(i)">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
-        </mat-list-item>
-        }
-      </mat-list>
-      }
-    </div>
+    <!-- Image Upload -->
+    <app-query-images [(images)]="uploadedImages" />
 
     <!-- Search Button -->
     <div class="form-group align-right">

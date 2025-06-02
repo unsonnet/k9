@@ -1,0 +1,12 @@
+@use "../../../mixins.scss";
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  @extend %text-standard;
+}
+
+.full-width {
+  width: 100%;
+}
