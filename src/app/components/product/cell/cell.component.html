@@ -1,13 +1,14 @@
 <div class="product-cell" (click)="handleClick()" tabindex="0">
-  <div class="store">{{ product.store }}</div>
+  <div class="top-row">
+    <div class="store">{{ product.store }}</div>
+    <input type="checkbox" [(ngModel)]="selected" (click)="$event.stopPropagation()" />
+  </div>
+
   <div class="name-container">
     <div class="name" title="{{ product.name }}">{{ product.name }}</div>
   </div>
+
   @if (product.images.length > 0) {
     <img [src]="product.images[0]" alt="Product image" class="thumbnail" />
   }
-  <label class="select-container" (click)="$event.stopPropagation()">
-    <input type="checkbox" [(ngModel)]="selected" />
-    Select
-  </label>
 </div>
