@@ -11,7 +11,7 @@ import { MatSelectModule } from '@angular/material/select';
   styleUrl: './material.component.scss',
 })
 export class MaterialComponent {
-  @Input() materials: string[] = ['Wood', 'Steel', 'Plastic', 'Glass'];
+  @Input() materials: string[] = ['Ceramic', 'Porcelain', 'Glass'];
 
   @Input() value: string | null = null;
   @Output() valueChange = new EventEmitter<string | null>();
