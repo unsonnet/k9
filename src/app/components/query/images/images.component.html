@@ -25,18 +25,20 @@
 <div class="form-group">
   @if (images.length > 0) {
     <label>Uploaded images</label>
-    <mat-list>
-      @for (img of images; track img.name; let i = $index) {
-        <mat-list-item>
-          <div class="image-row">
-            <img [src]="img.url" class="thumb" />
-            <div class="file-name">{{ img.name }}</div>
-            <button mat-icon-button color="warn" (click)="remove(i)">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </div>
-        </mat-list-item>
-      }
-    </mat-list>
+    <div class="image-list">
+      <mat-list>
+        @for (img of images; track img.name; let i = $index) {
+          <mat-list-item>
+            <div class="image-row">
+              <img [src]="img.url" class="thumb" />
+              <div class="file-name">{{ img.name }}</div>
+              <button mat-icon-button color="warn" (click)="remove(i)">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </mat-list-item>
+        }
+      </mat-list>
+    </div>
   }
 </div>

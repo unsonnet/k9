@@ -1,0 +1,21 @@
+<div class="search-page">
+  <div class="search-wrapper">
+    <div class="query-container">
+      <div class="query-header">Inventory Search</div>
+      <app-query (querySubmit)="startSearch($event)" />
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="content-container">
+      <div class="logo-block" [class.loading]="isLoading">
+        <img src="./assets/logo.png" alt="Nativo Inc Logo" class="logo" />
+      </div>
+
+      <div class="loading-block" *ngIf="isLoading">
+        <mat-progress-spinner mode="indeterminate" diameter="30" color="warn" />
+        <div class="status-text">{{ statusText }}</div>
+      </div>
+    </div>
+  </div>
+</div>

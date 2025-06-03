@@ -1,7 +1,11 @@
 <div class="product-cell" (click)="handleClick()" tabindex="0">
   <div class="top-row">
     <div class="store">{{ product.store }}</div>
-    <input type="checkbox" [(ngModel)]="selected" (click)="$event.stopPropagation()" />
+    <input
+      type="checkbox"
+      [(ngModel)]="selected"
+      (click)="$event.stopPropagation()"
+    />
   </div>
 
   <div class="name-container">

@@ -1,38 +1,43 @@
 <div class="query-container">
-<div class="query">
-  <div class="form-group" [class.invalid]="isMaterialInvalid">
-    <app-query-material
-      [value]="selectedMaterial"
-      (valueChange)="onMaterialChange($event)"
-    />
-    @if (isMaterialInvalid) {
-      <div class="error">Material is required</div>
-    }
-  </div>
+  <div class="query">
+    <div class="form-group" [class.invalid]="isMaterialInvalid">
+      <app-query-material
+        [value]="selectedMaterial"
+        (valueChange)="onMaterialChange($event)"
+      />
+      @if (isMaterialInvalid) {
+        <div class="error">Material is required</div>
+      }
+    </div>
 
-  <div class="form-group">
-    <app-query-shape
-      [length]="length"
-      [width]="width"
-      (lengthChange)="length = $event"
-      (widthChange)="width = $event"
-    />
-  </div>
+    <div class="form-group">
+      <app-query-shape
+        [length]="length"
+        [width]="width"
+        (lengthChange)="length = $event"
+        (widthChange)="width = $event"
+      />
+    </div>
 
-  <div class="form-group" [class.invalid]="isImagesInvalid">
-    <app-query-images
-      [images]="uploadedImages"
-      (imagesChange)="onImagesChange($event)"
-    />
-    @if (isImagesInvalid) {
-      <div class="error">At least one image is required</div>
-    }
-  </div>
+    <div class="form-group" [class.invalid]="isImagesInvalid">
+      <app-query-images
+        [images]="uploadedImages"
+        (imagesChange)="onImagesChange($event)"
+      />
+      @if (isImagesInvalid) {
+        <div class="error">At least one image is required</div>
+      }
+    </div>
 
-  <div class="form-group">
-    <button mat-raised-button color="primary" (click)="onSearch()" class="full-width">
-      Search
-    </button>
+    <div class="form-group">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="onSearch()"
+        class="full-width"
+      >
+        Search
+      </button>
+    </div>
   </div>
-</div>
 </div>

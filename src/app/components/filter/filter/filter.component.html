@@ -1,38 +1,38 @@
 <div class="filter-container">
   @for (group of filterGroups; track group[0]) {
-  <div class="filter-group">
-    <!-- 🧱 Header row with label and checkbox -->
-    <div class="group-header">
-      <h3>{{ group[1].label }}</h3>
-      <label class="include-label">
-        Include missing
-        <mat-checkbox
-          [(ngModel)]="group[1].includeMissing"
-          name="{{ group[0] }}.includeMissing"
-          class="reversed-checkbox"
-        ></mat-checkbox>
-      </label>
-    </div>
+    <div class="filter-group">
+      <!-- 🧱 Header row with label and checkbox -->
+      <div class="group-header">
+        <h3>{{ group[1].label }}</h3>
+        <label class="include-label">
+          Include missing
+          <mat-checkbox
+            [(ngModel)]="group[1].includeMissing"
+            name="{{ group[0] }}.includeMissing"
+            class="reversed-checkbox"
+          ></mat-checkbox>
+        </label>
+      </div>
 
-    <!-- Loop over filters -->
-    @for (filter of group[1].filters; track filter[0]) {
-    <div class="filter-row">
-      @if (filter[1].type === 'number') {
-      <app-number-input
-        [groupKey]="group[0]"
-        [filterKey]="filter[0]"
-        [filterData]="filter[1]"
-      />
-      } @else {
-      <app-slider-input
-        [groupKey]="group[0]"
-        [filterKey]="filter[0]"
-        [filterData]="filter[1]"
-      />
+      <!-- Loop over filters -->
+      @for (filter of group[1].filters; track filter[0]) {
+        <div class="filter-row">
+          @if (filter[1].type === "number") {
+            <app-number-input
+              [groupKey]="group[0]"
+              [filterKey]="filter[0]"
+              [filterData]="filter[1]"
+            />
+          } @else {
+            <app-slider-input
+              [groupKey]="group[0]"
+              [filterKey]="filter[0]"
+              [filterData]="filter[1]"
+            />
+          }
+        </div>
       }
     </div>
-    }
-  </div>
   }
 
   <div class="filter-button">

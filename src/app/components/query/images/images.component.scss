@@ -25,6 +25,16 @@ mat-list-item {
   }
 }
 
+.image-list {
+  max-height: 140px;
+  overflow-y: auto;
+  margin-top: 4px;
+
+  mat-list {
+    padding-right: 4px; // optional spacing to accommodate scrollbar
+  }
+}
+
 .image-row {
   display: flex;
   align-items: center;
