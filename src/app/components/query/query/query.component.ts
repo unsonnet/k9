@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { MaterialComponent } from '../material/material.component';
 import { ShapeComponent } from '../shape/shape.component';
 import { ImagesComponent } from '../images/images.component';
@@ -18,6 +18,8 @@ import { Query } from '../../../models/query.model';
   styleUrl: './query.component.scss',
 })
 export class QueryComponent {
+  @Output() querySubmit = new EventEmitter<Query>();
+
   selectedMaterial: string | null = null;
   length: number | null = null;
   width: number | null = null;
@@ -40,8 +42,7 @@ export class QueryComponent {
       images: this.uploadedImages.map((img) => img.file),
     };
 
-    console.log('Search Query:', query);
-    alert('Search initiated. Check console for details.');
+    this.querySubmit.emit(query);
   }
 
   // ⬇ called in template on input changes
