@@ -1,4 +1,4 @@
-import { FilterGroups } from './filters.model';
+import { FilterGroups } from './filter.model';
 
 export type Thresholds = {
   [category: string]: {

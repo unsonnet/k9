@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
-import { MaterialComponent } from '../../components/query/material/material.component';
-import { ShapeComponent } from '../../components/query/shape/shape.component';
-import { ImagesComponent } from '../../components/query/images/images.component';
+import { MaterialComponent } from '../material/material.component';
+import { ShapeComponent } from '../shape/shape.component';
+import { ImagesComponent } from '../images/images.component';
 import { MatButtonModule } from '@angular/material/button';
+import { Query } from '../../../models/query.model';
 
 @Component({
   selector: 'app-query',
@@ -13,22 +14,32 @@ import { MatButtonModule } from '@angular/material/button';
     ImagesComponent,
     MatButtonModule,
   ],
-  templateUrl: './query.page.html',
-  styleUrls: ['./query.page.scss'],
+  templateUrl: './query.component.html',
+  styleUrl: './query.component.scss',
 })
-export class QueryPage {
+export class QueryComponent {
   selectedMaterial: string | null = null;
   length: number | null = null;
   width: number | null = null;
   uploadedImages: { name: string; url: string; file: File }[] = [];
 
   onSearch(): void {
-    const query = {
+    if (!this.selectedMaterial) {
+      alert('Must select material');
+      return;
+    }
+    const images = this.uploadedImages.map((img) => img.file);
+    if (images.length == 0) {
+      alert('Must upload at least one image');
+      return;
+    }
+
+    const query: Query = {
       type: 'tile',
       material: this.selectedMaterial,
       length: this.length,
       width: this.width,
-      images: this.uploadedImages.map((img) => img.file),
+      images: images,
     };
 
     console.log('Search Query:', query);

@@ -1,17 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { FiltersPage } from './filters.page';
+import { QueryComponent } from './query.component';
 
-describe('Filters', () => {
-  let component: FiltersPage;
-  let fixture: ComponentFixture<FiltersPage>;
+describe('Query', () => {
+  let component: QueryComponent;
+  let fixture: ComponentFixture<QueryComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [FiltersPage],
+      imports: [QueryComponent],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(FiltersPage);
+    fixture = TestBed.createComponent(QueryComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
