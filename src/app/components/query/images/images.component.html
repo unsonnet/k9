@@ -22,8 +22,8 @@
   </div>
 </div>
 
-@if (images.length > 0) {
-  <div class="form-group">
+<div class="form-group">
+  @if (images.length > 0) {
     <label>Uploaded images</label>
     <mat-list>
       @for (img of images; track img.name; let i = $index) {
@@ -38,5 +38,5 @@
         </mat-list-item>
       }
     </mat-list>
-  </div>
-}
+  }
+</div>

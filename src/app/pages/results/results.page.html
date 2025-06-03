@@ -15,7 +15,8 @@
   <app-product
     [product]="selectedProduct"
     [reference]="reference"
-    [surveyValue]="surveyResponses[selectedProduct.id || '']"
+    [surveyValue]="surveyResponses[selectedProduct.id]"
+    (surveyValueChange)="onSurveyChange(selectedProduct.id, $event)"
   />
   }
 </div>

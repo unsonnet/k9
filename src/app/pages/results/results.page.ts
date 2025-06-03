@@ -25,4 +25,8 @@ export class ResultsPage {
     this.productSelected.emit(product);
     this.selectedProduct = product;
   }
+
+  onSurveyChange(id: string, survey: SurveyResponse) {
+    this.surveyResponses[id] = survey;
+  }
 }

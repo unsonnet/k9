@@ -77,3 +77,30 @@ export const colorFilters = new Map([
     },
   ],
 ]);
+
+export const filterGroups: FilterGroups = new Map([
+  [
+    'shape',
+    {
+      label: 'Shape',
+      filters: shapeFilters,
+      includeMissing: false,
+    },
+  ],
+  [
+    'pattern',
+    {
+      label: 'Pattern',
+      filters: patternFilters,
+      includeMissing: false,
+    },
+  ],
+  [
+    'color',
+    {
+      label: 'Color',
+      filters: colorFilters,
+      includeMissing: false,
+    },
+  ],
+]);

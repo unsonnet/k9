@@ -6,12 +6,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatButtonModule } from '@angular/material/button';
-import {
-  FilterGroups,
-  shapeFilters,
-  patternFilters,
-  colorFilters,
-} from '../../models/filters.model';
+import { filterGroups } from '../../models/filters.model';
 import { packageFilters } from '../../models/thresholds.model';
 import { NumberInputComponent } from '../../components/filters/number-input/number-input.component';
 import { SliderInputComponent } from '../../components/filters/slider-input/slider-input.component';
@@ -33,32 +28,7 @@ import { SliderInputComponent } from '../../components/filters/slider-input/slid
   styleUrls: ['./filters.page.scss'],
 })
 export class FiltersPage {
-  filterGroups: FilterGroups = new Map([
-    [
-      'shape',
-      {
-        label: 'Shape',
-        filters: shapeFilters,
-        includeMissing: false,
-      },
-    ],
-    [
-      'pattern',
-      {
-        label: 'Pattern',
-        filters: patternFilters,
-        includeMissing: false,
-      },
-    ],
-    [
-      'color',
-      {
-        label: 'Color',
-        filters: colorFilters,
-        includeMissing: false,
-      },
-    ],
-  ]);
+  filterGroups = filterGroups;
 
   applyFilters() {
     console.log('Applied filters:', packageFilters(this.filterGroups));
