@@ -1,19 +1,13 @@
-@use "../../../mixins.scss";
+@use '../../../mixins.scss';
 
 .query-container {
   padding: 16px;
-  display: flex;
-  justify-content: center;
-  box-sizing: border-box;
 }
 
 .query {
-  width: 100%;
-  max-width: 600px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  box-sizing: border-box;
   @extend %text-standard;
 }
 
@@ -21,24 +15,25 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-}
 
-// override row layout specifically
-.form-group.row {
-  flex-direction: row; // horizontal layout
-  align-items: flex-start;
-  gap: 12px;
-  flex-wrap: nowrap;
-  width: 100%;
+  &.invalid {
+    border-left: 4px solid #d32f2f;
+    padding-left: 12px;
 
-  mat-form-field {
-    flex: 1 1 50%; // half width each
-    min-width: 0; // prevent overflow
-    margin: 0;
+    .error {
+      display: block;
+    }
   }
 }
 
-.align-right {
-  display: flex;
-  justify-content: flex-end;
+.error {
+  color: #d32f2f;
+  font-size: 13px;
+  font-weight: bold;
+  margin-top: 2px;
+  display: none; // only show when parent has .invalid
+}
+
+.full-width {
+  width: 100%;
 }

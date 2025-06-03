@@ -23,26 +23,35 @@ export class QueryComponent {
   width: number | null = null;
   uploadedImages: { name: string; url: string; file: File }[] = [];
 
+  isMaterialInvalid = false;
+  isImagesInvalid = false;
+
   onSearch(): void {
-    if (!this.selectedMaterial) {
-      alert('Must select material');
-      return;
-    }
-    const images = this.uploadedImages.map((img) => img.file);
-    if (images.length == 0) {
-      alert('Must upload at least one image');
-      return;
-    }
+    this.isMaterialInvalid = !this.selectedMaterial;
+    this.isImagesInvalid = this.uploadedImages.length === 0;
+
+    if (this.isMaterialInvalid || this.isImagesInvalid) return;
 
     const query: Query = {
       type: 'tile',
-      material: this.selectedMaterial,
+      material: this.selectedMaterial!,
       length: this.length,
       width: this.width,
-      images: images,
+      images: this.uploadedImages.map((img) => img.file),
     };
 
     console.log('Search Query:', query);
     alert('Search initiated. Check console for details.');
+  }
+
+  // ⬇ called in template on input changes
+  onMaterialChange(value: string | null): void {
+    this.selectedMaterial = value;
+    this.isMaterialInvalid = false;
+  }
+
+  onImagesChange(images: { name: string; url: string; file: File }[]): void {
+    this.uploadedImages = images;
+    this.isImagesInvalid = false;
   }
 }
