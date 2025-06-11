@@ -13,73 +13,55 @@ function generateSparseMatrix(rows: number, cols: number): (number | null)[][] {
 
 export const mockProducts: Product[] = [
   {
-    id: 'p001',
-    store: 'TechGear',
-    name: 'Wireless Noise-Cancelling Over-Ear Headphones with Long Battery Life',
+    id: 'p000',
+    store: 'Happy Floors',
+    name: 'Artisan & Artisan Wall Dark/Glossy',
     images: [
-      'https://placehold.co/150x100?text=Headphones',
-      'https://placehold.co/200x200?text=Shirt',
-      'https://placehold.co/150x150?text=Pants',
+      'https://nativo-inc-k9.s3.amazonaws.com/catalog/album/012d81b9-fed8-43d9-8432-5c9471050a60.54573-9446-L.c2a4d5d7-7e95-4fd0-8dc8-88a6910101d8.png?...',
     ],
     scores: {
-      quality: {
-        sharpness: generateSparseMatrix(3, M),
-        brightness: generateSparseMatrix(3, M),
+      pattern: {
+        cosine: [[45.08927127056385]],
       },
-      aesthetics: {
-        symmetry: generateSparseMatrix(3, M),
+      color: {
+        chamfer: [[23.894516615746465]],
+        hausdorff: [[29.876813368710543]],
+        variation: [[34.99146239110931]],
+        wasserstein: [[9.544337813541741]],
       },
     },
     details: {
-      price: 299.99,
-      brand: 'SoundPro',
-      color: 'Black',
-      weight: 320,
-      warranty: '2 years',
+      url: 'https://www.happy-floors.com/product/artisan-artisan-wall/#9446-L',
+      material: 'porcelain',
+      length: null,
+      width: null,
+      thickness: null,
     },
   },
   {
-    id: 'p002',
-    store: 'EcoStyle',
-    name: 'Reusable Stainless Steel Water Bottle (750ml)',
-    images: ['https://placehold.co/150x100?text=Bottle'],
+    id: 'p001',
+    store: 'Happy Floors',
+    name: 'Nextone Grey/Natural',
+    images: [
+      'https://nativo-inc-k9.s3.amazonaws.com/catalog/album/016abce5-879e-480b-ab62-6abb72b59ca6.46610-7389-L.2bdff57e-e92e-4ddb-aafe-a3d67e937028.png?...',
+    ],
     scores: {
-      quality: {
-        sharpness: generateSparseMatrix(1, M),
-        brightness: generateSparseMatrix(1, M),
+      pattern: {
+        cosine: [[3.3165279072029152]],
       },
-      aesthetics: {
-        symmetry: generateSparseMatrix(1, M),
+      color: {
+        chamfer: [[17.714517016306967]],
+        hausdorff: [[33.86207401380857]],
+        variation: [[72.54684067709005]],
+        wasserstein: [[10.87956898248683]],
       },
     },
     details: {
-      price: 25.5,
-      brand: 'HydroClean',
-      color: 'Silver',
-      weight: 500,
-      warranty: null,
-    },
-  },
-  {
-    id: 'p003',
-    store: 'HomeEssentials',
-    name: 'Ergonomic Office Chair with Adjustable Height and Lumbar Support',
-    images: ['https://placehold.co/150x100?text=Chair'],
-    scores: {
-      quality: {
-        sharpness: generateSparseMatrix(1, M),
-        brightness: generateSparseMatrix(1, M),
-      },
-      aesthetics: {
-        symmetry: generateSparseMatrix(1, M),
-      },
-    },
-    details: {
-      price: 189.99,
-      brand: 'SitWell',
-      color: 'Gray',
-      weight: 15000,
-      warranty: '3 years',
+      url: 'https://www.happy-floors.com/product/nextone/#7389-L',
+      material: 'porcelain',
+      length: null,
+      width: null,
+      thickness: null,
     },
   },
 ];

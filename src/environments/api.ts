@@ -1,4 +1,4 @@
 export namespace API {
-  export const Base: string =
-    'https://z8nfv68xqd.execute-api.us-east-2.amazonaws.com/canine-dev';
+  export const base: string =
+    'https://824xuvy567.execute-api.us-east-2.amazonaws.com/k9';
 }

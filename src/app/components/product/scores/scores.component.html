@@ -12,11 +12,11 @@
               <div class="bar-container">
                 <div
                   class="bar-fill"
-                  [style.width.%]="getMetricValue(category, metric)! * 100"
+                  [style.width.%]="getMetricValue(category, metric)!"
                 ></div>
               </div>
               <div class="value-label">
-                {{ getMetricValue(category, metric)! * 100 | number: "1.0-0" }}%
+                {{ getMetricValue(category, metric)! | number: "1.0-0" }}%
               </div>
             </div>
           } @else {

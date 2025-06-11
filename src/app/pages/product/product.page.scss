@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: row;
   width: 100%;
+  height: 100%; // must fill the container
+  overflow: hidden;
 }
 
 .sidebar {
@@ -9,6 +11,9 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-y: auto;
+  max-height: 100%; // ensures parent's height is respected
+  padding-right: 12px; // optional: space for scrollbar
 }
 
 h3 {
@@ -32,4 +37,11 @@ h3 {
 
 app-product-gallery {
   flex: 1;
+  min-width: 0; // allow shrinking inside flex container
+  overflow-x: hidden; // enable scrolling if thumbnails overflow
+}
+
+:host {
+  display: block;
+  height: 100%; // allow filling parent modal container
 }

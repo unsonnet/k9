@@ -13,7 +13,15 @@
     @for (entry of filteredDetails(); track entry.key) {
       <div class="field loop-field">
         <strong>{{ titleCase(entry.key) }}</strong>
-        <div class="value">{{ entry.value }}</div>
+        <div class="value">
+          @if (entry.key === "url") {
+            <a [href]="entry.value" target="_blank" rel="noopener">
+              {{ entry.value }}
+            </a>
+          } @else {
+            {{ entry.value }}
+          }
+        </div>
       </div>
     }
   </div>

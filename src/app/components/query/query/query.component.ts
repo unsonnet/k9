@@ -39,6 +39,7 @@ export class QueryComponent {
       material: this.selectedMaterial!,
       length: this.length,
       width: this.width,
+      thickness: null,
       images: this.uploadedImages.map((img) => img.file),
     };
 

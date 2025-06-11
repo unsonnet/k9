@@ -3,14 +3,14 @@
 .gallery-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
 }
 
 .main-image-wrapper {
   position: relative;
   width: 100%;
   max-width: 600px;
-  height: 400px;
+  height: 390px;
   border: 1px solid #ccc;
   overflow: hidden;
   margin: auto;
@@ -58,10 +58,14 @@
 
 .thumbnail-strip {
   display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
   overflow-x: auto;
+  overflow-y: hidden; // ⬅️ ensure no vertical scroll
   gap: 8px;
-  padding: 4px;
-  max-width: 100%;
+  padding: 0 4px 4px 4px; // ⬅️ avoid top padding; reserve space at bottom
+  // height: 72px; // 64px thumbnails + 4px bottom space + buffer
+  box-sizing: border-box;
 }
 
 .thumbnail {

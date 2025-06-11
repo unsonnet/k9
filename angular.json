@@ -25,14 +25,26 @@
             "inlineStyleLanguage": "scss",
             "assets": [
               {
+                "glob": "jxl.js",
+                "input": "node_modules/jxl.js/",
+                "output": "assets/jxl/"
+              },
+              {
+                "glob": "jxl_dec.*",
+                "input": "node_modules/jxl.js/",
+                "output": "assets/jxl/"
+              },
+              {
                 "glob": "**/*",
-                "input": "public"
+                "input": "public",
+                "output": "/"
               }
             ],
             "styles": [
               "@angular/material/prebuilt-themes/azure-blue.css",
               "src/styles.scss"
-            ]
+            ],
+            "scripts": ["node_modules/jxl.js/jxl.js"]
           },
           "configurations": {
             "production": {

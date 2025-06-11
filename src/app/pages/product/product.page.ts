@@ -22,12 +22,23 @@ import { ProductSurveyComponent } from '../../components/product/survey/survey.c
 })
 export class ProductPage {
   @Input({ required: true }) product!: Product;
-  @Input({ required: true }) reference!: string[];
+  @Input({ required: true }) reference!: File[];
   @Input() surveyValue: SurveyResponse | null = null;
   @Output() surveyValueChange = new EventEmitter<SurveyResponse>();
 
   selectedIx = signal(0);
   selectedJx = signal(0);
+
+  referenceUrls: string[] = [];
+
+  ngOnChanges() {
+    if (this.reference?.length) {
+      // Update blob URL list based on new reference input
+      this.referenceUrls = this.reference.map((file) =>
+        URL.createObjectURL(file),
+      );
+    }
+  }
 
   onSurveyChange(value: SurveyResponse) {
     this.surveyValueChange.emit(value);
