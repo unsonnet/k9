@@ -30,7 +30,7 @@ export class ProductScoresComponent {
       return null;
     }
     const score = grid[this.ix][this.jx];
-    return score == null ? null : Math.floor(100 - score);
+    return score == null || score < 0 ? null : Math.floor(100 - score);
   }
 
   titleCase(input: string): string {

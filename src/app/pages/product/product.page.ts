@@ -51,7 +51,7 @@ export class ProductPage {
       result[category] = {};
       for (const metric in this.product.scores[category]) {
         const matrix = this.product.scores[category][metric];
-        const flat = matrix.flat().filter((v): v is number => v !== null);
+        const flat = matrix.flat().filter((v): v is number => v !== null && v >= 0);
         const min = flat.length > 0 ? Math.min(...flat) : null;
         result[category][metric] = [[min]];
       }

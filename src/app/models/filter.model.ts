@@ -32,6 +32,17 @@ export const shapeFilters = new Map([
   ],
 ]);
 
+export const colorFilters = new Map([
+  [
+    'primary',
+    {
+      label: 'Primary',
+      type: 'slider',
+      value: 50,
+    },
+  ],
+]);
+
 export const patternFilters = new Map([
   [
     'cosine',
@@ -43,7 +54,7 @@ export const patternFilters = new Map([
   ],
 ]);
 
-export const colorFilters = new Map([
+export const variationFilters = new Map([
   [
     'chamfer',
     {
@@ -61,9 +72,9 @@ export const colorFilters = new Map([
     },
   ],
   [
-    'variation',
+    'variance',
     {
-      label: 'Variation',
+      label: 'Variance',
       type: 'slider',
       value: 50,
     },
@@ -88,6 +99,14 @@ export const filterGroups: FilterGroups = new Map([
     },
   ],
   [
+    'color',
+    {
+      label: 'Color',
+      filters: colorFilters,
+      includeMissing: false,
+    },
+  ],
+  [
     'pattern',
     {
       label: 'Pattern',
@@ -96,10 +115,10 @@ export const filterGroups: FilterGroups = new Map([
     },
   ],
   [
-    'color',
+    'variation',
     {
-      label: 'Color',
-      filters: colorFilters,
+      label: 'Variation',
+      filters: variationFilters,
       includeMissing: false,
     },
   ],

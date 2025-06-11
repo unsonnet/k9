@@ -79,10 +79,11 @@ export class ResultsPage {
     try {
       const raw = await firstValueFrom(this.http.post<any[]>(url, thresholds));
       this.products = raw.map((p) => {
-        const { id, store, name, images, pattern, color, ...rest } = p;
+        const { id, store, name, images, color, pattern, variation, ...rest } = p;
         const scores: Scores = {};
-        if (pattern) scores['pattern'] = pattern;
         if (color) scores['color'] = color;
+        if (pattern) scores['pattern'] = pattern;
+        if (variation) scores['variation'] = variation;
         return { id, store, name, images, scores, details: rest };
       });
     } catch (e: any) {

@@ -26,3 +26,17 @@
     </div>
   </div>
 </div>
+
+
+@if (showJobInput) {
+  <div class="job-id-prompt">
+    <div class="popup">
+      <label for="job-input">Job ID:</label>
+      <input id="job-input" [(ngModel)]="jobInput" />
+      <div class="button-row">
+        <button (click)="handleSecretJobFetch()">Fetch</button>
+        <button (click)="showJobInput = false">Cancel</button>
+      </div>
+    </div>
+  </div>
+}

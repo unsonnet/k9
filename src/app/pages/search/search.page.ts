@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, HostListener } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -17,7 +18,7 @@ import { mockProducts } from '../../tests/products.data';
 @Component({
   selector: 'app-search',
   standalone: true,
-  imports: [CommonModule, QueryComponent, MatProgressSpinnerModule],
+  imports: [CommonModule, QueryComponent, MatProgressSpinnerModule, FormsModule],
   templateUrl: './search.page.html',
   styleUrls: ['./search.page.scss'],
 })
@@ -28,6 +29,53 @@ export class SearchPage {
   isLoading = false;
   statusText = '';
   errorMessage = '';
+  showJobInput = false;
+  jobInput = '';
+
+  @HostListener('document:keydown', ['$event'])
+  handleKeydown(event: KeyboardEvent): void {
+    if (event.ctrlKey && event.key === 'd') {
+      event.preventDefault();
+      this.showJobInput = true;
+    }
+  }
+
+  async handleSecretJobFetch(): Promise<void> {
+    const job = this.jobInput.trim();
+    if (!job) return;
+
+    this.showJobInput = false;
+    this.isLoading = true;
+    this.errorMessage = '';
+    this.statusText = '';
+
+    try {
+      const thresholds = packageFilters(filterGroups);
+      const products = await this.fetch(job, thresholds);
+
+      // Fetch image URLs and convert to File[]
+      const urls: string[] = await firstValueFrom(this.http.get<string[]>(`${API.base}/${job}/album`));
+      const filePromises = urls.map(async (url) => {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        const name = decodeURIComponent(url.substring(url.lastIndexOf('/') + 1));
+        return new File([blob], name, { type: blob.type });
+      });
+      const files = await Promise.all(filePromises);
+
+      this.router.navigateByUrl('/results', {
+        state: {
+          products,
+          reference: files, // no query.images, fallback to empty
+          job,
+        },
+      });
+    } catch (e: any) {
+      this.errorMessage = e?.message || 'Failed to fetch results!';
+    } finally {
+      this.isLoading = false;
+    }
+  }
 
   async startSearch(query: Query): Promise<void> {
     this.isLoading = true;
@@ -40,10 +88,8 @@ export class SearchPage {
       const reference = await this.upload(job, query);
       const run = await this.prepareFetch(job, reference);
       await this.pollFetch(job, run);
-      const thresholds = packageFilters(filterGroups); // default filters
+      const thresholds = packageFilters(filterGroups);
       const products = await this.fetch(job, thresholds);
-      // const products = mockProducts;
-      // Route to results page with data
       this.router.navigateByUrl('/results', {
         state: {
           products,
@@ -137,6 +183,9 @@ export class SearchPage {
             case 'metric.pattern':
               this.statusText = 'Tracing wavey patterns...';
               break;
+            case 'metric.variation':
+              this.statusText = 'Casting light variations...';
+              break;
             case 'save':
               this.statusText = 'Releasing K9 to the wild...';
               break;
@@ -162,11 +211,12 @@ export class SearchPage {
       this.statusText = 'Fetching results...';
       const raw = await firstValueFrom(this.http.post<any[]>(url, thresholds));
       const products: Product[] = raw.map((p) => {
-        const { id, store, name, images, pattern, color, ...rest } = p;
+        const { id, store, name, images, color, pattern, variation, ...rest } = p;
 
         const scores: Scores = {};
-        if (pattern) scores['pattern'] = pattern;
         if (color) scores['color'] = color;
+        if (pattern) scores['pattern'] = pattern;
+        if (variation) scores['variation'] = variation;
 
         const details: Details = rest;
 
