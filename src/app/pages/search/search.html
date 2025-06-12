@@ -1,3 +1,8 @@
 <div>
   <app-search-reference (submitReference)="onReferenceSubmit($event)" />
+  <app-search-progress 
+  [message]="loadingMessage()"
+  [isError]="isErrored()"/>
 </div>
+
+<button (click)="simulateProgress()">Start Search</button>

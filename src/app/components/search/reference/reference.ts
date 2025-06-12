@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -29,7 +29,7 @@ import { Reference } from '../../../models/reference';
   styleUrl: './reference.scss',
 })
 export class SearchReferenceComponent {
-  @Output() submitReference = new EventEmitter<Reference>();
+  readonly submitReference = output<Reference>();
 
   materials = ['ceramic', 'porcelain'];
   referenceForm: FormGroup<{

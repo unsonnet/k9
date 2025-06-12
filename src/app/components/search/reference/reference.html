@@ -31,7 +31,7 @@
   </div>
 
   <div class="custom-mat-form-field">
-  <app-search-images formControlName="images"></app-search-images>
+  <app-search-images formControlName="images"/>
   @if (referenceForm.get('images')?.touched &&
   referenceForm.get('images')?.hasError('required')) {
   <mat-error>At least one image is required</mat-error>
