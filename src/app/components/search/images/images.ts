@@ -1,6 +1,7 @@
 import {
   Component,
   ElementRef,
+  HostBinding,
   Optional,
   Self,
   ViewEncapsulation,
@@ -73,12 +74,15 @@ export class SearchImagesComponent
   onChange = (_: any) => {};
   onTouched = () => {};
 
-  writeValue(obj: File[] | null): void {
-    const wrapped = (obj ?? []).map((file) => ({
+  private wrapFiles(files: File[]): ImageFile[] {
+    return files.map((file) => ({
       file,
       url: URL.createObjectURL(file),
     }));
-    this.files.set(wrapped);
+  }
+
+  writeValue(obj: File[] | null): void {
+    this.files.set(this.wrapFiles(obj ?? []));
   }
 
   registerOnChange(fn: any): void {
@@ -97,6 +101,7 @@ export class SearchImagesComponent
   // -----------------------------
   // MatFormFieldControl Methods
   // -----------------------------
+
   get empty(): boolean {
     return this.files().length === 0;
   }
@@ -118,10 +123,7 @@ export class SearchImagesComponent
   }
 
   set value(newFiles: File[] | null) {
-    const wrapped = (newFiles ?? []).map((file) => ({
-      file,
-      url: URL.createObjectURL(file),
-    }));
+    const wrapped = this.wrapFiles(newFiles ?? []);
     this.files.set(wrapped);
     this.onChange(wrapped.map((f) => f.file));
     this.stateChanges.next();
@@ -139,24 +141,16 @@ export class SearchImagesComponent
   onFileInput(event: Event): void {
     const input = event.target as HTMLInputElement;
     if (input.files?.length) {
-      const newFiles: ImageFile[] = Array.from(input.files).map((file) => ({
-        file,
-        url: URL.createObjectURL(file),
-      }));
-      const updated = [...this.files(), ...newFiles];
-      this.files.set(updated);
-      this.onChange(updated.map((f) => f.file));
-      this.stateChanges.next();
+      this.value = [...(this.value ?? []), ...input.files];
+      this.onTouched();
     }
   }
 
   removeFile(index: number): void {
-    const list = [...this.files()];
-    URL.revokeObjectURL(list[index].url);
-    list.splice(index, 1);
-    this.files.set(list);
-    this.onChange(list.map((f) => f.file));
-    this.stateChanges.next();
+    const current = [...this.files()];
+    URL.revokeObjectURL(current[index].url);
+    current.splice(index, 1);
+    this.value = current.map((f) => f.file);
   }
 
   // -----------------------------
@@ -174,6 +168,7 @@ export class SearchImagesComponent
     if (event.dataTransfer?.files?.length) {
       const droppedFiles = Array.from(event.dataTransfer.files);
       this.value = [...(this.value ?? []), ...droppedFiles];
+      this.onTouched();
     }
   }
 

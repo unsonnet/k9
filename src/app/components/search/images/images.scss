@@ -30,6 +30,25 @@ mat-icon {
   min-height: 0;
 }
 
+:host(.ng-touched.ng-invalid) {
+  .dnd-box {
+    border: 2px dashed
+      var(--mat-form-field-error-text-color, var(--mat-sys-error));
+  }
+  .drop-text {
+    color: var(
+      --mat-form-field-error-text-color,
+      var(--mat-sys-error)
+    ) !important;
+  }
+  button {
+    color: var(
+      --mat-form-field-error-text-color,
+      var(--mat-sys-error)
+    ) !important;
+  }
+}
+
 .image-panel {
   display: flex;
   flex-direction: column;
@@ -69,6 +88,7 @@ mat-icon {
   }
 
   .drop-text {
+    font-weight: 400;
     display: flex;
     align-items: center;
     color: #666 !important;
@@ -158,7 +178,6 @@ mat-icon {
         background: #f44336;
         border-radius: 50%;
         font-size: 24px;
-        // padding: 4px;
         pointer-events: auto;
         cursor: pointer;
       }

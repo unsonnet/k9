@@ -1,4 +1,8 @@
-<form class="reference-form" [formGroup]="form" (ngSubmit)="submit()">
+<form
+  class="reference-form"
+  [formGroup]="referenceForm"
+  (ngSubmit)="onSubmit()"
+>
   <mat-form-field>
     <mat-label>Material</mat-label>
     <mat-select formControlName="material" required>
@@ -6,8 +10,8 @@
       <mat-option [value]="material">{{ material | titlecase }}</mat-option>
       }
     </mat-select>
-    @if (form.get('material')?.touched &&
-    form.get('material')?.hasError('required')) {
+    @if (referenceForm.get('material')?.touched &&
+    referenceForm.get('material')?.hasError('required')) {
     <mat-error>Material is required</mat-error>
     }
   </mat-form-field>
@@ -26,7 +30,13 @@
     </mat-form-field>
   </div>
 
+  <div class="custom-mat-form-field">
   <app-search-images formControlName="images"></app-search-images>
+  @if (referenceForm.get('images')?.touched &&
+  referenceForm.get('images')?.hasError('required')) {
+  <mat-error>At least one image is required</mat-error>
+  }
+</div>
 
   <button mat-raised-button color="primary" type="submit">Submit</button>
 </form>
