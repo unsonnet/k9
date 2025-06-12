@@ -29,16 +29,16 @@ import { Reference } from '../../../models/reference';
   styleUrl: './reference.scss',
 })
 export class SearchReferenceComponent {
-  readonly submitReference = output<Reference>();
+  readonly submitReference = output<Reference<File>>();
 
   materials = ['ceramic', 'porcelain'];
   referenceForm: FormGroup<{
-    type: FormControl<Reference['type']>;
-    material: FormControl<Reference['material']>;
-    length: FormControl<Reference['length']>;
-    width: FormControl<Reference['width']>;
-    thickness: FormControl<Reference['thickness']>;
-    images: FormControl<Reference['images']>;
+    type: FormControl<string>;
+    material: FormControl<string>;
+    length: FormControl<number | null>;
+    width: FormControl<number | null>;
+    thickness: FormControl<number | null>;
+    images: FormControl<File[]>;
   }>;
 
   constructor(private fb: FormBuilder) {

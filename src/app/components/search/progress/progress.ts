@@ -6,7 +6,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
   standalone: true,
   imports: [MatProgressSpinnerModule],
   templateUrl: './progress.html',
-  styleUrl: './progress.scss'
+  styleUrl: './progress.scss',
 })
 export class SearchProgressComponent {
   readonly message = input('');

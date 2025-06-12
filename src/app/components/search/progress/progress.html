@@ -1,16 +1,12 @@
 <div class="progress-container" [class.error]="isError()">
   @if (!isError()) {
-    <mat-progress-spinner
-      mode="indeterminate"
-      diameter="24"
-      color="primary"
-    ></mat-progress-spinner>
-    <span class="message">
-      {{ message() }}
-    </span>
+  <mat-progress-spinner
+    mode="indeterminate"
+    diameter="24"
+    color="primary"
+  ></mat-progress-spinner>
+  <span class="message"> {{ message() }} </span>
   } @else {
-    <span class="error-message">
-      {{ message() }}
-    </span>
+  <span class="error-message"> {{ message() }} </span>
   }
 </div>

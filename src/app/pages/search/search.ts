@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { Reference } from '../../models/reference';
 import { SearchReferenceComponent } from '../../components/search/reference/reference';
-import { SearchProgressComponent } from "../../components/search/progress/progress";
+import { SearchProgressComponent } from '../../components/search/progress/progress';
 
 @Component({
   selector: 'app-search',
@@ -10,7 +10,7 @@ import { SearchProgressComponent } from "../../components/search/progress/progre
   styleUrl: './search.scss',
 })
 export class SearchPage {
-  onReferenceSubmit(data: Reference) {
+  onReferenceSubmit(data: Reference<File>) {
     console.log('Reference submitted:', data);
   }
 
