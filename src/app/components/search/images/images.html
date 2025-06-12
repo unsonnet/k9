@@ -1,0 +1,57 @@
+<div class="image-panel">
+  <div
+    class="dnd-box"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+    [class.disabled]="disabled"
+    [class.drag-over]="dragActive()"
+  >
+    <button
+      mat-button
+      type="button"
+      (click)="fileInput.click()"
+      [disabled]="disabled"
+    >
+      <mat-icon>upload</mat-icon>
+      <span>Select images</span>
+    </button>
+    <span class="mat-mdc-button drop-text" style="padding: 0">or</span>
+    <span class="mat-mdc-button drop-text">Drop it here!</span>
+
+    <input
+      type="file"
+      multiple
+      accept="image/*"
+      hidden
+      #fileInput
+      [disabled]="disabled"
+      (change)="onFileInput($event)"
+    />
+  </div>
+
+  @if (files().length > 0) {
+  <div class="image-grid">
+    @for (item of files(); track item.url; let i = $index) {
+    <div
+      class="image-item"
+      (mouseenter)="hoveredIndex = i"
+      (mouseleave)="hoveredIndex = -1"
+    >
+      <div class="image-wrapper">
+        <img [src]="item.url" alt="preview" />
+      </div>
+      <div class="filename">{{ item.file.name }}</div>
+
+      @if (hoveredIndex === i) {
+      <div class="hover-overlay" (click)="removeFile(i)">
+        <div class="hover-icon">
+          <mat-icon>close</mat-icon>
+        </div>
+      </div>
+      }
+    </div>
+    }
+  </div>
+  }
+</div>

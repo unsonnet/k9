@@ -1,0 +1,32 @@
+<form class="reference-form" [formGroup]="form" (ngSubmit)="submit()">
+  <mat-form-field>
+    <mat-label>Material</mat-label>
+    <mat-select formControlName="material" required>
+      @for (material of materials; track material) {
+      <mat-option [value]="material">{{ material | titlecase }}</mat-option>
+      }
+    </mat-select>
+    @if (form.get('material')?.touched &&
+    form.get('material')?.hasError('required')) {
+    <mat-error>Material is required</mat-error>
+    }
+  </mat-form-field>
+
+  <div class="dimensions-row">
+    <mat-form-field class="dimension-field">
+      <mat-label>Length</mat-label>
+      <input matInput formControlName="length" type="number" />
+      <span class="dimension-unit" matSuffix>in</span>
+    </mat-form-field>
+
+    <mat-form-field class="dimension-field">
+      <mat-label>Width</mat-label>
+      <input matInput formControlName="width" type="number" />
+      <span class="dimension-unit" matSuffix>in</span>
+    </mat-form-field>
+  </div>
+
+  <app-search-images formControlName="images"></app-search-images>
+
+  <button mat-raised-button color="primary" type="submit">Submit</button>
+</form>

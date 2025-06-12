@@ -1,4 +1,6 @@
 /* You can add global styles to this file, and also import other style files */
+@use "@angular/material" as mat;
+@include mat.core();
 
 html,
 body {
@@ -7,4 +9,27 @@ body {
 body {
   margin: 0;
   font-family: Roboto, "Helvetica Neue", sans-serif;
+}
+
+$default-theme: mat.define-theme(
+  (
+    color: (
+      theme-type: light,
+      primary: mat.$azure-palette,
+      tertiary: mat.$blue-palette,
+    ),
+  )
+);
+
+$compact-theme: mat.define-theme(
+  (
+    density: (
+      scale: -4,
+    ),
+  )
+);
+
+:root {
+  @include mat.all-component-themes($default-theme);
+  @include mat.form-field-density($compact-theme);
 }

@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
-import { SearchPage } from './pages/search/search.page';
-import { ResultsPage } from './pages/results/results.page';
+import { SearchPage } from './pages/search/search';
+import { ResultsPage } from './pages/results/results';
 
 export const routes: Routes = [
   {

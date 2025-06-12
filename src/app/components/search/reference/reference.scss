@@ -1,0 +1,27 @@
+.reference-form {
+  display: flex;
+  flex-direction: column;
+  max-height: 100vh;
+  gap: 16px;
+  overflow: hidden;
+  padding: 8px;
+
+  button {
+    min-height: 30px;
+    height: 30px;
+  }
+
+  .dimensions-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .dimension-field {
+    flex: 1 1 150px;
+    min-width: 0;
+    .dimension-unit {
+      padding: 0 10px 0 5px;
+    }
+  }
+}
