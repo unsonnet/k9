@@ -6,7 +6,7 @@ import { Observable, of } from 'rxjs';
 import { Reference } from '../models/reference';
 // import { Thresholds } from '../models/thresholds';
 
-export type Response<T> = {
+export type FetchResponse<T> = {
   status: number;
   body: T | null;
 };
@@ -19,7 +19,7 @@ export class Fetch {
 
   private base = 'https://824xuvy567.execute-api.us-east-2.amazonaws.com/k9';
 
-  upload(job: string, file: File): Observable<Response<string>> {
+  upload(job: string, file: File): Observable<FetchResponse<string>> {
     const ext = file.name.substring(file.name.lastIndexOf('.'));
     const name = `${uuidv4()}${ext}`;
     const url = `${this.base}/${job}/album/${encodeURIComponent(name)}`;
@@ -32,7 +32,7 @@ export class Fetch {
   initiate(
     job: string,
     reference: Reference<string>,
-  ): Observable<Response<string>> {
+  ): Observable<FetchResponse<string>> {
     const url = `${this.base}/${job}/fetch`;
     return this.http
       .put(url, reference, { responseType: 'text', observe: 'response' })
@@ -42,14 +42,19 @@ export class Fetch {
       );
   }
 
-  poll(job: string, run: string): Observable<Response<string>> {
+  poll(job: string, run: string): Observable<FetchResponse<string>> {
     const url = `${this.base}/${job}/fetch?run=${run}`;
     return this.http.head(url, { observe: 'response' }).pipe(
       map((response) => ({
         status: response.status,
         body: response.headers.get('Stage'),
       })),
-      catchError((err) => of({ status: err.status || 500, body: null })),
+      catchError((err) =>
+        of({
+          status: err.status || 500,
+          body: err.headers.get('Stage') || 'crash',
+        }),
+      ),
     );
   }
 
