@@ -19,13 +19,14 @@
 
 .grid-pane {
   flex: 1;
-  overflow: auto;
-  box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 
-  app-results-grid {
-    padding: 0 5px;
+  .grid-scroll {
+    overflow-y: auto;
+    flex: 1;
+    padding: 8px 5px;
   }
 }
 

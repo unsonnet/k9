@@ -4,6 +4,7 @@ export const exampleProducts: Product[] = [
   {
     id: 'prod001',
     name: 'Sunset Glassware Set',
+    match: 0,
     images: [
       'https://picsum.photos/id/1018/400/400',
       'https://picsum.photos/id/100/400/400',
@@ -30,6 +31,7 @@ export const exampleProducts: Product[] = [
   {
     id: 'prod002',
     name: 'Minimalist Ceramic Bowl',
+    match: 1,
     images: ['https://picsum.photos/id/1027/400/400'],
     scores: {
       product: {
@@ -53,6 +55,7 @@ export const exampleProducts: Product[] = [
   {
     id: 'prod003',
     name: 'Modernist Teapot',
+    match: 2,
     images: ['https://picsum.photos/id/1041/400/400'],
     scores: {
       product: {
@@ -76,6 +79,7 @@ export const exampleProducts: Product[] = [
   {
     id: 'prod004',
     name: 'Azure Porcelain Plate',
+    match: 3,
     images: [
       'https://picsum.photos/id/1062/400/400',
       'https://picsum.photos/id/1069/400/400',
@@ -102,6 +106,7 @@ export const exampleProducts: Product[] = [
   {
     id: 'prod005',
     name: 'Speckled Dessert Dish',
+    match: 4,
     images: ['https://picsum.photos/id/1076/400/400'],
     scores: {
       product: {
@@ -125,6 +130,7 @@ export const exampleProducts: Product[] = [
   {
     id: 'prod006',
     name: 'Amber Glass Mug',
+    match: 5,
     images: ['https://picsum.photos/id/1084/400/400'],
     scores: {
       product: {

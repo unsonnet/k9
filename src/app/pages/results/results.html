@@ -9,10 +9,14 @@
 
   <div class="grid-pane">
     <div class="grid-header">
-      <div class="header-text">Total: {{ exampleProducts.length }}</div>
+      <div class="header-text">Total: {{ sortedProducts.length }}</div>
       <div class="header-text">
         <label for="sort-select">Order by:</label>
-        <select [ngModel]="orderBy()" (ngModelChange)="orderBy.set($event)">
+        <select
+          [ngModel]="orderBy()"
+          (ngModelChange)="orderBy.set($event)"
+          id="sort-select"
+        >
           <option value="score">Score</option>
           <option value="name">Name</option>
           <option value="starred">Starred</option>
@@ -20,6 +24,12 @@
       </div>
     </div>
 
-    <app-results-grid [products]="exampleProducts" />
+    <div class="grid-scroll">
+      <app-results-grid
+        [products]="sortedProducts"
+        [starred]="starredMap()"
+        (starToggled)="updateStar($event)"
+      />
+    </div>
   </div>
 </div>

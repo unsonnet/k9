@@ -1,4 +1,4 @@
-import { Component, signal, input, output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { Product } from '../../../models/product';
 
 @Component({
@@ -10,20 +10,18 @@ import { Product } from '../../../models/product';
 })
 export class ResultsGridComponent {
   readonly products = input.required<Product[]>();
+  readonly starred = input<Record<string, boolean>>();
   readonly starToggled = output<{ id: string; starred: boolean }>();
   readonly productClicked = output<Product>();
 
-  private starredMap = signal<Record<string, boolean>>({});
-
   toggleStar(id: string, event: MouseEvent) {
     event.stopPropagation();
-    const prev = this.starredMap()[id] ?? false;
-    this.starredMap.update((m) => ({ ...m, [id]: !prev }));
-    this.starToggled.emit({ id, starred: !prev });
+    const current = this.starred()?.[id] ?? false;
+    this.starToggled.emit({ id, starred: !current });
   }
 
   isStarred(id: string): boolean {
-    return this.starredMap()[id] ?? false;
+    return this.starred()?.[id] ?? false;
   }
 
   viewProduct(product: Product) {

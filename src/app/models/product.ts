@@ -18,6 +18,7 @@ export type Metrics = {
 export type Product = {
   id: string;
   name: string;
+  match: number;
   images: string[];
   scores: Metrics;
   description: {

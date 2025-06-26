@@ -1,12 +1,12 @@
 import { Component, computed, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ResultsThresholdsComponent } from '../../components/results/thresholds/thresholds';
 import { ResultsGridComponent } from '../../components/results/grid/grid';
 import { ResultsReferenceComponent } from '../../components/results/reference/reference';
 import { Thresholds } from '../../models/thresholds';
 import { Product } from '../../models/product';
 import { exampleProducts } from '../../models/demo-product';
-import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-results',
@@ -23,13 +23,34 @@ import { FormsModule } from '@angular/forms';
 })
 export class ResultsPage {
   readonly reference = input<Product>();
-  readonly exampleProducts = exampleProducts;
-
   readonly target = computed(() => this.reference() ?? this.exampleProducts[0]);
 
-  orderBy = signal<'score' | 'name' | 'starred'>('score');
+  readonly exampleProducts = exampleProducts;
+  readonly orderBy = signal<'score' | 'name' | 'starred'>('score');
+  readonly starredMap = signal<Record<string, boolean>>({});
+
+  get sortedProducts(): Product[] {
+    const products = [...this.exampleProducts];
+    const starred = this.starredMap();
+    const key = this.orderBy();
+
+    return products.sort((a, b) => {
+      if (key === 'score') return 0; // Stable, original order
+      if (key === 'name') return a.name.localeCompare(b.name);
+      if (key === 'starred') {
+        const sa = starred[a.id] ?? false;
+        const sb = starred[b.id] ?? false;
+        return Number(sb) - Number(sa);
+      }
+      return 0;
+    });
+  }
 
   handleApply(thresholds: Thresholds) {
     console.log('Thresholds received:', thresholds);
+  }
+
+  updateStar({ id, starred }: { id: string; starred: boolean }) {
+    this.starredMap.update((prev) => ({ ...prev, [id]: starred }));
   }
 }
