@@ -10,19 +10,21 @@
     min-height: 30px;
     height: 30px;
     font-size: 16px;
+    border-radius: 2px;
   }
 
   .dimensions-row {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
-  }
 
-  .dimension-field {
-    flex: 1 1 150px;
-    min-width: 0;
-    .dimension-unit {
-      padding: 0 10px 0 5px;
+    .dimension-field {
+      flex: 1 1 150px;
+      min-width: 0;
+
+      .dimension-unit {
+        padding: 0 10px 0 5px;
+      }
     }
   }
 
