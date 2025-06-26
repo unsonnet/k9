@@ -1,17 +1,17 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ResultsPage } from './results';
+import { ResultsThresholdsComponent } from './thresholds';
 
-describe('Results', () => {
-  let component: ResultsPage;
-  let fixture: ComponentFixture<ResultsPage>;
+describe('Thresholds', () => {
+  let component: ResultsThresholdsComponent;
+  let fixture: ComponentFixture<ResultsThresholdsComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ResultsPage],
+      imports: [ResultsThresholdsComponent],
     }).compileComponents();
 
-    fixture = TestBed.createComponent(ResultsPage);
+    fixture = TestBed.createComponent(ResultsThresholdsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

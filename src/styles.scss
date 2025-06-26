@@ -29,7 +29,38 @@ $compact-theme: mat.define-theme(
   )
 );
 
+/* Change style of slider */
+.mat-primary.mdc-slider {
+  height: 30px;
+  margin: 0px;
+  left: 0;
+  right: 0;
+
+  .mdc-slider__input {
+    height: 30px;
+  }
+  .mdc-slider__thumb {
+    height: 30px;
+    width: 30px;
+    left: -14px;
+    .mat-ripple .mat-ripple-element {
+      height: 30px !important;
+      width: 30px !important;
+      left: 0 !important;
+      top: 0 !important;
+    }
+  }
+}
+
 :root {
   @include mat.all-component-themes($default-theme);
   @include mat.form-field-density($compact-theme);
+  @include mat.slider-overrides(
+    (
+      active-track-height: 3px,
+      inactive-track-height: 3px,
+      handle-height: 10px,
+      handle-width: 10px,
+    )
+  );
 }
