@@ -5,6 +5,7 @@ import {
   HostListener,
   input,
   output,
+  SimpleChanges,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
 
@@ -32,6 +33,13 @@ export class ProductCanvasComponent {
   ngAfterViewInit() {
     this.currentMatrix = this.transform();
     this.drawImage();
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['imageUrl'] || changes['transform']) {
+      this.currentMatrix = this.transform();
+      this.drawImage();
+    }
   }
 
   drawImage() {

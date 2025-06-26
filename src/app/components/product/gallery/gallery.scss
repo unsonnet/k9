@@ -1,0 +1,48 @@
+.gallery-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.thumbnail-row {
+  display: flex;
+  overflow-x: auto;
+  margin-top: 12px;
+  padding-bottom: 6px;
+  gap: 6px;
+
+  .thumbnail {
+    flex: 0 0 auto;
+    width: 60px;
+    height: 60px;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition: border 0.2s ease;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      filter: brightness(0.7);
+      transition: filter 0.2s ease;
+    }
+
+    &:hover img {
+      filter: brightness(1);
+    }
+
+    &.selected {
+      border-color: dodgerblue;
+
+      img {
+        filter: brightness(1);
+      }
+    }
+  }
+}

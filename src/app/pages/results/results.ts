@@ -7,7 +7,7 @@ import { ResultsReferenceComponent } from '../../components/results/reference/re
 import { Thresholds } from '../../models/thresholds';
 import { Product } from '../../models/product';
 import { exampleProducts } from '../../models/demo-product';
-import { ProductCanvasComponent } from '../../components/product/canvas/canvas';
+import { ProductGalleryComponent } from "../../components/product/gallery/gallery";
 
 @Component({
   selector: 'app-results',
@@ -15,11 +15,11 @@ import { ProductCanvasComponent } from '../../components/product/canvas/canvas';
   imports: [
     CommonModule,
     FormsModule,
-    ProductCanvasComponent,
     ResultsThresholdsComponent,
     ResultsGridComponent,
     ResultsReferenceComponent,
-  ],
+    ProductGalleryComponent
+],
   templateUrl: './results.html',
   styleUrls: ['./results.scss'],
 })
