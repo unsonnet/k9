@@ -8,6 +8,7 @@ import { Thresholds } from '../../models/thresholds';
 import { Product } from '../../models/product';
 import { exampleProducts } from '../../models/demo-product';
 import { ProductGalleryComponent } from "../../components/product/gallery/gallery";
+import { ProductDescriptionComponent } from "../../components/product/description/description";
 
 @Component({
   selector: 'app-results',
@@ -18,7 +19,8 @@ import { ProductGalleryComponent } from "../../components/product/gallery/galler
     ResultsThresholdsComponent,
     ResultsGridComponent,
     ResultsReferenceComponent,
-    ProductGalleryComponent
+    ProductGalleryComponent,
+    ProductDescriptionComponent,
 ],
   templateUrl: './results.html',
   styleUrls: ['./results.scss'],
