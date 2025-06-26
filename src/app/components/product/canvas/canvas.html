@@ -1,0 +1,29 @@
+<div class="canvas-wrapper">
+  <canvas #canvas width="600" height="600"></canvas>
+
+  <div class="toolbar">
+    <button
+      class="icon-button"
+      [class.active]="mode === 'translate'"
+      (click)="setMode('translate')"
+      title="Translate"
+    >
+      <mat-icon>open_with</mat-icon>
+    </button>
+
+    <button
+      class="icon-button"
+      [class.active]="mode === 'rotate'"
+      (click)="setMode('rotate')"
+      title="Rotate"
+    >
+      <mat-icon>rotate_right</mat-icon>
+    </button>
+  </div>
+
+  <div class="toolbar-right">
+    <button class="icon-button" (click)="resetTransform()" title="Reset View">
+      <mat-icon>home</mat-icon>
+    </button>
+  </div>
+</div>

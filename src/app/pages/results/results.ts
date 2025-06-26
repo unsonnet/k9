@@ -7,6 +7,7 @@ import { ResultsReferenceComponent } from '../../components/results/reference/re
 import { Thresholds } from '../../models/thresholds';
 import { Product } from '../../models/product';
 import { exampleProducts } from '../../models/demo-product';
+import { ProductCanvasComponent } from '../../components/product/canvas/canvas';
 
 @Component({
   selector: 'app-results',
@@ -14,6 +15,7 @@ import { exampleProducts } from '../../models/demo-product';
   imports: [
     CommonModule,
     FormsModule,
+    ProductCanvasComponent,
     ResultsThresholdsComponent,
     ResultsGridComponent,
     ResultsReferenceComponent,
