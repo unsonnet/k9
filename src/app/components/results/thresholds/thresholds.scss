@@ -35,6 +35,10 @@
   padding: 15px;
   box-sizing: border-box;
   max-width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
 h2 {
@@ -73,11 +77,14 @@ h2 {
       box-sizing: border-box;
     }
   }
+}
+
+.slider-wrapper {
+  padding: 0 5px;
+  box-sizing: border-box;
 
   mat-slider {
     width: 100%;
-    min-width: 0;
-    padding: 0 5px;
   }
 }
 

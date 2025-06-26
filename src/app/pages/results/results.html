@@ -8,6 +8,18 @@
   </div>
 
   <div class="grid-pane">
+    <div class="grid-header">
+      <div class="header-text">Total: {{ exampleProducts.length }}</div>
+      <div class="header-text">
+        <label for="sort-select">Order by:</label>
+        <select [ngModel]="orderBy()" (ngModelChange)="orderBy.set($event)">
+          <option value="score">Score</option>
+          <option value="name">Name</option>
+          <option value="starred">Starred</option>
+        </select>
+      </div>
+    </div>
+
     <app-results-grid [products]="exampleProducts" />
   </div>
 </div>

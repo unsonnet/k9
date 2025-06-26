@@ -42,13 +42,16 @@
         <span>{{ key | titlecase }}</span>
         <span>{{ section.model[key] }}%</span>
       </div>
-      <mat-slider min="0" max="100" step="1">
-        <input
-          matSliderThumb
-          [(ngModel)]="section.model[key]"
-          [name]="section.prefix + key"
-        />
-      </mat-slider>
+      <div class="slider-wrapper">
+        <mat-slider min="0" max="100" step="1">
+          <input
+            matSliderThumb
+            [(ngModel)]="section.model[key]"
+            [name]="section.prefix + key"
+          />
+        </mat-slider>
+      </div>
+
       }
     </div>
     <hr />
@@ -68,13 +71,16 @@
         <span>{{ key | titlecase }}</span>
         <span>{{ section.model[key] }}%</span>
       </div>
-      <mat-slider min="0" max="100" step="1">
-        <input
-          matSliderThumb
-          [(ngModel)]="section.model[key]"
-          [name]="section.prefix + key"
-        />
-      </mat-slider>
+      <div class="slider-wrapper">
+        <mat-slider min="0" max="100" step="1">
+          <input
+            matSliderThumb
+            [(ngModel)]="section.model[key]"
+            [name]="section.prefix + key"
+          />
+        </mat-slider>
+      </div>
+
       }
     </div>
     <hr />

@@ -35,6 +35,10 @@ $compact-theme: mat.define-theme(
   margin: 0px;
 
   .mdc-slider__input {
+    width: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+    padding: 0 !important;
     height: 30px;
   }
   .mdc-slider__thumb {
