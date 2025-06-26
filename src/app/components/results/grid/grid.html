@@ -1,0 +1,20 @@
+<div class="grid-container">
+  @for (prod of products(); track prod.id) {
+  <div class="card" (click)="viewProduct(prod)">
+    <div class="img-wrapper">
+      <img [src]="prod.images[0]" alt="{{ prod.name }}" />
+      <div
+        class="star"
+        [class.filled]="isStarred(prod.id)"
+        (click)="toggleStar(prod.id, $event)"
+        title="Toggle star"
+      >
+        ★
+      </div>
+      <div class="gradient">
+        <div class="name">{{ prod.name }}</div>
+      </div>
+    </div>
+  </div>
+  }
+</div>
