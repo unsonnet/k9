@@ -1,79 +1,83 @@
 <div class="filter-container">
-  <div class="filter-actions">
-    <button mat-raised-button color="primary" (click)="onFilter()">
-      Filter
-    </button>
-    <button mat-raised-button color="primary" (click)="onExport()">
-      Export
-    </button>
+  <div class="filter-toolbar">
+    <div class="filter-actions">
+      <button mat-raised-button color="primary" (click)="onFilter()">
+        Filter
+      </button>
+      <button mat-raised-button color="primary" (click)="onExport()">
+        Export
+      </button>
+    </div>
   </div>
 
-  <h2>Filter by Product</h2>
+  <div class="filter-scroll">
+    <h2>Filter by Product</h2>
 
-  <div class="filter-section">
-    <p class="label-muted">Dimensions (inches)</p>
-    @for (key of productShapeFields; track key) {
-    <div class="filter-header">
-      <span>&Delta; {{ key | titlecase }}</span>
-      <input
-        type="number"
-        min="0"
-        [(ngModel)]="product.shape[key]"
-        [name]="'shape_' + key"
-        class="number-input"
-      />
+    <div class="filter-section">
+      <p class="label-muted">Dimensions (inches)</p>
+      @for (key of productShapeFields; track key) {
+      <div class="filter-header">
+        <span>&Delta; {{ key | titlecase }}</span>
+        <input
+          type="number"
+          min="0"
+          [(ngModel)]="product.shape[key]"
+          [name]="'shape_' + key"
+          class="number-input"
+        />
+      </div>
+      }
     </div>
+
+    <hr />
+
+    @for (section of [ { label: 'Color', fields: productColorFields, model:
+    product.color, prefix: 'product_color_' }, { label: 'Pattern', fields:
+    productPatternFields, model: product.pattern, prefix: 'product_pattern_' }
+    ]; track section.label) {
+    <div class="filter-section">
+      <p class="label-muted">{{ section.label }}</p>
+      @for (key of section.fields; track key) {
+      <div class="filter-header">
+        <span>{{ key | titlecase }}</span>
+        <span>{{ section.model[key] }}%</span>
+      </div>
+      <mat-slider min="0" max="100" step="1">
+        <input
+          matSliderThumb
+          [(ngModel)]="section.model[key]"
+          [name]="section.prefix + key"
+        />
+      </mat-slider>
+      }
+    </div>
+    <hr />
+    }
+
+    <h2>Filter by Image</h2>
+
+    @for (section of [ { label: 'Color', fields: imageColorFields, model:
+    image.color, prefix: 'image_color_' }, { label: 'Pattern', fields:
+    imagePatternFields, model: image.pattern, prefix: 'image_pattern_' }, {
+    label: 'Variation', fields: variationFields, model: image.variation, prefix:
+    'variation_' } ]; track section.label) {
+    <div class="filter-section">
+      <p class="label-muted">{{ section.label }}</p>
+      @for (key of section.fields; track key) {
+      <div class="filter-header">
+        <span>{{ key | titlecase }}</span>
+        <span>{{ section.model[key] }}%</span>
+      </div>
+      <mat-slider min="0" max="100" step="1">
+        <input
+          matSliderThumb
+          [(ngModel)]="section.model[key]"
+          [name]="section.prefix + key"
+        />
+      </mat-slider>
+      }
+    </div>
+    <hr />
     }
   </div>
-
-  <hr />
-
-  @for (section of [ { label: 'Color', fields: productColorFields, model:
-  product.color, prefix: 'product_color_' }, { label: 'Pattern', fields:
-  productPatternFields, model: product.pattern, prefix: 'product_pattern_' } ];
-  track section.label) {
-  <div class="filter-section">
-    <p class="label-muted">{{ section.label }}</p>
-    @for (key of section.fields; track key) {
-    <div class="filter-header">
-      <span>{{ key | titlecase }}</span>
-      <span>{{ section.model[key] }}%</span>
-    </div>
-    <mat-slider min="0" max="100" step="1">
-      <input
-        matSliderThumb
-        [(ngModel)]="section.model[key]"
-        [name]="section.prefix + key"
-      />
-    </mat-slider>
-    }
-  </div>
-  <hr />
-  }
-
-  <h2>Filter by Image</h2>
-
-  @for (section of [ { label: 'Color', fields: imageColorFields, model:
-  image.color, prefix: 'image_color_' }, { label: 'Pattern', fields:
-  imagePatternFields, model: image.pattern, prefix: 'image_pattern_' }, { label:
-  'Variation', fields: variationFields, model: image.variation, prefix:
-  'variation_' } ]; track section.label) {
-  <div class="filter-section">
-    <p class="label-muted">{{ section.label }}</p>
-    @for (key of section.fields; track key) {
-    <div class="filter-header">
-      <span>{{ key | titlecase }}</span>
-      <span>{{ section.model[key] }}%</span>
-    </div>
-    <mat-slider min="0" max="100" step="1">
-      <input
-        matSliderThumb
-        [(ngModel)]="section.model[key]"
-        [name]="section.prefix + key"
-      />
-    </mat-slider>
-    }
-  </div>
-  <hr />
-  }
 </div>

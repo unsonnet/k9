@@ -1,13 +1,24 @@
 .filter-container {
   max-width: 420px;
   font-family: sans-serif;
-  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.filter-toolbar {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 1;
+  padding: 15px;
 
   .filter-actions {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 0 auto 30px;
     gap: 20px;
 
     > button {
@@ -16,45 +27,62 @@
       border-radius: 2px;
     }
   }
+}
 
-  h2 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    margin: 20px 0;
+.filter-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 15px;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 20px 0;
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+}
+
+.filter-section {
+  .label-muted {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0 0 10px;
   }
 
-  .filter-section {
-    .label-muted {
-      font-size: 0.85rem;
-      color: #666;
-      margin: 0 0 10px;
-    }
+  .filter-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 500;
+    font-size: 0.85rem;
+    margin-top: 5px;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
 
-    .filter-header {
-      display: flex;
-      justify-content: space-between;
-      font-weight: 500;
-      font-size: 0.85rem;
-      margin-top: 5px;
-      align-items: center;
-
-      input.number-input {
-        width: 60%;
-        text-indent: calc(100% - 25px);
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box;
-      }
-    }
-
-    mat-slider {
-      width: 100%;
+    input.number-input {
+      width: 60%;
+      max-width: 100%;
+      text-indent: calc(100% - 25px);
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
     }
   }
 
-  hr {
-    border: none;
-    border-top: 1px solid #ddd;
-    margin: 15px 0;
+  mat-slider {
+    width: 100%;
+    min-width: 0;
+    padding: 0 5px;
   }
+}
+
+hr {
+  border: none;
+  border-top: 1px solid #ddd;
+  margin: 15px 0;
 }
