@@ -1,4 +1,26 @@
-// app-results-thresholds {
-//   padding: 24px;
-//   width: 100%;
-// }
+.results-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.thresholds-pane {
+  width: 300px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #ccc;
+}
+
+.thresholds-scroll {
+  overflow-y: auto;
+  flex: 1;
+  box-sizing: border-box;
+}
+
+.grid-pane {
+  flex: 1;
+  overflow: auto;
+  padding: 8px;
+  box-sizing: border-box;
+}

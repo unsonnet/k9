@@ -33,8 +33,6 @@ $compact-theme: mat.define-theme(
 .mat-primary.mdc-slider {
   height: 30px;
   margin: 0px;
-  left: 0;
-  right: 0;
 
   .mdc-slider__input {
     height: 30px;
@@ -43,6 +41,7 @@ $compact-theme: mat.define-theme(
     height: 30px;
     width: 30px;
     left: -14px;
+
     .mat-ripple .mat-ripple-element {
       height: 30px !important;
       width: 30px !important;

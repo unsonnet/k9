@@ -1,1 +1,13 @@
-<app-results-thresholds (applyFilter)="handleApply($event)"/>
+<div class="results-container">
+  <div class="thresholds-pane">
+    <app-results-reference [reference]="target()" />
+
+    <div class="thresholds-scroll">
+      <app-results-thresholds (applyFilter)="handleApply($event)" />
+    </div>
+  </div>
+
+  <div class="grid-pane">
+    <app-results-grid [products]="exampleProducts" />
+  </div>
+</div>
