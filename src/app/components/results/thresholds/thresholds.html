@@ -1,10 +1,20 @@
 <div class="threshold-panel">
   <div class="threshold-panel__toolbar">
     <div class="threshold-panel__actions">
-      <button mat-raised-button color="primary" (click)="onFilter()">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="onFilter()"
+        [disabled]="disabled()"
+      >
         Filter
       </button>
-      <button mat-raised-button color="primary" (click)="onExport()">
+      <button
+        mat-raised-button
+        color="primary"
+        (click)="onExport()"
+        [disabled]="disabled() || !exportEnabled()"
+      >
         Export
       </button>
     </div>
@@ -21,6 +31,7 @@
         <input
           type="number"
           min="0"
+          [disabled]="disabled()"
           [(ngModel)]="product.shape[key]"
           [name]="'shape_' + key"
           class="threshold-panel__number-input"
@@ -31,9 +42,9 @@
 
     <hr />
 
-    @for (section of [
-      { label: 'Color', fields: productColorFields, model: product.color, prefix: 'product_color_' },
-      { label: 'Pattern', fields: productPatternFields, model: product.pattern, prefix: 'product_pattern_' }
+    @for (section of [ { label: 'Color', fields: productColorFields, model:
+    product.color, prefix: 'product_color_' }, { label: 'Pattern', fields:
+    productPatternFields, model: product.pattern, prefix: 'product_pattern_' }
     ]; track section.label) {
     <div class="threshold-panel__section">
       <p class="threshold-panel__label-muted">{{ section.label }}</p>
@@ -46,6 +57,7 @@
         <mat-slider min="0" max="100" step="1">
           <input
             matSliderThumb
+            [disabled]="disabled()"
             [(ngModel)]="section.model[key]"
             [name]="section.prefix + key"
           />
@@ -58,11 +70,11 @@
 
     <h2>Filter by Image</h2>
 
-    @for (section of [
-      { label: 'Color', fields: imageColorFields, model: image.color, prefix: 'image_color_' },
-      { label: 'Pattern', fields: imagePatternFields, model: image.pattern, prefix: 'image_pattern_' },
-      { label: 'Variation', fields: variationFields, model: image.variation, prefix: 'variation_' }
-    ]; track section.label) {
+    @for (section of [ { label: 'Color', fields: imageColorFields, model:
+    image.color, prefix: 'image_color_' }, { label: 'Pattern', fields:
+    imagePatternFields, model: image.pattern, prefix: 'image_pattern_' }, {
+    label: 'Variation', fields: variationFields, model: image.variation, prefix:
+    'variation_' } ]; track section.label) {
     <div class="threshold-panel__section">
       <p class="threshold-panel__label-muted">{{ section.label }}</p>
       @for (key of section.fields; track key) {
@@ -74,6 +86,7 @@
         <mat-slider min="0" max="100" step="1">
           <input
             matSliderThumb
+            [disabled]="disabled()"
             [(ngModel)]="section.model[key]"
             [name]="section.prefix + key"
           />

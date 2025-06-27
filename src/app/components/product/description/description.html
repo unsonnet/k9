@@ -18,12 +18,15 @@
     <div class="product-desc__row">
       <span class="product-desc__label">Shape:</span>
       <span class="product-desc__value">
-        {{ product().description.shape.length }}" × {{ product().description.shape.width }}"
+        {{ product().description.shape.length }}" × {{
+        product().description.shape.width }}"
       </span>
     </div>
     <div class="product-desc__row">
       <span class="product-desc__label">Material:</span>
-      <span class="product-desc__value">{{ product().description.material }}</span>
+      <span class="product-desc__value"
+        >{{ product().description.material }}</span
+      >
     </div>
     <div class="product-desc__row">
       <span class="product-desc__label">Similarity:</span>
@@ -40,7 +43,7 @@
         <div class="product-desc__bar">
           <div
             class="product-desc__bar-fill"
-            [style.width.%]="100 * (1 - product().scores.product.color[key])"
+            [style.width.%]="100 - product().scores.product.color[key]"
           ></div>
         </div>
         <span class="product-desc__metric-value">

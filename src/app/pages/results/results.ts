@@ -25,14 +25,19 @@ import { ProductPage } from '../product/product';
 })
 export class ResultsPage {
   readonly reference = input<Product>();
-  readonly target = computed(() => this.reference() ?? this.exampleProducts[0]);
+  readonly target = computed(() => this.reference() ?? this.products()[0]);
 
-  readonly exampleProducts = exampleProducts;
+  readonly products = signal<Product[]>(exampleProducts);
   readonly orderBy = signal<'score' | 'name' | 'starred'>('score');
   readonly activeProduct = signal<Product | null>(null);
 
-  get sortedProducts(): Product[] {
-    const products = [...this.exampleProducts];
+  readonly thresholdsDisabled = signal(false);
+  readonly exportEnabled = computed(() =>
+    this.sortedProducts().some((p) => p.starred),
+  );
+
+  readonly sortedProducts = computed(() => {
+    const products = [...this.products()];
     const key = this.orderBy();
 
     return products.sort((a, b) => {
@@ -43,14 +48,27 @@ export class ResultsPage {
       }
       return 0;
     });
-  }
+  });
+
 
   handleApply(thresholds: Thresholds) {
+    this.thresholdsDisabled.set(true);
     console.log('Thresholds received:', thresholds);
+    setTimeout(() => {
+      this.thresholdsDisabled.set(false);
+    }, 3000);
   }
 
   openProduct(product: Product) {
     this.activeProduct.set(product);
+  }
+
+  toggleStar(toggled: Product) {
+    this.products.update((items) =>
+      items.map((p) =>
+        p === toggled ? { ...p, starred: !(p.starred ?? false) } : p
+      )
+    );
   }
 
   closeOverlay() {

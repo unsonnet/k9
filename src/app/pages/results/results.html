@@ -3,14 +3,18 @@
     <app-results-reference [reference]="target()" />
 
     <div class="results-page__thresholds-scroll">
-      <app-results-thresholds (applyFilter)="handleApply($event)" />
+      <app-results-thresholds
+        (applyFilter)="handleApply($event)"
+        [disabled]="thresholdsDisabled()"
+        [exportEnabled]="exportEnabled()"
+      />
     </div>
   </div>
 
   <div class="results-page__grid">
     <div class="results-page__grid-header">
       <div class="results-page__header-text">
-        Total: {{ sortedProducts.length }}
+        Total: {{ sortedProducts().length }}
       </div>
       <div class="results-page__header-text">
         <label for="sort-select">Order by:</label>
@@ -28,15 +32,19 @@
 
     <div class="results-page__grid-scroll">
       <app-results-grid
-        [products]="sortedProducts"
+        [products]="sortedProducts()"
         (productClicked)="openProduct($event)"
+        (starToggled)="toggleStar($event)"
       />
     </div>
   </div>
 
   @if (activeProduct()) {
   <div class="results-page__overlay" (click)="closeOverlay()">
-    <div class="results-page__overlay-content" (click)="$event.stopPropagation()">
+    <div
+      class="results-page__overlay-content"
+      (click)="$event.stopPropagation()"
+    >
       <app-product [product]="activeProduct()!" [reference]="target()" />
     </div>
   </div>

@@ -10,10 +10,12 @@ import { Product } from '../../../models/product';
 export class ResultsGridComponent {
   readonly products = input.required<Product[]>();
   readonly productClicked = output<Product>();
+  readonly starToggled = output<Product>();
+
 
   toggleStar(product: Product, event: MouseEvent) {
     event.stopPropagation();
-    product.starred = !(product.starred ?? false);
+    this.starToggled.emit(product);
   }
 
   viewProduct(product: Product) {

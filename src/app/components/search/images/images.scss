@@ -32,15 +32,22 @@ mat-icon {
 
 :host(.ng-touched.ng-invalid) {
   .image-panel__dnd {
-    border: 2px dashed var(--mat-form-field-error-text-color, var(--mat-sys-error));
+    border: 2px dashed
+      var(--mat-form-field-error-text-color, var(--mat-sys-error));
   }
 
   .image-panel__drop-text {
-    color: var(--mat-form-field-error-text-color, var(--mat-sys-error)) !important;
+    color: var(
+      --mat-form-field-error-text-color,
+      var(--mat-sys-error)
+    ) !important;
   }
 
   button {
-    color: var(--mat-form-field-error-text-color, var(--mat-sys-error)) !important;
+    color: var(
+      --mat-form-field-error-text-color,
+      var(--mat-sys-error)
+    ) !important;
   }
 }
 
@@ -168,17 +175,17 @@ mat-icon {
     pointer-events: auto;
 
     mat-icon {
-    color: white;
-    font-weight: 600;
-    font-size: 20px;
-    width: 20px;
-    height: 20px;
-    display: flex;          // instead of block
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-    padding: 0;
-  }
+      color: white;
+      font-weight: 600;
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      display: flex; // instead of block
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      padding: 0;
+    }
   }
 
   &__filename {

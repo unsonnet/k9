@@ -21,8 +21,7 @@ export class ProductDescriptionComponent {
   }
 
   toggleStar(event: MouseEvent) {
-  event.stopPropagation();
-  this.product().starred = !(this.product().starred ?? false);
-}
-
+    event.stopPropagation();
+    this.product().starred = !(this.product().starred ?? false);
+  }
 }

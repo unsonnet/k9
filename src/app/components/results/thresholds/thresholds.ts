@@ -1,5 +1,4 @@
-import { Component } from '@angular/core';
-import { output } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatSliderModule } from '@angular/material/slider';
 import { MatButtonModule } from '@angular/material/button';
@@ -16,6 +15,9 @@ import { Thresholds } from '../../../models/thresholds';
 export class ResultsThresholdsComponent {
   readonly applyFilter = output<Thresholds>();
   readonly exportResults = output<void>();
+
+  readonly disabled = input(false);
+  readonly exportEnabled = input(true);
 
   product = {
     shape: {
