@@ -1,6 +1,6 @@
-<div class="filter-container">
-  <div class="filter-toolbar">
-    <div class="filter-actions">
+<div class="threshold-panel">
+  <div class="threshold-panel__toolbar">
+    <div class="threshold-panel__actions">
       <button mat-raised-button color="primary" (click)="onFilter()">
         Filter
       </button>
@@ -10,20 +10,20 @@
     </div>
   </div>
 
-  <div class="filter-scroll">
+  <div class="threshold-panel__scroll">
     <h2>Filter by Product</h2>
 
-    <div class="filter-section">
-      <p class="label-muted">Dimensions (inches)</p>
+    <div class="threshold-panel__section">
+      <p class="threshold-panel__label-muted">Dimensions (inches)</p>
       @for (key of productShapeFields; track key) {
-      <div class="filter-header">
+      <div class="threshold-panel__field">
         <span>&Delta; {{ key | titlecase }}</span>
         <input
           type="number"
           min="0"
           [(ngModel)]="product.shape[key]"
           [name]="'shape_' + key"
-          class="number-input"
+          class="threshold-panel__number-input"
         />
       </div>
       }
@@ -31,18 +31,18 @@
 
     <hr />
 
-    @for (section of [ { label: 'Color', fields: productColorFields, model:
-    product.color, prefix: 'product_color_' }, { label: 'Pattern', fields:
-    productPatternFields, model: product.pattern, prefix: 'product_pattern_' }
+    @for (section of [
+      { label: 'Color', fields: productColorFields, model: product.color, prefix: 'product_color_' },
+      { label: 'Pattern', fields: productPatternFields, model: product.pattern, prefix: 'product_pattern_' }
     ]; track section.label) {
-    <div class="filter-section">
-      <p class="label-muted">{{ section.label }}</p>
+    <div class="threshold-panel__section">
+      <p class="threshold-panel__label-muted">{{ section.label }}</p>
       @for (key of section.fields; track key) {
-      <div class="filter-header">
+      <div class="threshold-panel__field">
         <span>{{ key | titlecase }}</span>
         <span>{{ section.model[key] }}%</span>
       </div>
-      <div class="slider-wrapper">
+      <div class="threshold-panel__slider">
         <mat-slider min="0" max="100" step="1">
           <input
             matSliderThumb
@@ -51,7 +51,6 @@
           />
         </mat-slider>
       </div>
-
       }
     </div>
     <hr />
@@ -59,19 +58,19 @@
 
     <h2>Filter by Image</h2>
 
-    @for (section of [ { label: 'Color', fields: imageColorFields, model:
-    image.color, prefix: 'image_color_' }, { label: 'Pattern', fields:
-    imagePatternFields, model: image.pattern, prefix: 'image_pattern_' }, {
-    label: 'Variation', fields: variationFields, model: image.variation, prefix:
-    'variation_' } ]; track section.label) {
-    <div class="filter-section">
-      <p class="label-muted">{{ section.label }}</p>
+    @for (section of [
+      { label: 'Color', fields: imageColorFields, model: image.color, prefix: 'image_color_' },
+      { label: 'Pattern', fields: imagePatternFields, model: image.pattern, prefix: 'image_pattern_' },
+      { label: 'Variation', fields: variationFields, model: image.variation, prefix: 'variation_' }
+    ]; track section.label) {
+    <div class="threshold-panel__section">
+      <p class="threshold-panel__label-muted">{{ section.label }}</p>
       @for (key of section.fields; track key) {
-      <div class="filter-header">
+      <div class="threshold-panel__field">
         <span>{{ key | titlecase }}</span>
         <span>{{ section.model[key] }}%</span>
       </div>
-      <div class="slider-wrapper">
+      <div class="threshold-panel__slider">
         <mat-slider min="0" max="100" step="1">
           <input
             matSliderThumb
@@ -80,7 +79,6 @@
           />
         </mat-slider>
       </div>
-
       }
     </div>
     <hr />

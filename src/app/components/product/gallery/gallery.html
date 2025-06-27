@@ -1,15 +1,15 @@
-<div class="gallery-wrapper">
+<div class="gallery-container">
   <app-product-canvas
     [imageUrl]="selectedUrl()"
     [transform]="selectedTransform()"
     (transformChanged)="updateTransform($event)"
   ></app-product-canvas>
 
-  <div class="thumbnail-row">
+  <div class="gallery-container__thumbnails">
     <div
-      class="thumbnail"
+      class="gallery-container__thumbnail"
       *ngFor="let url of imageUrls(); let i = index"
-      [class.selected]="i === selectedIndex()"
+      [class.gallery-container__thumbnail--selected]="i === selectedIndex()"
       (click)="select(i)"
     >
       <img [src]="url" alt="thumb" />

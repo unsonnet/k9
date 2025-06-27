@@ -1,14 +1,14 @@
 <div class="reference-view">
-  <div class="image-wrapper">
-    <div class="reference-label">
+  <div class="reference-view__image-wrapper">
+    <div class="reference-view__label">
       {{ reference().description.shape.length || '?' }}" x {{
       reference().description.shape.width || '?' }}" {{
       reference().description.material | titlecase }} Tile
     </div>
 
     <div
-      class="arrow left"
-      [class.disabled]="currentImageIndex() === 0"
+      class="reference-view__arrow reference-view__arrow--left"
+      [class.reference-view__arrow--disabled]="currentImageIndex() === 0"
       (click)="prevImage()"
     >
       ‹
@@ -19,17 +19,22 @@
       alt="Reference Image"
     />
 
-    <div class="gradient">
-      <div class="dots">
+    <div class="reference-view__gradient">
+      <div class="reference-view__dots">
         @for (img of reference().images; track i; let i = $index) {
-        <span class="dot" [class.active]="i === currentImageIndex()"></span>
+        <span
+          class="reference-view__dot"
+          [class.reference-view__dot--active]="i === currentImageIndex()"
+        ></span>
         }
       </div>
     </div>
 
     <div
-      class="arrow right"
-      [class.disabled]="currentImageIndex() === reference().images.length - 1"
+      class="reference-view__arrow reference-view__arrow--right"
+      [class.reference-view__arrow--disabled]="
+        currentImageIndex() === reference().images.length - 1
+      "
       (click)="nextImage()"
     >
       ›

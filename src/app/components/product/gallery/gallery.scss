@@ -1,4 +1,4 @@
-.gallery-wrapper {
+.gallery-container {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -6,15 +6,15 @@
   margin: 0;
   max-width: none;
   box-sizing: border-box;
-}
 
-.thumbnail-row {
-  display: flex;
-  overflow-x: auto;
-  padding: 6px;
-  gap: 6px;
+  &__thumbnails {
+    display: flex;
+    overflow-x: auto;
+    padding: 6px;
+    gap: 6px;
+  }
 
-  .thumbnail {
+  &__thumbnail {
     flex: 0 0 auto;
     width: 60px;
     height: 60px;
@@ -38,7 +38,7 @@
       filter: brightness(1);
     }
 
-    &.selected {
+    &--selected {
       border-color: dodgerblue;
 
       img {

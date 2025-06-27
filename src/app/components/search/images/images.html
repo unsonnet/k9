@@ -1,11 +1,11 @@
 <div class="image-panel">
   <div
-    class="dnd-box"
+    class="image-panel__dnd"
     (dragover)="onDragOver($event)"
     (dragleave)="onDragLeave($event)"
     (drop)="onDrop($event)"
-    [class.disabled]="disabled"
-    [class.drag-over]="dragActive()"
+    [class.image-panel__dnd--disabled]="disabled"
+    [class.image-panel__dnd--active]="dragActive()"
   >
     <button
       mat-button
@@ -16,7 +16,8 @@
       <mat-icon>upload</mat-icon>
       <span>Select images</span>
     </button>
-    <div class="drop-text">
+
+    <div class="image-panel__drop-text">
       <span class="mat-mdc-button" style="padding: 0">or</span>
       <span class="mat-mdc-button">Drop it here!</span>
     </div>
@@ -33,25 +34,28 @@
   </div>
 
   @if (files().length > 0) {
-  <div class="image-grid">
+  <div class="image-panel__grid">
     @for (item of files(); track item.url; let i = $index) {
     <div
-      class="image-item"
+      class="image-panel__item"
       (mouseenter)="hoveredIndex = i"
       (mouseleave)="hoveredIndex = -1"
     >
-      <div class="image-wrapper">
-        <img [src]="item.url" alt="preview" />
-      </div>
-      <div class="filename">{{ item.file.name }}</div>
-
-      @if (hoveredIndex === i) {
-      <div class="hover-overlay" (click)="removeFile(i)">
-        <div class="hover-icon">
-          <mat-icon>close</mat-icon>
+      <div class="image-panel__preview-wrapper">
+        <div class="image-panel__preview">
+          <img [src]="item.url" alt="preview" />
         </div>
+
+        @if (hoveredIndex === i) {
+        <div class="image-panel__overlay" (click)="removeFile(i)">
+          <div class="image-panel__icon">
+            <mat-icon>close</mat-icon>
+          </div>
+        </div>
+        }
       </div>
-      }
+
+      <div class="image-panel__filename">{{ item.file.name }}</div>
     </div>
     }
   </div>

@@ -1,18 +1,18 @@
-<div class="grid-container">
+<div class="product-grid">
   @for (prod of products(); track prod.id) {
-  <div class="card" (click)="viewProduct(prod)">
-    <div class="img-wrapper">
+  <div class="product-grid__card" (click)="viewProduct(prod)">
+    <div class="product-grid__image">
       <img [src]="prod.images[0]" alt="{{ prod.name }}" />
       <div
-        class="star"
-        [class.filled]="prod.starred"
+        class="product-grid__star"
+        [class.product-grid__star--filled]="prod.starred"
         (click)="toggleStar(prod, $event)"
         title="Toggle star"
       >
         ★
       </div>
-      <div class="gradient">
-        <div class="name">{{ prod.name }}</div>
+      <div class="product-grid__gradient">
+        <div class="product-grid__name">{{ prod.name }}</div>
       </div>
     </div>
   </div>

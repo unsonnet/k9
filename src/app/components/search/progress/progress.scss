@@ -1,4 +1,4 @@
-.progress-container {
+.progress-box {
   display: inline-flex;
   align-items: center;
   padding: 8px 12px;
@@ -9,20 +9,19 @@
   min-height: 48px;
   max-width: 100%;
   font-weight: 400;
-}
 
-.progress-container.error {
-  border-color: var(--mat-form-field-error-text-color, var(--mat-sys-error));
-  background-color: #fdecea;
-}
+  &--error {
+    border-color: var(--mat-form-field-error-text-color, var(--mat-sys-error));
+    background-color: #fdecea;
+  }
 
-.message {
-  margin-left: 12px;
-  color: black;
-  white-space: nowrap;
-}
+  &__message {
+    margin-left: 12px;
+    color: black;
+    white-space: nowrap;
 
-.error-message {
-  color: var(--mat-form-field-error-text-color, var(--mat-sys-error));
-  white-space: nowrap;
+    &--error {
+      color: var(--mat-form-field-error-text-color, var(--mat-sys-error));
+    }
+  }
 }

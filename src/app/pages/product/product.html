@@ -1,9 +1,9 @@
 <div class="product-page">
-  <div class="left-column">
+  <div class="product-page__sidebar">
     <app-product-description [product]="product()" />
   </div>
 
-  <div class="gallery-columns">
+  <div class="product-page__gallery-columns">
     <app-product-gallery [imageUrls]="product().images" />
     <app-product-gallery [imageUrls]="reference().images" />
   </div>

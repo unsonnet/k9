@@ -13,26 +13,31 @@
     border-radius: 2px;
   }
 
-  .dimensions-row {
+  &__row {
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
+  }
 
-    .dimension-field {
-      flex: 1 1 150px;
-      min-width: 0;
+  &__field {
+    flex: 1 1 150px;
+    min-width: 0;
 
-      .dimension-unit {
-        padding: 0 10px 0 5px;
-      }
+    .reference-form__unit {
+      padding: 0 10px 0 5px;
     }
   }
 
-  app-search-images + mat-error {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 400;
-    padding-left: 16px;
-    line-height: 16px;
+  &__image-input {
+    display: flex;
+    flex-direction: column;
+
+    app-search-images + mat-error {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 400;
+      padding-left: 16px;
+      line-height: 16px;
+    }
   }
 }

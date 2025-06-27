@@ -1,49 +1,49 @@
-.results-container {
+.results-page {
   display: flex;
   height: 100vh;
   overflow: hidden;
-}
 
-.thresholds-pane {
-  width: 300px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  border-right: 1px solid #ccc;
-}
+  &__thresholds {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid #ccc;
+  }
 
-.thresholds-scroll {
-  overflow-y: auto;
-  flex: 1;
-  box-sizing: border-box;
-}
+  &__thresholds-scroll {
+    overflow-y: auto;
+    flex: 1;
+    box-sizing: border-box;
+  }
 
-.grid-pane {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+  &__grid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
 
-  .grid-scroll {
+  &__grid-scroll {
     overflow-y: auto;
     flex: 1;
     padding: 8px 5px;
   }
-}
 
-.grid-header {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: white;
-  padding: 8px 12px;
-  border-bottom: 1px solid #ccc;
+  &__grid-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: white;
+    padding: 8px 12px;
+    border-bottom: 1px solid #ccc;
 
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
 
-  .header-text {
+  &__header-text {
     font-size: 0.95rem;
     font-weight: 500;
     display: flex;
@@ -63,28 +63,28 @@
       cursor: pointer;
     }
   }
-}
 
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  overflow-y: auto;
-  padding: 24px;
-}
+  &__overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    overflow-y: auto;
+    padding: 24px;
+  }
 
-.overlay-content {
-  width: 90%;
-  max-height: 100%;
-  background: white;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
-  border-radius: 8px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  &__overlay-content {
+    width: 90%;
+    max-height: 100%;
+    background: white;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
 }

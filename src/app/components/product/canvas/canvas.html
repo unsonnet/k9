@@ -1,10 +1,10 @@
-<div class="canvas-wrapper">
+<div class="canvas-container">
   <canvas #canvas></canvas>
 
-  <div class="toolbar">
+  <div class="canvas-container__toolbar">
     <button
-      class="icon-button"
-      [class.active]="mode === 'translate'"
+      class="canvas-container__icon-button"
+      [class.canvas-container__icon-button--active]="mode === 'translate'"
       (click)="setMode('translate')"
       title="Translate"
     >
@@ -12,8 +12,8 @@
     </button>
 
     <button
-      class="icon-button"
-      [class.active]="mode === 'rotate'"
+      class="canvas-container__icon-button"
+      [class.canvas-container__icon-button--active]="mode === 'rotate'"
       (click)="setMode('rotate')"
       title="Rotate"
     >
@@ -21,8 +21,12 @@
     </button>
   </div>
 
-  <div class="toolbar-right">
-    <button class="icon-button" (click)="resetTransform()" title="Reset View">
+  <div class="canvas-container__toolbar canvas-container__toolbar--right">
+    <button
+      class="canvas-container__icon-button"
+      (click)="resetTransform()"
+      title="Reset View"
+    >
       <mat-icon>home</mat-icon>
     </button>
   </div>

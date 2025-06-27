@@ -25,27 +25,22 @@ mat-icon {
 :host {
   display: flex;
   flex-direction: column;
-  height: 100%; // 🟢 Inherit height from parent
+  height: 100%;
   overflow: hidden;
   min-height: 0;
 }
 
 :host(.ng-touched.ng-invalid) {
-  .dnd-box {
-    border: 2px dashed
-      var(--mat-form-field-error-text-color, var(--mat-sys-error));
+  .image-panel__dnd {
+    border: 2px dashed var(--mat-form-field-error-text-color, var(--mat-sys-error));
   }
-  .drop-text {
-    color: var(
-      --mat-form-field-error-text-color,
-      var(--mat-sys-error)
-    ) !important;
+
+  .image-panel__drop-text {
+    color: var(--mat-form-field-error-text-color, var(--mat-sys-error)) !important;
   }
+
   button {
-    color: var(
-      --mat-form-field-error-text-color,
-      var(--mat-sys-error)
-    ) !important;
+    color: var(--mat-form-field-error-text-color, var(--mat-sys-error)) !important;
   }
 }
 
@@ -55,25 +50,46 @@ mat-icon {
   flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
-}
 
-.dnd-box {
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap; // ➕ allow wrapping
-  justify-content: center;
-  align-items: center;
-  // gap: 8px; // ➕ add spacing for wrap
-  text-align: center;
-  border: 2px dashed #ccc;
-  border-radius: 4px;
-  padding: 12px;
-  transition: background-color 0.2s ease;
-
-  .drop-text {
+  &__dnd {
+    flex: 0 0 auto;
     display: flex;
-    flex-direction: row; // default side-by-side
+    flex-wrap: wrap;
+    justify-content: center;
     align-items: center;
+    text-align: center;
+    border: 2px dashed #ccc;
+    border-radius: 4px;
+    padding: 12px;
+    transition: background-color 0.2s ease;
+
+    &--disabled {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    &--active {
+      background-color: #e3f2fd;
+      border-color: #2196f3;
+
+      button:hover {
+        background: none;
+      }
+    }
+
+    button {
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      min-width: unset;
+    }
+  }
+
+  &__drop-text {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
     span {
       font-size: 16px;
       font-weight: 400;
@@ -83,40 +99,19 @@ mat-icon {
     }
   }
 
-  &.disabled {
-    opacity: 0.5;
-    pointer-events: none;
+  &__grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin-top: 5px;
+
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+    padding-right: 4px;
   }
 
-  &.drag-over {
-    background-color: #e3f2fd;
-    border-color: #2196f3;
-
-    button:hover {
-      background: none;
-    }
-  }
-
-  button {
-    font-size: 16px;
-    display: flex;
-    align-items: center;
-    min-width: unset;
-  }
-}
-
-.image-grid {
-  flex: 1 1 auto; // 🟢 Grow to fill space left by dnd-box
-  min-height: 0; // 🟢 Allow internal scroll
-  overflow-y: auto;
-  margin-top: 5px;
-
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 8px;
-  padding-right: 4px;
-
-  .image-item {
+  &__item {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -125,7 +120,12 @@ mat-icon {
     cursor: pointer;
   }
 
-  .image-wrapper {
+  &__preview-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  &__preview {
     width: 100%;
     aspect-ratio: 1 / 1;
     display: flex;
@@ -133,20 +133,55 @@ mat-icon {
     align-items: center;
     padding: 10px;
     box-sizing: border-box;
+
+    img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      padding: 4px;
+      border: 1px solid black;
+      background: white;
+      box-sizing: border-box;
+      border-radius: 2px;
+    }
   }
 
-  .image-wrapper img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-    padding: 4px;
-    border: 1px solid black;
-    background: white;
-    box-sizing: border-box;
-    border-radius: 2px;
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(128, 128, 128, 0.3);
+    z-index: 1;
+    cursor: pointer;
   }
 
-  .filename {
+  &__icon {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f44336;
+    border-radius: 50%;
+    pointer-events: auto;
+
+    mat-icon {
+    color: white;
+    font-weight: 600;
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    display: flex;          // instead of block
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    padding: 0;
+  }
+  }
+
+  &__filename {
     text-align: center;
     max-width: 100%;
     overflow: hidden;
@@ -157,40 +192,7 @@ mat-icon {
     -webkit-box-orient: vertical;
     word-break: break-word;
     padding: 0 5px;
-
     line-height: 1.2em;
     height: calc(1.2em * 2);
-  }
-
-  .hover-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(128, 128, 128, 0.3);
-    z-index: 1;
-
-    .hover-icon {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      aspect-ratio: 1 / 1;
-      pointer-events: none;
-
-      mat-icon {
-        color: white;
-        background: #f44336;
-        border-radius: 50%;
-        font-size: 24px;
-        pointer-events: auto;
-        cursor: pointer;
-      }
-    }
   }
 }

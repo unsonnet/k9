@@ -16,21 +16,21 @@
     }
   </mat-form-field>
 
-  <div class="dimensions-row">
-    <mat-form-field class="dimension-field">
+  <div class="reference-form__row">
+    <mat-form-field class="reference-form__field">
       <mat-label>Length</mat-label>
       <input matInput formControlName="length" type="number" />
-      <span class="dimension-unit" matSuffix>in</span>
+      <span class="reference-form__unit" matSuffix>in</span>
     </mat-form-field>
 
-    <mat-form-field class="dimension-field">
+    <mat-form-field class="reference-form__field">
       <mat-label>Width</mat-label>
       <input matInput formControlName="width" type="number" />
-      <span class="dimension-unit" matSuffix>in</span>
+      <span class="reference-form__unit" matSuffix>in</span>
     </mat-form-field>
   </div>
 
-  <div class="custom-mat-form-field">
+  <div class="reference-form__image-input">
     <app-search-images formControlName="images" />
     @if (referenceForm.get('images')?.touched &&
     referenceForm.get('images')?.hasError('required')) {
