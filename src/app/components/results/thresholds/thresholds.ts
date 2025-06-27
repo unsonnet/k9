@@ -15,8 +15,6 @@ import { Thresholds } from '../../../models/thresholds';
 export class ResultsThresholdsComponent {
   readonly applyFilter = output<Thresholds>();
   readonly exportResults = output<void>();
-
-  readonly disabled = input(false);
   readonly exportEnabled = input(true);
 
   product = {

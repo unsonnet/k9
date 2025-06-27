@@ -8,10 +8,45 @@ import { Product } from '../models/product';
 export class Export {
   constructor() {}
 
-  async exportProducts(products: Product[]) {
+  async exportProducts(reference: Product, products: Product[]) {
     const zip = new JSZip();
     const csvRows = ['id,name,store,url,material,length,width,thickness'];
 
+    // --- Reference entry ---
+    const refDesc = reference.description;
+    const { material, shape } = refDesc;
+    const { length = '', width = '', thickness = '' } = shape;
+
+    csvRows.push(
+      [
+        0,
+        '"REFERENCE"',
+        '',
+        '',
+        `"${material}"`,
+        length,
+        width,
+        thickness,
+      ].join(','),
+    );
+
+    const refFolderName = this.sanitizeFolderName('0_REFERENCE');
+    const refFolder = zip.folder(`images/${refFolderName}`)!;
+
+    for (let i = 0; i < reference.images.length; i++) {
+      const imgUrl = reference.images[i];
+      try {
+        const originalBlob = await fetch(imgUrl).then((res) => res.blob());
+        const imgBlob = await this.resizeImage(originalBlob);
+        const ext = this.getFileExtension(imgUrl) || 'jpg';
+        const filename = `image_${i + 1}.${ext}`;
+        refFolder.file(filename, imgBlob);
+      } catch (err) {
+        console.warn(`Failed to fetch reference image: ${imgUrl}`, err);
+      }
+    }
+
+    // --- Product entries ---
     let counter = 1;
     for (const product of products) {
       const { name, store, url, material, shape } = product.description;
@@ -21,7 +56,6 @@ export class Export {
       const folderName = this.sanitizeFolderName(`${exportId}_${name}`);
       const productFolder = zip.folder(`images/${folderName}`)!;
 
-      // Fetch and add images
       for (let i = 0; i < product.images.length; i++) {
         const imgUrl = product.images[i];
         try {
@@ -35,7 +69,6 @@ export class Export {
         }
       }
 
-      // Add CSV row
       csvRows.push(
         [
           exportId,
@@ -50,10 +83,7 @@ export class Export {
       );
     }
 
-    // Add CSV to zip
     zip.file('products.csv', csvRows.join('\n'));
-
-    // Generate and download
     return zip.generateAsync({ type: 'blob' });
   }
 

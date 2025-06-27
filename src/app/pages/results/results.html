@@ -1,12 +1,11 @@
 <div class="results-page">
   <div class="results-page__thresholds">
-    <app-results-reference [images]="target().images" />
+    <app-results-reference [images]="reference().images" />
 
     <div class="results-page__thresholds-scroll">
       <app-results-thresholds
         (applyFilter)="handleApply($event)"
         (exportResults)="handleExport()"
-        [disabled]="thresholdsDisabled()"
         [exportEnabled]="exportEnabled()"
       />
     </div>
@@ -63,7 +62,7 @@
     >
       <app-product
         [product]="activeProduct()!"
-        [reference]="target()"
+        [reference]="reference()"
         (starToggled)="toggleStar(activeProduct()!)"
       />
     </div>
@@ -87,7 +86,7 @@
         color="primary"
         class="results-page__export-button"
       >
-        Download Products
+        Download Report
       </a>
     </div>
     }

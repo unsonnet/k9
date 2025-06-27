@@ -1,4 +1,3 @@
-// ✅ results.ts
 import { Component, computed, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -31,8 +30,7 @@ import { Export } from '../../services/export';
   styleUrls: ['./results.scss'],
 })
 export class ResultsPage {
-  readonly reference = input<Product>();
-  readonly target = computed(() => this.reference() ?? this.products()[0]);
+  readonly reference = input<Product>(exampleProducts[0]);
 
   constructor(private exportService: Export) {}
 
@@ -46,7 +44,6 @@ export class ResultsPage {
     () => this.sortedProducts().filter((p) => p.starred).length,
   );
 
-  readonly thresholdsDisabled = signal(false);
   readonly exportEnabled = computed(() =>
     this.sortedProducts().some((p) => p.starred),
   );
@@ -67,26 +64,19 @@ export class ResultsPage {
   });
 
   handleApply(thresholds: Thresholds) {
-    this.thresholdsDisabled.set(true);
     console.log('Thresholds received:', thresholds);
-    setTimeout(() => {
-      this.thresholdsDisabled.set(false);
-    }, 3000);
   }
 
   async handleExport() {
     const starred = this.products().filter((p) => p.starred);
     if (starred.length === 0) return;
 
-    this.thresholdsDisabled.set(true);
     this.exporting.set(true);
     this.exportUrl.set(null);
 
-    const blob = await this.exportService.exportProducts(starred);
+    const blob = await this.exportService.exportProducts(this.reference(), starred);
     const url = URL.createObjectURL(blob);
     this.exportUrl.set(url);
-
-    this.thresholdsDisabled.set(false);
     this.exporting.set(false);
   }
 

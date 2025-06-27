@@ -5,7 +5,6 @@
         mat-raised-button
         color="primary"
         (click)="onFilter()"
-        [disabled]="disabled()"
       >
         Filter
       </button>
@@ -13,7 +12,7 @@
         mat-raised-button
         color="primary"
         (click)="onExport()"
-        [disabled]="disabled() || !exportEnabled()"
+        [disabled]="!exportEnabled()"
       >
         Export
       </button>
@@ -31,7 +30,6 @@
         <input
           type="number"
           min="0"
-          [disabled]="disabled()"
           [(ngModel)]="product.shape[key]"
           [name]="'shape_' + key"
           class="threshold-panel__number-input"
@@ -57,7 +55,6 @@
         <mat-slider min="0" max="100" step="1">
           <input
             matSliderThumb
-            [disabled]="disabled()"
             [(ngModel)]="section.model[key]"
             [name]="section.prefix + key"
           />
@@ -86,7 +83,6 @@
         <mat-slider min="0" max="100" step="1">
           <input
             matSliderThumb
-            [disabled]="disabled()"
             [(ngModel)]="section.model[key]"
             [name]="section.prefix + key"
           />
