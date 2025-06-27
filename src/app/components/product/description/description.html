@@ -1,10 +1,9 @@
 <div class="product-desc">
-  <div class="product-desc__header">
+  <div class="product-desc__header" (click)="toggleStar($event)">
     <div class="product-desc__store-row">
       <div
         class="product-desc__star"
         [class.product-desc__star--filled]="product().starred"
-        (click)="toggleStar($event)"
         title="Toggle star"
       >
         ★

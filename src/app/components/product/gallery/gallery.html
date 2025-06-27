@@ -6,13 +6,14 @@
   ></app-product-canvas>
 
   <div class="gallery-container__thumbnails">
+    @for (url of imageUrls(); track url; let i = $index) {
     <div
       class="gallery-container__thumbnail"
-      *ngFor="let url of imageUrls(); let i = index"
       [class.gallery-container__thumbnail--selected]="i === selectedIndex()"
       (click)="select(i)"
     >
       <img [src]="url" alt="thumb" />
     </div>
+    }
   </div>
 </div>
