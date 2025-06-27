@@ -1,79 +1,87 @@
-:host {
+.product-description {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  font-family: sans-serif;
-  color: black;
-}
-
-.store {
-  color: #777;
-  font-size: 0.85rem;
-  font-weight: 500;
-}
-
-.name-line {
-  font-weight: 700;
-  font-size: 1rem;
-  word-break: break-word;
-}
-
-.info-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-weight: 600;
-
-  .label {
-    font-weight: 600;
-  }
-
-  .value {
-    font-weight: 400;
-    color: #444;
-    text-transform: capitalize;
-  }
-}
-
-.section-title {
-  font-weight: 600;
-  margin-top: 10px;
-}
-
-.metric-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.metric-row {
-  display: flex;
-  align-items: center;
   gap: 10px;
-  font-size: 0.9rem;
 
-  .metric-name {
-    font-weight: 500;
-    flex: 0 0 100px;
-  }
+  .title {
+    .store {
+      color: #777;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
 
-  .progress-bar {
-    flex: 1;
-    height: 6px;
-    background: #eee;
-    border-radius: 3px;
-    overflow: hidden;
-
-    .fill {
-      height: 100%;
-      background-color: #00c853;
+    .name {
+      font-weight: 700;
+      font-size: 1.5rem;
+      word-break: break-word;
     }
   }
 
-  .value {
-    font-size: 0.8rem;
-    color: #444;
-    min-width: 28px;
-    text-align: right;
+  .info {
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 5px 0;
+
+      .label {
+        font-weight: 500;
+      }
+
+      .value {
+        font-weight: 400;
+        color: #444;
+        text-transform: capitalize;
+      }
+    }
+  }
+
+  .metrics {
+    margin-top: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    .section {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      .title {
+        font-weight: 600;
+      }
+
+      .row {
+        display: flex;
+        align-items: center;
+        font-size: 0.9rem;
+
+        .name {
+          font-weight: 500;
+          flex: 0 0 80px;
+        }
+
+        .progress-bar {
+          flex: 1;
+          height: 6px;
+          background: #eee;
+          border-radius: 3px;
+          overflow: hidden;
+
+          .fill {
+            height: 100%;
+            background-color: #00c853;
+          }
+        }
+
+        .value {
+          flex: 0 0 50px;
+          font-size: 0.8rem;
+          color: #444;
+          min-width: 28px;
+          text-align: right;
+        }
+      }
+    }
   }
 }
