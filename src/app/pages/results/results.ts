@@ -42,7 +42,7 @@ export class ResultsPage {
 
     return products.sort((a, b) => {
       if (key === 'score') return 0;
-      if (key === 'name') return a.name.localeCompare(b.name);
+      if (key === 'name') return a.description.name.localeCompare(b.description.name);
       if (key === 'starred') {
         return Number(b.starred ?? false) - Number(a.starred ?? false);
       }
@@ -69,6 +69,11 @@ export class ResultsPage {
         p === toggled ? { ...p, starred: !(p.starred ?? false) } : p
       )
     );
+
+    if (this.activeProduct()) {
+      const updated = this.products().find((p) => p.id === toggled.id);
+      if (updated) this.activeProduct.set(updated);
+    }
   }
 
   closeOverlay() {

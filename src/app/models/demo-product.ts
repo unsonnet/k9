@@ -3,7 +3,6 @@ import type { Product } from './product';
 export const exampleProducts: Product[] = [
   {
     id: 'prod001',
-    name: 'Sunset Glassware Set',
     match: 0,
     images: [
       'https://picsum.photos/id/1018/400/400',
@@ -23,6 +22,7 @@ export const exampleProducts: Product[] = [
     },
     description: {
       store: 'Glasshouse',
+    name: 'Sunset Glassware Set',
       url: 'https://example.com/prod001',
       material: 'ceramic',
       shape: { length: 8, width: 8, thickness: 2 },
@@ -30,7 +30,6 @@ export const exampleProducts: Product[] = [
   },
   {
     id: 'prod002',
-    name: 'Minimalist Ceramic Bowl',
     match: 1,
     images: ['https://picsum.photos/id/1027/400/400'],
     scores: {
@@ -47,6 +46,7 @@ export const exampleProducts: Product[] = [
     },
     description: {
       store: 'Craftware Co.',
+    name: 'Minimalist Ceramic Bowl',
       url: 'https://example.com/prod002',
       material: 'ceramic',
       shape: { length: 6, width: 6, thickness: 3 },
@@ -54,7 +54,6 @@ export const exampleProducts: Product[] = [
   },
   {
     id: 'prod003',
-    name: 'Modernist Teapot',
     match: 2,
     images: ['https://picsum.photos/id/1041/400/400'],
     scores: {
@@ -71,6 +70,7 @@ export const exampleProducts: Product[] = [
     },
     description: {
       store: 'BrewHouse',
+    name: 'Modernist Teapot',
       url: 'https://example.com/prod003',
       material: 'ceramic',
       shape: { length: 12, width: 7, thickness: 6 },
@@ -78,7 +78,6 @@ export const exampleProducts: Product[] = [
   },
   {
     id: 'prod004',
-    name: 'Azure Porcelain Plate',
     match: 3,
     images: [
       'https://picsum.photos/id/1062/400/400',
@@ -98,6 +97,7 @@ export const exampleProducts: Product[] = [
     },
     description: {
       store: 'BlueClay Studio',
+    name: 'Azure Porcelain Plate',
       url: 'https://example.com/prod004',
       material: 'porcelain',
       shape: { length: 10, width: 10, thickness: 1 },
@@ -105,7 +105,6 @@ export const exampleProducts: Product[] = [
   },
   {
     id: 'prod005',
-    name: 'Speckled Dessert Dish',
     match: 4,
     images: ['https://picsum.photos/id/1076/400/400'],
     scores: {
@@ -122,6 +121,7 @@ export const exampleProducts: Product[] = [
     },
     description: {
       store: 'TinyPlates',
+    name: 'Speckled Dessert Dish',
       url: 'https://example.com/prod005',
       material: 'stoneware',
       shape: { length: 5, width: 5, thickness: 2 },
@@ -129,7 +129,6 @@ export const exampleProducts: Product[] = [
   },
   {
     id: 'prod006',
-    name: 'Amber Glass Mug',
     match: 5,
     images: ['https://picsum.photos/id/1084/400/400'],
     scores: {
@@ -146,6 +145,7 @@ export const exampleProducts: Product[] = [
     },
     description: {
       store: 'Glassroots',
+    name: 'Amber Glass Mug',
       url: 'https://example.com/prod006',
       material: 'glass',
       shape: { length: 9, width: 6, thickness: 4 },

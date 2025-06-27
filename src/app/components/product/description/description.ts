@@ -1,4 +1,4 @@
-import { Component, input } from '@angular/core';
+import { Component, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Product } from '../../../models/product';
 
@@ -11,6 +11,7 @@ import { Product } from '../../../models/product';
 })
 export class ProductDescriptionComponent {
   readonly product = input.required<Product>();
+  readonly starToggled = output<void>();
 
   get colorKeys() {
     return Object.keys(this.product().scores.product.color);
@@ -22,6 +23,6 @@ export class ProductDescriptionComponent {
 
   toggleStar(event: MouseEvent) {
     event.stopPropagation();
-    this.product().starred = !(this.product().starred ?? false);
+    this.starToggled.emit();
   }
 }

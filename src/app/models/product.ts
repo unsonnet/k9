@@ -17,12 +17,12 @@ export type Metrics = {
 
 export type Product = {
   id: string;
-  name: string;
   match: number;
   images: string[];
   scores: Metrics;
   description: {
     store: string;
+    name: string;
     url: string;
     material: string;
     shape: {

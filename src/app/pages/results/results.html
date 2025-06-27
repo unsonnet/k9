@@ -45,7 +45,7 @@
       class="results-page__overlay-content"
       (click)="$event.stopPropagation()"
     >
-      <app-product [product]="activeProduct()!" [reference]="target()" />
+      <app-product [product]="activeProduct()!" [reference]="target()" (starToggled)="toggleStar(activeProduct()!)"/>
     </div>
   </div>
   }
