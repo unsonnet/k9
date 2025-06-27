@@ -1,6 +1,5 @@
 import { Component, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Product } from '../../../models/product';
 
 @Component({
   selector: 'app-results-reference',
@@ -10,11 +9,11 @@ import { Product } from '../../../models/product';
   styleUrl: './reference.scss',
 })
 export class ResultsReferenceComponent {
-  readonly reference = input.required<Product>();
+  readonly images = input.required<string[]>();
   currentImageIndex = signal(0);
 
   nextImage() {
-    if (this.currentImageIndex() < this.reference().images.length - 1) {
+    if (this.currentImageIndex() < this.images().length - 1) {
       this.currentImageIndex.update((i) => i + 1);
     }
   }
