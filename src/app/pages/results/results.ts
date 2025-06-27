@@ -74,7 +74,10 @@ export class ResultsPage {
     this.exporting.set(true);
     this.exportUrl.set(null);
 
-    const blob = await this.exportService.exportProducts(this.reference(), starred);
+    const blob = await this.exportService.exportProducts(
+      this.reference(),
+      starred,
+    );
     const url = URL.createObjectURL(blob);
     this.exportUrl.set(url);
     this.exporting.set(false);

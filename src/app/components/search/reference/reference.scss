@@ -1,17 +1,10 @@
 .reference-form {
   display: flex;
   flex-direction: column;
-  max-height: 100vh;
+  height: 100%;
   gap: 16px;
-  overflow: hidden;
   padding: 8px;
-
-  button {
-    min-height: 30px;
-    height: 30px;
-    font-size: 16px;
-    border-radius: 2px;
-  }
+  overflow: hidden;
 
   &__row {
     display: flex;
@@ -28,16 +21,30 @@
     }
   }
 
-  &__image-input {
+  &__image {
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    max-height: 100%;
 
-    app-search-images + mat-error {
-      display: block;
-      font-size: 0.75rem;
-      font-weight: 400;
-      padding-left: 16px;
-      line-height: 16px;
+    app-search-images {
+      overflow: auto;
     }
+  }
+
+  &__error {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 400;
+    padding-left: 16px;
+    line-height: 16px;
+  }
+
+  &__submit {
+    flex: 0 0 auto;
+    min-height: 30px;
+    height: 30px;
+    font-size: 16px;
+    border-radius: 2px;
   }
 }

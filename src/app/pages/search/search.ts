@@ -13,7 +13,7 @@ import { firstValueFrom } from 'rxjs';
   styleUrl: './search.scss',
 })
 export class SearchPage {
-  readonly loadingMessage = signal('Searching backed items...');
+  readonly loadingMessage = signal('');
   readonly isErrored = signal(false);
 
   private readonly fetch = inject(Fetch);
@@ -23,18 +23,19 @@ export class SearchPage {
     this.isErrored.set(false);
 
     const job = uuidv4();
-    try {
-      const apiReference = await this.upload(job, reference);
-      const run = await this.initiate(job, apiReference);
-      await this.poll(job, run);
-    } catch (err) {
-      this.loadingMessage.set(
-        err instanceof Error ? err.message : 'Fatal error (Unknown)',
-      );
-      this.isErrored.set(true);
-    }
+    this.loadingMessage.set('testing');
+    // try {
+    //   const apiReference = await this.upload(job, reference);
+    //   const run = await this.initiate(job, apiReference);
+    //   await this.poll(job, run);
+    // } catch (err) {
+    //   this.loadingMessage.set(
+    //     err instanceof Error ? err.message : 'Fatal error (Unknown)',
+    //   );
+    //   this.isErrored.set(true);
+    // }
 
-    console.log('Reference submitted:', reference);
+    // console.log('Reference submitted:', reference);
   }
 
   private async upload(

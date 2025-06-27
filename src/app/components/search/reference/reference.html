@@ -30,13 +30,22 @@
     </mat-form-field>
   </div>
 
-  <div class="reference-form__image-input">
+  <div class="reference-form__image">
     <app-search-images formControlName="images" />
     @if (referenceForm.get('images')?.touched &&
     referenceForm.get('images')?.hasError('required')) {
-    <mat-error>At least one image is required</mat-error>
+    <mat-error class="reference-form__error"
+      >At least one image is required</mat-error
+    >
     }
   </div>
 
-  <button mat-raised-button color="primary" type="submit">Submit</button>
+  <button
+    class="reference-form__submit"
+    mat-raised-button
+    color="primary"
+    type="submit"
+  >
+    Submit
+  </button>
 </form>

@@ -1,4 +1,23 @@
-<div>
-  <app-search-reference (submitReference)="onReferenceSubmit($event)" />
-  <app-search-progress [message]="loadingMessage()" [isError]="isErrored()" />
+<div class="search-page">
+  <div class="search-page__layout">
+    <div class="search-page__left-column">
+      <h1 class="search-page__heading">K9 Search</h1>
+      <app-search-reference (submitReference)="onReferenceSubmit($event)" />
+    </div>
+
+    <div class="search-page__right-column">
+      <div
+        class="search-page__logo-container"
+        [class.search-page__logo-container--lifted]="loadingMessage()"
+      >
+        <img src="assets/logo.png" alt="Logo" class="search-page__logo" />
+      </div>
+
+      <app-search-progress
+        [class.search-page__progress--visible]="loadingMessage()"
+        [message]="loadingMessage()"
+        [isError]="isErrored()"
+      />
+    </div>
+  </div>
 </div>
