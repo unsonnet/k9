@@ -8,18 +8,15 @@
       ‹
     </div>
 
-    <img
-      [src]="images()[currentImageIndex()]"
-      alt="Reference Image"
-    />
+    <img [src]="images()[currentImageIndex()]" alt="Reference Image" />
 
     <div class="reference-view__gradient">
       <div class="reference-view__dots">
         @for (img of images(); track i; let i = $index) {
-          <span
-            class="reference-view__dot"
-            [class.reference-view__dot--active]="i === currentImageIndex()"
-          ></span>
+        <span
+          class="reference-view__dot"
+          [class.reference-view__dot--active]="i === currentImageIndex()"
+        ></span>
         }
       </div>
     </div>

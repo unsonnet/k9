@@ -42,6 +42,9 @@ export class ResultsPage {
   readonly products = signal<Product[]>(exampleProducts);
   readonly orderBy = signal<'score' | 'name' | 'starred'>('score');
   readonly activeProduct = signal<Product | null>(null);
+  readonly starredCount = computed(
+    () => this.sortedProducts().filter((p) => p.starred).length,
+  );
 
   readonly thresholdsDisabled = signal(false);
   readonly exportEnabled = computed(() =>
