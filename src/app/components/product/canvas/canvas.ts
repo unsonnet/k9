@@ -59,8 +59,9 @@ export class ProductCanvasComponent {
         this.transform().e === 0 &&
         this.transform().f === 0;
 
-      this.currentMatrix = isIdentity ? new DOMMatrix() : this.transform();
-
+      this.currentMatrix = isIdentity
+        ? this.defaultTransform()
+        : this.transform();
       this.emitTransform();
       this.drawImage();
     };
@@ -184,8 +185,16 @@ export class ProductCanvasComponent {
     this.emitTransform();
   }
 
+  defaultTransform(): DOMMatrix {
+    if (!this.loadedImage || !this.canvasRef) return new DOMMatrix();
+    const { width, height } = this.canvasRef.nativeElement;
+    const { naturalWidth, naturalHeight } = this.loadedImage;
+    const scale = Math.min(width / naturalWidth, height / naturalHeight);
+    return new DOMMatrix().scale(scale / 1.5);
+  }
+
   resetTransform() {
-    this.currentMatrix = new DOMMatrix();
+    this.currentMatrix = this.defaultTransform();
     this.drawImage();
     this.emitTransform();
   }

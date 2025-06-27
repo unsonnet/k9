@@ -1,6 +1,9 @@
 <div class="product-page">
   <div class="product-page__sidebar">
-    <app-product-description [product]="product()" (starToggled)="starToggled.emit()" />
+    <app-product-description
+      [product]="product()"
+      (starToggled)="starToggled.emit()"
+    />
   </div>
 
   <div class="product-page__gallery-columns">

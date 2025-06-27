@@ -12,7 +12,6 @@ export class ResultsGridComponent {
   readonly productClicked = output<Product>();
   readonly starToggled = output<Product>();
 
-
   toggleStar(product: Product, event: MouseEvent) {
     event.stopPropagation();
     this.starToggled.emit(product);

@@ -5,6 +5,7 @@
     <div class="results-page__thresholds-scroll">
       <app-results-thresholds
         (applyFilter)="handleApply($event)"
+        (exportResults)="handleExport()"
         [disabled]="thresholdsDisabled()"
         [exportEnabled]="exportEnabled()"
       />
@@ -39,14 +40,43 @@
     </div>
   </div>
 
-  @if (activeProduct()) {
+  @if (hasOverlay) {
   <div class="results-page__overlay" (click)="closeOverlay()">
+    @if (activeProduct()) {
     <div
-      class="results-page__overlay-content"
+      class="results-page__overlay-content--product"
       (click)="$event.stopPropagation()"
     >
-      <app-product [product]="activeProduct()!" [reference]="target()" (starToggled)="toggleStar(activeProduct()!)"/>
+      <app-product
+        [product]="activeProduct()!"
+        [reference]="target()"
+        (starToggled)="toggleStar(activeProduct()!)"
+      />
     </div>
+    } @else if (exporting()) {
+    <div
+      class="results-page__overlay-content--export"
+      (click)="$event.stopPropagation()"
+    >
+      <h2>Packaging products...</h2>
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    </div>
+    } @else if (exportUrl()) {
+    <div
+      class="results-page__overlay-content--export"
+      (click)="$event.stopPropagation()"
+    >
+      <a
+        [href]="exportUrl()"
+        download="exported_products.zip"
+        mat-raised-button
+        color="primary"
+        class="results-page__export-button"
+      >
+        Download Products
+      </a>
+    </div>
+    }
   </div>
   }
 </div>
