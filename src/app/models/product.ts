@@ -31,4 +31,5 @@ export type Product = {
       thickness?: number;
     };
   };
+  starred?: boolean;
 };

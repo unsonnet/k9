@@ -29,22 +29,17 @@ export class ResultsPage {
 
   readonly exampleProducts = exampleProducts;
   readonly orderBy = signal<'score' | 'name' | 'starred'>('score');
-  readonly starredMap = signal<Record<string, boolean>>({});
-
   readonly activeProduct = signal<Product | null>(null);
 
   get sortedProducts(): Product[] {
     const products = [...this.exampleProducts];
-    const starred = this.starredMap();
     const key = this.orderBy();
 
     return products.sort((a, b) => {
       if (key === 'score') return 0;
       if (key === 'name') return a.name.localeCompare(b.name);
       if (key === 'starred') {
-        const sa = starred[a.id] ?? false;
-        const sb = starred[b.id] ?? false;
-        return Number(sb) - Number(sa);
+        return Number(b.starred ?? false) - Number(a.starred ?? false);
       }
       return 0;
     });
@@ -52,10 +47,6 @@ export class ResultsPage {
 
   handleApply(thresholds: Thresholds) {
     console.log('Thresholds received:', thresholds);
-  }
-
-  updateStar({ id, starred }: { id: string; starred: boolean }) {
-    this.starredMap.update((prev) => ({ ...prev, [id]: starred }));
   }
 
   openProduct(product: Product) {

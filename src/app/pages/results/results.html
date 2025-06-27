@@ -27,8 +27,6 @@
     <div class="grid-scroll">
       <app-results-grid
         [products]="sortedProducts"
-        [starred]="starredMap()"
-        (starToggled)="updateStar($event)"
         (productClicked)="openProduct($event)"
       />
     </div>

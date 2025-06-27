@@ -5,8 +5,8 @@
       <img [src]="prod.images[0]" alt="{{ prod.name }}" />
       <div
         class="star"
-        [class.filled]="isStarred(prod.id)"
-        (click)="toggleStar(prod.id, $event)"
+        [class.filled]="prod.starred"
+        (click)="toggleStar(prod, $event)"
         title="Toggle star"
       >
         ★
