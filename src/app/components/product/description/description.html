@@ -1,8 +1,20 @@
 <div class="product-description">
   <div class="title">
+  <div class="store-row">
+    <div
+      class="star"
+      [class.filled]="product().starred"
+      (click)="toggleStar($event)"
+      title="Toggle star"
+    >
+      ★
+    </div>
     <div class="store">{{ product().description.store }}</div>
-    <div class="name">{{ product().name }}</div>
   </div>
+  <div class="name">{{ product().name }}</div>
+</div>
+
+
 
   <div class="info">
     <div class="row">

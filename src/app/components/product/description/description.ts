@@ -19,4 +19,10 @@ export class ProductDescriptionComponent {
   get patternKeys() {
     return Object.keys(this.product().scores.product.pattern);
   }
+
+  toggleStar(event: MouseEvent) {
+  event.stopPropagation();
+  this.product().starred = !(this.product().starred ?? false);
+}
+
 }
