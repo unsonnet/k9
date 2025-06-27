@@ -1,0 +1,10 @@
+<div class="product-page">
+  <div class="left-column">
+    <app-product-description [product]="product()" />
+  </div>
+
+  <div class="gallery-columns">
+    <app-product-gallery [imageUrls]="product().images" />
+    <app-product-gallery [imageUrls]="reference().images" />
+  </div>
+</div>

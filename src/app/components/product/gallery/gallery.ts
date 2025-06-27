@@ -1,9 +1,4 @@
-import {
-  Component,
-  signal,
-  computed,
-  input
-} from '@angular/core';
+import { Component, signal, computed, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProductCanvasComponent } from '../canvas/canvas';
 
@@ -20,17 +15,17 @@ export class ProductGalleryComponent {
   selectedIndex = signal(0);
   transforms = signal<DOMMatrix[]>([]);
 
-  readonly selectedUrl = computed(() =>
-    this.imageUrls()[this.selectedIndex()]
-  );
+  readonly selectedUrl = computed(() => this.imageUrls()[this.selectedIndex()]);
 
-  readonly selectedTransform = computed(() =>
-    this.transforms()[this.selectedIndex()] ?? new DOMMatrix()
+  readonly selectedTransform = computed(
+    () => this.transforms()[this.selectedIndex()] ?? new DOMMatrix(),
   );
 
   ngOnInit() {
     this.transforms.set(
-      Array(this.imageUrls().length).fill(null).map(() => new DOMMatrix())
+      Array(this.imageUrls().length)
+        .fill(null)
+        .map(() => new DOMMatrix()),
     );
   }
 

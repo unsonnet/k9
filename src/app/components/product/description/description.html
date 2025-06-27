@@ -1,56 +1,57 @@
 <div class="product-description">
   <div class="store">{{ product().description.store }}</div>
 
-  <div class="name-line">
-  {{ product().name }}
-</div>
-
-<div class="info-row">
-  <span class="label">Shape:</span>
-  <span class="value">{{ product().description.shape.length }}" × {{ product().description.shape.width }}"</span>
-</div>
-
+  <div class="name-line">{{ product().name }}</div>
 
   <div class="info-row">
-  <span class="label">Material:</span>
-  <span class="value">{{ product().description.material }}</span>
-</div>
+    <span class="label">Shape:</span>
+    <span class="value"
+      >{{ product().description.shape.length }}" × {{
+      product().description.shape.width }}"</span
+    >
+  </div>
 
-<div class="info-row">
-  <span class="label">Similarity:</span>
-  <span class="value">{{ product().match }}%</span>
-</div>
+  <div class="info-row">
+    <span class="label">Material:</span>
+    <span class="value">{{ product().description.material }}</span>
+  </div>
 
+  <div class="info-row">
+    <span class="label">Similarity:</span>
+    <span class="value">{{ product().match }}%</span>
+  </div>
 
   <div class="metric-section">
     <div class="section-title">Color</div>
     @for (key of colorKeys; track key) {
-      <div class="metric-row">
-        <span class="metric-name">{{ key }}</span>
-        <div class="progress-bar">
-          <div
-            class="fill"
-            [style.width.%]="100 - product().scores.product.color[key]"
-          ></div>
-        </div>
-        <span class="value">{{ 100 - product().scores.product.color[key] }}</span>
+    <div class="metric-row">
+      <span class="metric-name">{{ key }}</span>
+      <div class="progress-bar">
+        <div
+          class="fill"
+          [style.width.%]="100 - product().scores.product.color[key]"
+        ></div>
       </div>
+      <span class="value">{{ 100 - product().scores.product.color[key] }}</span>
+    </div>
     }
   </div>
 
   <div class="metric-section">
     <div class="section-title">Pattern</div>
     @for (key of patternKeys; track key) {
-      <div class="metric-row">
-        <span class="metric-name">{{ key }}</span>
-        <div class="progress-bar">
-          <div
-            class="fill"
-            [style.width.%]="100 - product().scores.product.pattern[key]"
-          ></div>
-        </div>
-        <span class="value">{{ 100 - product().scores.product.pattern[key] }}</span>
+    <div class="metric-row">
+      <span class="metric-name">{{ key }}</span>
+      <div class="progress-bar">
+        <div
+          class="fill"
+          [style.width.%]="100 - product().scores.product.pattern[key]"
+        ></div>
       </div>
+      <span class="value"
+        >{{ 100 - product().scores.product.pattern[key] }}</span
+      >
+    </div>
     }
   </div>
 </div>

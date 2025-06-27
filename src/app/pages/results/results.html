@@ -29,10 +29,16 @@
         [products]="sortedProducts"
         [starred]="starredMap()"
         (starToggled)="updateStar($event)"
+        (productClicked)="openProduct($event)"
       />
     </div>
   </div>
-</div>
 
-<app-product-description [product]="sortedProducts[0]" />
-<app-product-gallery [imageUrls]="sortedProducts[0].images" />
+  @if (activeProduct()) {
+  <div class="overlay" (click)="closeOverlay()">
+    <div class="overlay-content" (click)="$event.stopPropagation()">
+      <app-product [product]="activeProduct()!" [reference]="target()" />
+    </div>
+  </div>
+  }
+</div>

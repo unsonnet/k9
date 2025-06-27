@@ -7,8 +7,7 @@ import { ResultsReferenceComponent } from '../../components/results/reference/re
 import { Thresholds } from '../../models/thresholds';
 import { Product } from '../../models/product';
 import { exampleProducts } from '../../models/demo-product';
-import { ProductGalleryComponent } from "../../components/product/gallery/gallery";
-import { ProductDescriptionComponent } from "../../components/product/description/description";
+import { ProductPage } from '../product/product';
 
 @Component({
   selector: 'app-results',
@@ -19,9 +18,8 @@ import { ProductDescriptionComponent } from "../../components/product/descriptio
     ResultsThresholdsComponent,
     ResultsGridComponent,
     ResultsReferenceComponent,
-    ProductGalleryComponent,
-    ProductDescriptionComponent,
-],
+    ProductPage,
+  ],
   templateUrl: './results.html',
   styleUrls: ['./results.scss'],
 })
@@ -33,13 +31,15 @@ export class ResultsPage {
   readonly orderBy = signal<'score' | 'name' | 'starred'>('score');
   readonly starredMap = signal<Record<string, boolean>>({});
 
+  readonly activeProduct = signal<Product | null>(null);
+
   get sortedProducts(): Product[] {
     const products = [...this.exampleProducts];
     const starred = this.starredMap();
     const key = this.orderBy();
 
     return products.sort((a, b) => {
-      if (key === 'score') return 0; // Stable, original order
+      if (key === 'score') return 0;
       if (key === 'name') return a.name.localeCompare(b.name);
       if (key === 'starred') {
         const sa = starred[a.id] ?? false;
@@ -56,5 +56,13 @@ export class ResultsPage {
 
   updateStar({ id, starred }: { id: string; starred: boolean }) {
     this.starredMap.update((prev) => ({ ...prev, [id]: starred }));
+  }
+
+  openProduct(product: Product) {
+    this.activeProduct.set(product);
+  }
+
+  closeOverlay() {
+    this.activeProduct.set(null);
   }
 }

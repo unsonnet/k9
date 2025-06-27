@@ -7,7 +7,7 @@ import { Product } from '../../../models/product';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './description.html',
-  styleUrl: './description.scss'
+  styleUrl: './description.scss',
 })
 export class ProductDescriptionComponent {
   readonly product = input.required<Product>();

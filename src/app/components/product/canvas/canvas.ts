@@ -29,58 +29,90 @@ export class ProductCanvasComponent {
   startX = 0;
   startY = 0;
   currentMatrix = new DOMMatrix();
+  private loadedImage: HTMLImageElement | null = null;
 
   ngAfterViewInit() {
-    this.currentMatrix = this.transform();
-    this.drawImage();
+    this.loadImage();
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes['imageUrl'] || changes['transform']) {
+    if (changes['imageUrl']) {
+      this.loadImage();
+    } else if (changes['transform']) {
       this.currentMatrix = this.transform();
       this.drawImage();
     }
   }
 
+  private loadImage() {
+    const img = new Image();
+    img.src = this.imageUrl();
+    img.onload = () => {
+      this.loadedImage = img;
+      this.syncCanvasSize();
+
+      const isIdentity =
+        this.transform().a === 1 &&
+        this.transform().b === 0 &&
+        this.transform().c === 0 &&
+        this.transform().d === 1 &&
+        this.transform().e === 0 &&
+        this.transform().f === 0;
+
+      this.currentMatrix = isIdentity ? new DOMMatrix() : this.transform();
+
+      this.emitTransform();
+      this.drawImage();
+    };
+  }
+
+  private syncCanvasSize() {
+    const canvas = this.canvasRef.nativeElement;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+  }
+
   drawImage() {
+    if (!this.loadedImage) return;
+
+    this.syncCanvasSize();
     const canvas = this.canvasRef.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const img = new Image();
-    img.src = this.imageUrl();
-    img.onload = () => {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      ctx.save();
+    ctx.save();
 
-      const cx = canvas.width / 2;
-      const cy = canvas.height / 2;
+    const cx = canvas.width / 2;
+    const cy = canvas.height / 2;
 
-      ctx.translate(cx, cy);
-      ctx.transform(
-        this.currentMatrix.a,
-        this.currentMatrix.b,
-        this.currentMatrix.c,
-        this.currentMatrix.d,
-        this.currentMatrix.e,
-        this.currentMatrix.f,
-      );
+    ctx.translate(cx, cy);
+    ctx.transform(
+      this.currentMatrix.a,
+      this.currentMatrix.b,
+      this.currentMatrix.c,
+      this.currentMatrix.d,
+      this.currentMatrix.e,
+      this.currentMatrix.f,
+    );
 
-      const iw = img.width;
-      const ih = img.height;
-      ctx.drawImage(img, -iw / 2, -ih / 2);
+    const img = this.loadedImage;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
 
-      ctx.strokeStyle = 'white';
-      const scaleX = Math.hypot(this.currentMatrix.a, this.currentMatrix.b);
-      const scaleY = Math.hypot(this.currentMatrix.c, this.currentMatrix.d);
-      const effectiveScale = (scaleX + scaleY) / 2;
-      ctx.lineWidth = 2 / effectiveScale;
-      ctx.strokeRect(-iw / 2, -ih / 2, iw, ih);
+    ctx.drawImage(img, -iw / 2, -ih / 2);
 
-      ctx.restore();
-    };
+    ctx.strokeStyle = 'white';
+    const scaleX = Math.hypot(this.currentMatrix.a, this.currentMatrix.b);
+    const scaleY = Math.hypot(this.currentMatrix.c, this.currentMatrix.d);
+    const effectiveScale = (scaleX + scaleY) / 2;
+    ctx.lineWidth = 2 / effectiveScale;
+    ctx.strokeRect(-iw / 2, -ih / 2, iw, ih);
+
+    ctx.restore();
   }
 
   setMode(mode: 'translate' | 'rotate') {
