@@ -1,25 +1,28 @@
 import {
   Component,
   ElementRef,
+  Input,
+  Output,
   ViewChild,
-  HostListener,
-  input,
-  output,
+  AfterViewInit,
+  OnChanges,
   SimpleChanges,
+  EventEmitter,
 } from '@angular/core';
 import { MatIconModule } from '@angular/material/icon';
+import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-product-canvas',
   standalone: true,
-  imports: [MatIconModule],
+  imports: [CommonModule, MatIconModule],
   templateUrl: './canvas.html',
   styleUrl: './canvas.scss',
 })
-export class ProductCanvasComponent {
-  readonly imageUrl = input.required<string>();
-  readonly transform = input<DOMMatrix>(new DOMMatrix());
-  readonly transformChanged = output<DOMMatrix>();
+export class ProductCanvasComponent implements AfterViewInit, OnChanges {
+  @Input() imageUrl!: string;
+  @Input() initialTransform?: DOMMatrix;
+  @Output() transformChanged = new EventEmitter<DOMMatrix>();
 
   @ViewChild('canvas', { static: true })
   canvasRef!: ElementRef<HTMLCanvasElement>;
@@ -29,7 +32,7 @@ export class ProductCanvasComponent {
   startX = 0;
   startY = 0;
   currentMatrix = new DOMMatrix();
-  private loadedImage: HTMLImageElement | null = null;
+  loadedImage: HTMLImageElement | null = null;
 
   ngAfterViewInit() {
     this.loadImage();
@@ -38,36 +41,35 @@ export class ProductCanvasComponent {
   ngOnChanges(changes: SimpleChanges) {
     if (changes['imageUrl']) {
       this.loadImage();
-    } else if (changes['transform']) {
-      this.currentMatrix = this.transform();
+    } else if (changes['initialTransform'] && this.loadedImage) {
+      this.currentMatrix = this.initialTransform ?? this.defaultTransform();
       this.drawImage();
     }
   }
 
-  private loadImage() {
+  loadImage() {
     const img = new Image();
-    img.src = this.imageUrl();
+    img.src = this.imageUrl;
     img.onload = () => {
       this.loadedImage = img;
       this.syncCanvasSize();
-
-      const isIdentity =
-        this.transform().a === 1 &&
-        this.transform().b === 0 &&
-        this.transform().c === 0 &&
-        this.transform().d === 1 &&
-        this.transform().e === 0 &&
-        this.transform().f === 0;
-
-      this.currentMatrix = isIdentity
-        ? this.defaultTransform()
-        : this.transform();
-      this.emitTransform();
+      this.currentMatrix = this.initialTransform ?? this.defaultTransform();
       this.drawImage();
+      this.transformChanged.emit(this.currentMatrix);
     };
   }
 
-  private syncCanvasSize() {
+  defaultTransform(): DOMMatrix {
+    if (!this.loadedImage) return new DOMMatrix();
+    const canvas = this.canvasRef.nativeElement;
+    const scale = Math.min(
+      canvas.width / this.loadedImage.naturalWidth,
+      canvas.height / this.loadedImage.naturalHeight,
+    );
+    return new DOMMatrix().scale(scale / 1.5);
+  }
+
+  syncCanvasSize() {
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width;
@@ -76,8 +78,6 @@ export class ProductCanvasComponent {
 
   drawImage() {
     if (!this.loadedImage) return;
-
-    this.syncCanvasSize();
     const canvas = this.canvasRef.nativeElement;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -86,10 +86,8 @@ export class ProductCanvasComponent {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
-
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
-
     ctx.translate(cx, cy);
     ctx.transform(
       this.currentMatrix.a,
@@ -100,18 +98,22 @@ export class ProductCanvasComponent {
       this.currentMatrix.f,
     );
 
-    const img = this.loadedImage;
-    const iw = img.naturalWidth;
-    const ih = img.naturalHeight;
-
-    ctx.drawImage(img, -iw / 2, -ih / 2);
+    ctx.drawImage(
+      this.loadedImage,
+      -this.loadedImage.naturalWidth / 2,
+      -this.loadedImage.naturalHeight / 2,
+    );
 
     ctx.strokeStyle = 'white';
     const scaleX = Math.hypot(this.currentMatrix.a, this.currentMatrix.b);
     const scaleY = Math.hypot(this.currentMatrix.c, this.currentMatrix.d);
-    const effectiveScale = (scaleX + scaleY) / 2;
-    ctx.lineWidth = 2 / effectiveScale;
-    ctx.strokeRect(-iw / 2, -ih / 2, iw, ih);
+    ctx.lineWidth = 2 / ((scaleX + scaleY) / 2);
+    ctx.strokeRect(
+      -this.loadedImage.naturalWidth / 2,
+      -this.loadedImage.naturalHeight / 2,
+      this.loadedImage.naturalWidth,
+      this.loadedImage.naturalHeight,
+    );
 
     ctx.restore();
   }
@@ -120,17 +122,21 @@ export class ProductCanvasComponent {
     this.mode = mode;
   }
 
-  @HostListener('mousedown', ['$event'])
+  resetView() {
+    if (!this.loadedImage) return;
+    this.currentMatrix = this.defaultTransform();
+    this.drawImage();
+    this.transformChanged.emit(this.currentMatrix);
+  }
+
   onMouseDown(event: MouseEvent) {
     this.isDragging = true;
     this.startX = event.offsetX;
     this.startY = event.offsetY;
   }
 
-  @HostListener('mousemove', ['$event'])
   onMouseMove(event: MouseEvent) {
     if (!this.isDragging) return;
-
     const canvas = this.canvasRef.nativeElement;
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
@@ -140,11 +146,10 @@ export class ProductCanvasComponent {
     const delta = new DOMMatrix();
     if (this.mode === 'translate') {
       delta.translateSelf(dx, dy);
-    } else if (this.mode === 'rotate') {
-      const angle1 = Math.atan2(this.startY - cy, this.startX - cx);
-      const angle2 = Math.atan2(event.offsetY - cy, event.offsetX - cx);
-      const deltaAngle = angle2 - angle1;
-      delta.rotateSelf((deltaAngle * 180) / Math.PI);
+    } else {
+      const a1 = Math.atan2(this.startY - cy, this.startX - cx);
+      const a2 = Math.atan2(event.offsetY - cy, event.offsetX - cx);
+      delta.rotateSelf(((a2 - a1) * 180) / Math.PI);
     }
 
     this.currentMatrix = delta.multiply(this.currentMatrix);
@@ -153,26 +158,21 @@ export class ProductCanvasComponent {
     this.drawImage();
   }
 
-  @HostListener('mouseup')
-  @HostListener('mouseleave')
   onMouseUp() {
     if (this.isDragging) {
       this.isDragging = false;
-      this.emitTransform();
+      this.transformChanged.emit(this.currentMatrix);
     }
   }
 
-  @HostListener('wheel', ['$event'])
   onWheel(event: WheelEvent) {
     event.preventDefault();
-
     const canvas = this.canvasRef.nativeElement;
     const rect = canvas.getBoundingClientRect();
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
     const mouseX = event.clientX - rect.left;
     const mouseY = event.clientY - rect.top;
-
     const zoom = event.deltaY < 0 ? 1.1 : 0.9;
 
     const delta = new DOMMatrix()
@@ -182,24 +182,6 @@ export class ProductCanvasComponent {
 
     this.currentMatrix = delta.multiply(this.currentMatrix);
     this.drawImage();
-    this.emitTransform();
-  }
-
-  defaultTransform(): DOMMatrix {
-    if (!this.loadedImage || !this.canvasRef) return new DOMMatrix();
-    const { width, height } = this.canvasRef.nativeElement;
-    const { naturalWidth, naturalHeight } = this.loadedImage;
-    const scale = Math.min(width / naturalWidth, height / naturalHeight);
-    return new DOMMatrix().scale(scale / 1.5);
-  }
-
-  resetTransform() {
-    this.currentMatrix = this.defaultTransform();
-    this.drawImage();
-    this.emitTransform();
-  }
-
-  private emitTransform() {
     this.transformChanged.emit(this.currentMatrix);
   }
 }

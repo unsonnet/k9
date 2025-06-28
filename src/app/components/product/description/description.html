@@ -1,70 +1,70 @@
-<div class="product-desc">
-  <div class="product-desc__header" (click)="toggleStar($event)">
-    <div class="product-desc__store-row">
+<div class="description">
+  <div class="description__header" (click)="toggleStar($event)">
+    <div class="description__store-row">
       <div
-        class="product-desc__star"
-        [class.product-desc__star--filled]="product().starred"
+        class="description__star"
+        [class.description__star--filled]="product.starred"
         title="Toggle star"
       >
         ★
       </div>
-      <div class="product-desc__store">{{ product().description.store }}</div>
+      <div class="description__store">{{ product.description.store }}</div>
     </div>
-    <div class="product-desc__name">{{ product().description.name }}</div>
+    <div class="description__name">{{ product.description.name }}</div>
   </div>
 
-  <div class="product-desc__info">
-    <div class="product-desc__row">
-      <span class="product-desc__label">Shape:</span>
-      <span class="product-desc__value">
-        {{ product().description.shape.length }}" × {{
-        product().description.shape.width }}"
+  <div class="description__info">
+    <div class="description__row">
+      <span class="description__label">Shape:</span>
+      <span class="description__value">
+        {{ product.description.shape.length }}" × {{
+        product.description.shape.width }}"
       </span>
     </div>
-    <div class="product-desc__row">
-      <span class="product-desc__label">Material:</span>
-      <span class="product-desc__value"
-        >{{ product().description.material }}</span
-      >
+    <div class="description__row">
+      <span class="description__label">Material:</span>
+      <span class="description__value">
+        {{ product.description.material }}
+      </span>
     </div>
-    <div class="product-desc__row">
-      <span class="product-desc__label">Similarity:</span>
-      <span class="product-desc__value">{{ product().match }}%</span>
+    <div class="description__row">
+      <span class="description__label">Similarity:</span>
+      <span class="description__value">{{ product.match }}%</span>
     </div>
   </div>
 
-  <div class="product-desc__metrics">
-    <div class="product-desc__section">
-      <div class="product-desc__section-title">Color</div>
+  <div class="description__metrics">
+    <div class="description__section">
+      <div class="description__section-title">Color</div>
       @for (key of colorKeys; track key) {
-      <div class="product-desc__metric-row">
-        <span class="product-desc__metric-name">{{ key }}</span>
-        <div class="product-desc__bar">
+      <div class="description__metric-row">
+        <span class="description__metric-name">{{ key }}</span>
+        <div class="description__bar">
           <div
-            class="product-desc__bar-fill"
-            [style.width.%]="100 - product().scores.product.color[key]"
+            class="description__bar-fill"
+            [style.width.%]="100 - product.scores.product.color[key]"
           ></div>
         </div>
-        <span class="product-desc__metric-value">
-          {{ 100 - product().scores.product.color[key] }}%
+        <span class="description__metric-value">
+          {{ 100 - product.scores.product.color[key] }}%
         </span>
       </div>
       }
     </div>
 
-    <div class="product-desc__section">
-      <div class="product-desc__section-title">Pattern</div>
+    <div class="description__section">
+      <div class="description__section-title">Pattern</div>
       @for (key of patternKeys; track key) {
-      <div class="product-desc__metric-row">
-        <span class="product-desc__metric-name">{{ key }}</span>
-        <div class="product-desc__bar">
+      <div class="description__metric-row">
+        <span class="description__metric-name">{{ key }}</span>
+        <div class="description__bar">
           <div
-            class="product-desc__bar-fill"
-            [style.width.%]="100 - product().scores.product.pattern[key]"
+            class="description__bar-fill"
+            [style.width.%]="100 - product.scores.product.pattern[key]"
           ></div>
         </div>
-        <span class="product-desc__metric-value">
-          {{ 100 - product().scores.product.pattern[key] }}%
+        <span class="description__metric-value">
+          {{ 100 - product.scores.product.pattern[key] }}%
         </span>
       </div>
       }

@@ -1,19 +1,25 @@
-<div class="canvas-container">
-  <canvas #canvas></canvas>
+<div class="canvas">
+  <canvas
+    #canvas
+    (mousedown)="onMouseDown($event)"
+    (mousemove)="onMouseMove($event)"
+    (mouseup)="onMouseUp()"
+    (mouseleave)="onMouseUp()"
+    (wheel)="onWheel($event)"
+  ></canvas>
 
-  <div class="canvas-container__toolbar">
+  <div class="canvas__toolbar">
     <button
-      class="canvas-container__icon-button"
-      [class.canvas-container__icon-button--active]="mode === 'translate'"
+      class="canvas__icon-button"
+      [class.canvas__icon-button--active]="mode === 'translate'"
       (click)="setMode('translate')"
       title="Translate"
     >
       <mat-icon>open_with</mat-icon>
     </button>
-
     <button
-      class="canvas-container__icon-button"
-      [class.canvas-container__icon-button--active]="mode === 'rotate'"
+      class="canvas__icon-button"
+      [class.canvas__icon-button--active]="mode === 'rotate'"
       (click)="setMode('rotate')"
       title="Rotate"
     >
@@ -21,10 +27,10 @@
     </button>
   </div>
 
-  <div class="canvas-container__toolbar canvas-container__toolbar--right">
+  <div class="canvas__toolbar canvas__toolbar--right">
     <button
-      class="canvas-container__icon-button"
-      (click)="resetTransform()"
+      class="canvas__icon-button"
+      (click)="resetView()"
       title="Reset View"
     >
       <mat-icon>home</mat-icon>

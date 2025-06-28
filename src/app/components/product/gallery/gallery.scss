@@ -1,49 +1,7 @@
-.gallery-container {
+:host {
+  flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  max-width: none;
-  box-sizing: border-box;
-
-  &__thumbnails {
-    display: flex;
-    overflow-x: auto;
-    padding: 6px;
-    gap: 6px;
-  }
-
-  &__thumbnail {
-    flex: 0 0 auto;
-    width: 60px;
-    height: 60px;
-    border-radius: 4px;
-    overflow: hidden;
-    position: relative;
-    cursor: pointer;
-    border: 2px solid transparent;
-    transition: border 0.2s ease;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      filter: brightness(0.7);
-      transition: filter 0.2s ease;
-    }
-
-    &:hover img {
-      filter: brightness(1);
-    }
-
-    &--selected {
-      border-color: dodgerblue;
-
-      img {
-        filter: brightness(1);
-      }
-    }
-  }
+  min-width: 0;
+  overflow: hidden;
 }

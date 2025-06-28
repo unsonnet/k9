@@ -1,4 +1,4 @@
-.product-desc {
+.description {
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -7,23 +7,23 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    cursor: pointer; // so it's clear the area is clickable
+    cursor: pointer;
 
-    &:hover .product-desc__star {
+    &:hover .description__star {
       opacity: 1;
     }
+  }
 
-    & > .product-desc__store-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+  &__store-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
 
-    & > .product-desc__name {
-      font-weight: 700;
-      font-size: 1.5rem;
-      word-break: break-word;
-    }
+  &__name {
+    font-weight: 700;
+    font-size: 1.5rem;
+    word-break: break-word;
   }
 
   &__star {
@@ -38,7 +38,7 @@
     transition: opacity 0.2s ease;
     user-select: none;
     transform: translateY(-3px);
-    pointer-events: none; // prevents double-targeting from nested click
+    pointer-events: none;
 
     &--filled {
       color: gold;
@@ -59,21 +59,24 @@
   }
 
   &__info {
-    .product-desc__row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin: 5px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
 
-      .product-desc__label {
-        font-weight: 500;
-      }
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 
-      .product-desc__value {
-        font-weight: 400;
-        color: #444;
-        text-transform: capitalize;
-      }
+    .description__label {
+      font-weight: 500;
+    }
+
+    .description__value {
+      font-weight: 400;
+      color: #444;
+      text-transform: capitalize;
     }
   }
 
@@ -82,47 +85,47 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
+  }
 
-    .product-desc__section {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
 
-      .product-desc__section-title {
-        font-weight: 600;
-      }
+  &__section-title {
+    font-weight: 600;
+  }
 
-      .product-desc__metric-row {
-        display: flex;
-        align-items: center;
-        font-size: 0.9rem;
+  &__metric-row {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+  }
 
-        .product-desc__metric-name {
-          font-weight: 500;
-          flex: 0 0 80px;
-        }
+  &__metric-name {
+    font-weight: 500;
+    flex: 0 0 80px;
+  }
 
-        .product-desc__bar {
-          flex: 1;
-          height: 6px;
-          background: #eee;
-          border-radius: 3px;
-          overflow: hidden;
+  &__bar {
+    flex: 1;
+    height: 6px;
+    background: #eee;
+    border-radius: 3px;
+    overflow: hidden;
+  }
 
-          .product-desc__bar-fill {
-            height: 100%;
-            background-color: #00c853;
-          }
-        }
+  &__bar-fill {
+    height: 100%;
+    background-color: #00c853;
+  }
 
-        .product-desc__metric-value {
-          flex: 0 0 50px;
-          font-size: 0.8rem;
-          color: #444;
-          min-width: 28px;
-          text-align: right;
-        }
-      }
-    }
+  &__metric-value {
+    flex: 0 0 50px;
+    font-size: 0.8rem;
+    color: #444;
+    min-width: 28px;
+    text-align: right;
   }
 }

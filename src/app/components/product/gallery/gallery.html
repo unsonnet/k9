@@ -1,19 +1,11 @@
-<div class="gallery-container">
-  <app-product-canvas
-    [imageUrl]="selectedUrl()"
-    [transform]="selectedTransform()"
-    (transformChanged)="updateTransform($event)"
-  ></app-product-canvas>
+<app-product-canvas
+  [imageUrl]="selectedUrl()"
+  [initialTransform]="selectedTransform()"
+  (transformChanged)="updateTransform($event)"
+/>
 
-  <div class="gallery-container__thumbnails">
-    @for (url of imageUrls(); track url; let i = $index) {
-    <div
-      class="gallery-container__thumbnail"
-      [class.gallery-container__thumbnail--selected]="i === selectedIndex()"
-      (click)="select(i)"
-    >
-      <img [src]="url" alt="thumb" />
-    </div>
-    }
-  </div>
-</div>
+<app-product-thumbnails
+  [imageUrls]="imageUrls()"
+  [selectedIndex]="selectedIndex()"
+  [select]="select"
+/>

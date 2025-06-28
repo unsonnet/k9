@@ -1,0 +1,11 @@
+<div class="thumbnails">
+  @for (url of imageUrls(); track url; let i = $index) {
+  <div
+    class="thumbnails__item"
+    [class.thumbnails__item--selected]="i === selectedIndex()"
+    (click)="select()(i)"
+  >
+    <img [src]="url" alt="thumb" />
+  </div>
+  }
+</div>
