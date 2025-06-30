@@ -1,4 +1,4 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { Component, computed, inject, input, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -9,9 +9,12 @@ import { ResultsGridComponent } from '../../components/results/grid/grid';
 import { ResultsReferenceComponent } from '../../components/results/reference/reference';
 import { Thresholds } from '../../models/thresholds';
 import { Product } from '../../models/product';
-import { exampleProducts } from '../../models/demo-product';
 import { ProductPage } from '../product/product';
 import { Export } from '../../services/export';
+import { Reference } from '../../models/reference';
+import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
+import { Fetch } from '../../services/fetch';
 
 @Component({
   selector: 'app-results',
@@ -30,14 +33,39 @@ import { Export } from '../../services/export';
   styleUrls: ['./results.scss'],
 })
 export class ResultsPage {
-  readonly reference = input<Product>(exampleProducts[0]);
+  readonly reference = signal<Reference<string>>({
+    type: '',
+    material: '',
+    length: null,
+    width: null,
+    thickness: null,
+    images: [],
+  });
+  readonly job = signal<string>('');
 
-  constructor(private exportService: Export) {}
+  constructor(private exportService: Export) {
+    const state = inject(Router).getCurrentNavigation()?.extras.state as
+      | {
+          reference: Reference<string>;
+          job: string;
+        }
+      | undefined;
+
+    if (!state?.reference || !state?.job) {
+      throw new Error('Results page loaded without reference or job');
+    }
+
+    this.reference.set(state.reference);
+    this.job.set(state.job);
+  }
+
+  private readonly fetch = inject(Fetch);
 
   readonly exportUrl = signal<string | null>(null);
-  readonly exporting = signal(false);
+  readonly loading = signal(false);
+  readonly loadingMessage = signal<string | null>(null);
 
-  readonly products = signal<Product[]>(exampleProducts);
+  readonly products = signal<Product[]>([]);
   readonly orderBy = signal<'score' | 'name' | 'starred'>('score');
   readonly activeProduct = signal<Product | null>(null);
   readonly starredCount = computed(
@@ -63,15 +91,32 @@ export class ResultsPage {
     });
   });
 
-  handleApply(thresholds: Thresholds) {
-    console.log('Thresholds received:', thresholds);
+  async handleApply(thresholds: Thresholds) {
+    this.loadingMessage.set('Filtering products...');
+    this.loading.set(true);
+
+    try {
+      const job = this.job();
+      const response = await firstValueFrom(
+        this.fetch.filter(job, thresholds, 0),
+      );
+      if (response.status !== 200 || !response.body) {
+        throw new Error(`Failed to filter products (${response.status})`);
+      }
+      this.products.set(response.body);
+      this.loading.set(false);
+    } catch (err) {
+      console.error(err);
+      this.loadingMessage.set('An error occurred while filtering.');
+    }
   }
 
   async handleExport() {
     const starred = this.products().filter((p) => p.starred);
     if (starred.length === 0) return;
 
-    this.exporting.set(true);
+    this.loadingMessage.set('Packaging products...');
+    this.loading.set(true);
     this.exportUrl.set(null);
 
     const blob = await this.exportService.exportProducts(
@@ -80,7 +125,7 @@ export class ResultsPage {
     );
     const url = URL.createObjectURL(blob);
     this.exportUrl.set(url);
-    this.exporting.set(false);
+    this.loading.set(false);
   }
 
   openProduct(product: Product) {
@@ -108,7 +153,7 @@ export class ResultsPage {
   get hasOverlay(): boolean {
     return (
       Boolean(this.activeProduct()) ||
-      this.exporting() ||
+      this.loading() ||
       Boolean(this.exportUrl())
     );
   }

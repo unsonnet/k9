@@ -25,11 +25,9 @@ export type Product = {
     name: string;
     url: string;
     material: string;
-    shape: {
-      length?: number;
-      width?: number;
-      thickness?: number;
-    };
+    length?: number;
+    width?: number;
+    thickness?: number;
   };
   starred?: boolean;
 };

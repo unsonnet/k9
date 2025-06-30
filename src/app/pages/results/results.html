@@ -66,17 +66,17 @@
         (starToggled)="toggleStar(activeProduct()!)"
       />
     </div>
-    } @else if (exporting()) {
+    } @else if (loading()) {
     <div
-      class="results-page__overlay-content--export"
+      class="results-page__overlay-content--loading"
       (click)="$event.stopPropagation()"
     >
-      <h2>Packaging products...</h2>
+      <h2>{{ loadingMessage() ?? 'Processing...' }}</h2>
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     </div>
     } @else if (exportUrl()) {
     <div
-      class="results-page__overlay-content--export"
+      class="results-page__overlay-content--loading"
       (click)="$event.stopPropagation()"
     >
       <a

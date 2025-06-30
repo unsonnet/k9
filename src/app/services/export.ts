@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import JSZip from 'jszip';
 import { Product } from '../models/product';
+import { Reference } from '../models/reference';
 
 @Injectable({
   providedIn: 'root',
@@ -8,25 +9,21 @@ import { Product } from '../models/product';
 export class Export {
   constructor() {}
 
-  async exportProducts(reference: Product, products: Product[]) {
+  async exportProducts(reference: Reference<string>, products: Product[]) {
     const zip = new JSZip();
     const csvRows = ['id,name,store,url,material,length,width,thickness'];
 
     // --- Reference entry ---
-    const refDesc = reference.description;
-    const { material, shape } = refDesc;
-    const { length = '', width = '', thickness = '' } = shape;
-
     csvRows.push(
       [
         0,
         '"REFERENCE"',
         '',
         '',
-        `"${material}"`,
-        length,
-        width,
-        thickness,
+        `"${reference.material}"`,
+        reference.length || '',
+        reference.width || '',
+        reference.thickness || '',
       ].join(','),
     );
 
@@ -49,8 +46,15 @@ export class Export {
     // --- Product entries ---
     let counter = 1;
     for (const product of products) {
-      const { name, store, url, material, shape } = product.description;
-      const { length = '', width = '', thickness = '' } = shape;
+      const {
+        name,
+        store,
+        url,
+        material,
+        length = '',
+        width = '',
+        thickness = '',
+      } = product.description;
 
       const exportId = counter++;
       const folderName = this.sanitizeFolderName(`${exportId}_${name}`);

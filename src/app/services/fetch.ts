@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { catchError, map } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
 import { Reference } from '../models/reference';
-// import { Thresholds } from '../models/thresholds';
+import { Thresholds } from '../models/thresholds';
+import { Product } from '../models/product';
 
 export type FetchResponse<T> = {
   status: number;
@@ -58,8 +59,41 @@ export class Fetch {
     );
   }
 
-  // fetch(job: string, thresholds: Thresholds, start: number): Observable<Response<Product[]>> {
-  //   const url = `${this.base}/${job}/fetch?start=${start}`;
-  //   return this.http.post<any[]>(url, thresholds);
-  // }
+  summarize(job: string): Observable<FetchResponse<Reference<string>>> {
+    const url = `${this.base}/${job}/fetch`;
+    return this.http.get<Reference<string>>(url, { observe: 'response' }).pipe(
+      map((response) => ({
+        status: response.status,
+        body: response.body ?? null,
+      })),
+      catchError((err) =>
+        of({
+          status: err.status || 500,
+          body: null,
+        }),
+      ),
+    );
+  }
+
+  filter(
+    job: string,
+    thresholds: Thresholds,
+    start: number,
+  ): Observable<FetchResponse<Product[]>> {
+    const url = `${this.base}/${job}/fetch?start=${start}`;
+    return this.http
+      .post<Product[]>(url, thresholds, { observe: 'response' })
+      .pipe(
+        map((response) => ({
+          status: response.status,
+          body: response.body ?? [],
+        })),
+        catchError((err) =>
+          of({
+            status: err.status || 500,
+            body: null,
+          }),
+        ),
+      );
+  }
 }

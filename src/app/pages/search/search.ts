@@ -5,6 +5,7 @@ import { SearchProgressComponent } from '../../components/search/progress/progre
 import { Fetch } from '../../services/fetch';
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom } from 'rxjs';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-search',
@@ -17,6 +18,7 @@ export class SearchPage {
   readonly isErrored = signal(false);
 
   private readonly fetch = inject(Fetch);
+  private readonly router = inject(Router);
 
   async onReferenceSubmit(reference: Reference<File>) {
     this.loadingMessage.set('');
@@ -24,18 +26,21 @@ export class SearchPage {
 
     const job = uuidv4();
     this.loadingMessage.set('testing');
-    // try {
-    //   const apiReference = await this.upload(job, reference);
-    //   const run = await this.initiate(job, apiReference);
-    //   await this.poll(job, run);
-    // } catch (err) {
-    //   this.loadingMessage.set(
-    //     err instanceof Error ? err.message : 'Fatal error (Unknown)',
-    //   );
-    //   this.isErrored.set(true);
-    // }
+    try {
+      const apiReference = await this.upload(job, reference);
+      const run = await this.initiate(job, apiReference);
+      await this.poll(job, run);
+      const summary = await this.summarize(job);
+      await this.router.navigateByUrl('/results', {
+        state: { reference: summary, job },
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Fatal error (Unknown)';
+      this.loadingMessage.set(msg);
+      this.isErrored.set(true);
+    }
 
-    // console.log('Reference submitted:', reference);
+    console.log('Reference submitted:', reference);
   }
 
   private async upload(
@@ -87,31 +92,45 @@ export class SearchPage {
         case 'load':
           this.loadingMessage.set('Preparing K9 for the wild');
           break;
-        case 'metric.material':
+        case 'metric.product.material':
           this.loadingMessage.set('Packing heavy materials');
           break;
-        case 'metric.shape':
+        case 'metric.product.shape':
           this.loadingMessage.set('Sharpening pointy shapes');
           break;
-        case 'metric.color':
+        case 'metric.product.color':
           this.loadingMessage.set('Pouring pretty colors');
           break;
-        case 'metric.pattern':
+        case 'metric.product.pattern':
           this.loadingMessage.set('Tracing wavey patterns');
           break;
-        case 'metric.variation':
-          this.loadingMessage.set('Casting light variations');
+        case 'metric.image.color':
+          this.loadingMessage.set('[Legacy] Pouring pretty colors');
+          break;
+        case 'metric.image.pattern':
+          this.loadingMessage.set('[Legacy] Tracing wavey patterns');
+          break;
+        case 'metric.image.variation':
+          this.loadingMessage.set('[Legacy] Casting light variations');
           break;
         case 'save':
           this.loadingMessage.set('Releasing K9 to the wild');
           break;
         case 'fail':
-          throw new Error(`K9 got lost (${response.status})`);
+          throw new Error(`K9 got confused (${response.status})`);
         case 'crash':
           throw new Error(`K9 collapsed (${response.status})`);
       }
     }
     throw new Error('K9 got tired (400)');
+  }
+
+  private async summarize(job: string): Promise<Reference<string>> {
+    const response = await firstValueFrom(this.fetch.summarize(job));
+    if (response.status !== 200 || !response.body) {
+      throw new Error(`K9 got lost (${response.status})`);
+    }
+    return response.body;
   }
 
   private delay(ms: number): Promise<void> {
