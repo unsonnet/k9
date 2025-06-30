@@ -1,19 +1,20 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatButtonModule } from '@angular/material/button';
+import { Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 
 import { ResultsThresholdsComponent } from '../../components/results/thresholds/thresholds';
 import { ResultsGridComponent } from '../../components/results/grid/grid';
 import { ResultsReferenceComponent } from '../../components/results/reference/reference';
-import { Thresholds } from '../../models/thresholds';
-import { Product } from '../../models/product';
 import { ProductPage } from '../product/product';
-import { Export } from '../../services/export';
+
+import { Product } from '../../models/product';
+import { Thresholds } from '../../models/thresholds';
 import { Reference } from '../../models/reference';
-import { Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { Export } from '../../services/export';
 import { Fetch } from '../../services/fetch';
 
 @Component({
@@ -33,6 +34,11 @@ import { Fetch } from '../../services/fetch';
   styleUrls: ['./results.scss'],
 })
 export class ResultsPage {
+  // === Injected Services ===
+  private readonly fetch = inject(Fetch);
+  private readonly exportService = inject(Export);
+
+  // === Initial State from Router ===
   readonly reference = signal<Reference<string>>({
     type: '',
     material: '',
@@ -41,14 +47,12 @@ export class ResultsPage {
     thickness: null,
     images: [],
   });
+
   readonly job = signal<string>('');
 
-  constructor(private exportService: Export) {
+  constructor() {
     const state = inject(Router).getCurrentNavigation()?.extras.state as
-      | {
-          reference: Reference<string>;
-          job: string;
-        }
+      | { reference: Reference<string>; job: string }
       | undefined;
 
     if (!state?.reference || !state?.job) {
@@ -59,55 +63,73 @@ export class ResultsPage {
     this.job.set(state.job);
   }
 
-  private readonly fetch = inject(Fetch);
-
-  readonly exportUrl = signal<string | null>(null);
-  readonly loading = signal(false);
-  readonly loadingMessage = signal<string | null>(null);
-
+  // === UI State ===
   readonly products = signal<Product[]>([]);
   readonly orderBy = signal<'score' | 'name' | 'starred'>('score');
   readonly activeProduct = signal<Product | null>(null);
-  readonly starredCount = computed(
-    () => this.sortedProducts().filter((p) => p.starred).length,
+
+  // === Overlay State ===
+  readonly loadingMessage = signal<string | null>(null);
+  readonly exportUrl = signal<string | null>(null);
+  readonly overlayError = signal<string | null>(null);
+
+  // === Computed Signals ===
+  readonly sortedProducts = computed(() => {
+    const products = [...this.products()];
+    switch (this.orderBy()) {
+      case 'name':
+        return products.sort((a, b) =>
+          a.description.name.localeCompare(b.description.name),
+        );
+      case 'starred':
+        return products.sort(
+          (a, b) => Number(b.starred ?? false) - Number(a.starred ?? false),
+        );
+      default:
+        return products;
+    }
+  });
+
+  readonly starredCount = computed(() =>
+    this.sortedProducts().filter((p) => p.starred).length,
   );
 
   readonly exportEnabled = computed(() =>
     this.sortedProducts().some((p) => p.starred),
   );
 
-  readonly sortedProducts = computed(() => {
-    const products = [...this.products()];
-    const key = this.orderBy();
+  get hasOverlay(): boolean {
+    return (
+      !!this.activeProduct() ||
+      !!this.loadingMessage() ||
+      !!this.exportUrl() ||
+      !!this.overlayError()
+    );
+  }
 
-    return products.sort((a, b) => {
-      if (key === 'score') return 0;
-      if (key === 'name')
-        return a.description.name.localeCompare(b.description.name);
-      if (key === 'starred') {
-        return Number(b.starred ?? false) - Number(a.starred ?? false);
-      }
-      return 0;
-    });
-  });
+  // === Actions ===
 
-  async handleApply(thresholds: Thresholds) {
+  async handleFilter(thresholds: Thresholds) {
     this.loadingMessage.set('Filtering products...');
-    this.loading.set(true);
+    this.overlayError.set(null);
 
     try {
-      const job = this.job();
       const response = await firstValueFrom(
-        this.fetch.filter(job, thresholds, 0),
+        this.fetch.filter(this.job(), thresholds, 0),
       );
+
       if (response.status !== 200 || !response.body) {
-        throw new Error(`Failed to filter products (${response.status})`);
+        throw new Error(response.error ?? `Status ${response.status}`);
       }
+
       this.products.set(response.body);
-      this.loading.set(false);
     } catch (err) {
       console.error(err);
-      this.loadingMessage.set('An error occurred while filtering.');
+      this.overlayError.set(
+        err instanceof Error ? err.message : 'Filtering failed.',
+      );
+    } finally {
+      this.loadingMessage.set(null);
     }
   }
 
@@ -116,16 +138,23 @@ export class ResultsPage {
     if (starred.length === 0) return;
 
     this.loadingMessage.set('Packaging products...');
-    this.loading.set(true);
     this.exportUrl.set(null);
+    this.overlayError.set(null);
 
-    const blob = await this.exportService.exportProducts(
-      this.reference(),
-      starred,
-    );
-    const url = URL.createObjectURL(blob);
-    this.exportUrl.set(url);
-    this.loading.set(false);
+    try {
+      const blob = await this.exportService.exportProducts(
+        this.reference(),
+        starred,
+      );
+      this.exportUrl.set(URL.createObjectURL(blob));
+    } catch (err) {
+      console.error(err);
+      this.overlayError.set(
+        err instanceof Error ? err.message : 'Export failed.',
+      );
+    } finally {
+      this.loadingMessage.set(null);
+    }
   }
 
   openProduct(product: Product) {
@@ -148,13 +177,7 @@ export class ResultsPage {
   closeOverlay() {
     this.activeProduct.set(null);
     this.exportUrl.set(null);
-  }
-
-  get hasOverlay(): boolean {
-    return (
-      Boolean(this.activeProduct()) ||
-      this.loading() ||
-      Boolean(this.exportUrl())
-    );
+    this.overlayError.set(null);
+    this.loadingMessage.set(null);
   }
 }

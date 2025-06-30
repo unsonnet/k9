@@ -1,36 +1,33 @@
-<div class="results-page">
-  <div class="results-page__thresholds">
+<div class="results">
+  <div class="results__sidebar">
     <app-results-reference [images]="reference().images" />
 
-    <div class="results-page__thresholds-scroll">
+    <div class="results__thresholds">
       <app-results-thresholds
-        (applyFilter)="handleApply($event)"
+        (applyFilter)="handleFilter($event)"
         (exportResults)="handleExport()"
         [exportEnabled]="exportEnabled()"
       />
     </div>
   </div>
 
-  <div class="results-page__grid">
-    <div class="results-page__grid-header">
-      <div class="results-page__header-text">
+  <div class="results__main">
+    <div class="results__header">
+      <div class="results__stat">
         Total:
-        <span
-          class="results-page__header-count"
-          [title]="sortedProducts().length"
-        >
+        <span class="results__count" [title]="sortedProducts().length">
           {{ sortedProducts().length > 999 ? '999+' : sortedProducts().length }}
         </span>
       </div>
 
-      <div class="results-page__header-text">
+      <div class="results__stat">
         Selected:
-        <span class="results-page__header-count" [title]="starredCount()">
+        <span class="results__count" [title]="starredCount()">
           {{ starredCount() > 999 ? '999+' : starredCount() }}
         </span>
       </div>
 
-      <div class="results-page__header-text">
+      <div class="results__sort">
         <label for="sort-select">Order by:</label>
         <select
           [ngModel]="orderBy()"
@@ -44,7 +41,7 @@
       </div>
     </div>
 
-    <div class="results-page__grid-scroll">
+    <div class="results__grid">
       <app-results-grid
         [products]="sortedProducts()"
         (productClicked)="openProduct($event)"
@@ -54,40 +51,35 @@
   </div>
 
   @if (hasOverlay) {
-  <div class="results-page__overlay" (click)="closeOverlay()">
+  <div class="results__overlay" (click)="closeOverlay()">
     @if (activeProduct()) {
-    <div
-      class="results-page__overlay-content--product"
-      (click)="$event.stopPropagation()"
-    >
+    <div class="results__overlay-content results__overlay-content--product" (click)="$event.stopPropagation()">
       <app-product
         [product]="activeProduct()!"
         [reference]="reference()"
         (starToggled)="toggleStar(activeProduct()!)"
       />
     </div>
-    } @else if (loading()) {
-    <div
-      class="results-page__overlay-content--loading"
-      (click)="$event.stopPropagation()"
-    >
-      <h2>{{ loadingMessage() ?? 'Processing...' }}</h2>
+    } @else if (loadingMessage()) {
+    <div class="results__overlay-content results__overlay-content--loading" (click)="$event.stopPropagation()">
+      <h2>{{ loadingMessage() }}</h2>
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     </div>
     } @else if (exportUrl()) {
-    <div
-      class="results-page__overlay-content--loading"
-      (click)="$event.stopPropagation()"
-    >
+    <div class="results__overlay-content results__overlay-content--loading" (click)="$event.stopPropagation()">
       <a
         [href]="exportUrl()"
         download="exported_products.zip"
         mat-raised-button
         color="primary"
-        class="results-page__export-button"
+        class="results__download-button"
       >
         Download Report
       </a>
+    </div>
+    } @else if (overlayError()) {
+    <div class="results__overlay-content results__overlay-content--error" (click)="$event.stopPropagation()">
+      <h2>{{ overlayError() }}</h2>
     </div>
     }
   </div>

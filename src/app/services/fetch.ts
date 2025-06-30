@@ -10,6 +10,7 @@ import { Product } from '../models/product';
 export type FetchResponse<T> = {
   status: number;
   body: T | null;
+  error?: string | null;
 };
 
 @Injectable({
@@ -26,7 +27,13 @@ export class Fetch {
     const url = `${this.base}/${job}/album/${encodeURIComponent(name)}`;
     return this.http.put(url, file, { observe: 'response' }).pipe(
       map((response) => ({ status: response.status, body: name })),
-      catchError((err) => of({ status: err.status || 500, body: null })),
+      catchError((err) =>
+        of({
+          status: err.status || 500,
+          body: null,
+          error: err.message ?? null,
+        }),
+      ),
     );
   }
 
@@ -39,7 +46,13 @@ export class Fetch {
       .put(url, reference, { responseType: 'text', observe: 'response' })
       .pipe(
         map((response) => ({ status: response.status, body: response.body })),
-        catchError((err) => of({ status: err.status || 500, body: null })),
+        catchError((err) =>
+          of({
+            status: err.status || 500,
+            body: null,
+            error: err.headers?.get?.('Error-Message') ?? err.message ?? null,
+          }),
+        ),
       );
   }
 
@@ -53,7 +66,8 @@ export class Fetch {
       catchError((err) =>
         of({
           status: err.status || 500,
-          body: err.headers.get('Stage') || 'crash',
+          body: err.headers?.get?.('Stage') || 'crash',
+          error: err.headers?.get?.('Error-Message') ?? err.message ?? null,
         }),
       ),
     );
@@ -70,6 +84,7 @@ export class Fetch {
         of({
           status: err.status || 500,
           body: null,
+          error: err.headers?.get?.('Error-Message') ?? err.message ?? null,
         }),
       ),
     );
@@ -92,6 +107,7 @@ export class Fetch {
           of({
             status: err.status || 500,
             body: null,
+            error: err.headers?.get?.('Error-Message') ?? err.message ?? null,
           }),
         ),
       );
