@@ -147,6 +147,7 @@ export class SearchImagesComponent
   }
 
   removeFile(index: number): void {
+    if (this.disabled) return;
     const current = [...this.files()];
     URL.revokeObjectURL(current[index].url);
     current.splice(index, 1);
@@ -186,5 +187,9 @@ export class SearchImagesComponent
 
   ngOnDestroy(): void {
     this.stateChanges.complete();
+  }
+
+  @HostBinding('class.disabled') get isDisabled() {
+    return this.disabled;
   }
 }

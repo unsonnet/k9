@@ -38,6 +38,7 @@
     @for (item of files(); track item.url; let i = $index) {
     <div
       class="image-panel__item"
+      [class.image-panel__item--disabled]="disabled"
       (mouseenter)="hoveredIndex = i"
       (mouseleave)="hoveredIndex = -1"
     >
@@ -46,8 +47,12 @@
           <img [src]="item.url" alt="preview" />
         </div>
 
-        @if (hoveredIndex === i) {
-        <div class="image-panel__overlay" (click)="removeFile(i)">
+        @if (hoveredIndex === i && !disabled) {
+        <div
+          class="image-panel__overlay"
+          [class.image-panel__overlay--disabled]="disabled"
+          (click)="removeFile(i)"
+        >
           <div class="image-panel__icon">
             <mat-icon>close</mat-icon>
           </div>

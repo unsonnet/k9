@@ -1,4 +1,4 @@
-import { Component, output } from '@angular/core';
+import { Component, effect, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -29,6 +29,7 @@ import { Reference } from '../../../models/reference';
   styleUrl: './reference.scss',
 })
 export class SearchReferenceComponent {
+  readonly searchEnabled = input(true);
   readonly submitReference = output<Reference<File>>();
 
   materials = ['ceramic', 'porcelain'];
@@ -53,6 +54,14 @@ export class SearchReferenceComponent {
       images: this.fb.nonNullable.control([] as File[], {
         validators: Validators.required,
       }),
+    });
+
+    effect(() => {
+      if (this.searchEnabled()) {
+        this.referenceForm.enable();
+      } else {
+        this.referenceForm.disable();
+      }
     });
   }
 

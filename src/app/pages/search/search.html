@@ -2,7 +2,10 @@
   <div class="search-page__layout">
     <div class="search-page__input">
       <h1 class="search-page__title">K9 Search</h1>
-      <app-search-reference (submitReference)="onReferenceSubmit($event)" />
+      <app-search-reference
+        (submitReference)="onReferenceSubmit($event)"
+        [searchEnabled]="!loadingMessage()"
+      />
     </div>
 
     <div class="search-page__status">

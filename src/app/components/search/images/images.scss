@@ -125,6 +125,10 @@ mat-icon {
     align-items: center;
     font-size: 12px;
     cursor: pointer;
+
+    &--disabled {
+      cursor: default;
+    }
   }
 
   &__preview-wrapper {
@@ -162,6 +166,11 @@ mat-icon {
     background-color: rgba(128, 128, 128, 0.3);
     z-index: 1;
     cursor: pointer;
+
+    &--disabled {
+      cursor: default;
+      pointer-events: none;
+    }
   }
 
   &__icon {
@@ -180,7 +189,7 @@ mat-icon {
       font-size: 20px;
       width: 20px;
       height: 20px;
-      display: flex; // instead of block
+      display: flex;
       align-items: center;
       justify-content: center;
       line-height: 1;
