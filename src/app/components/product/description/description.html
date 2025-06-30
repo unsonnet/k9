@@ -22,9 +22,7 @@
     </div>
     <div class="description__row">
       <span class="description__label">Material:</span>
-      <span class="description__value">
-        {{ product.description.material }}
-      </span>
+      <span class="description__value">{{ product.description.material }}</span>
     </div>
     <div class="description__row">
       <span class="description__label">Similarity:</span>
@@ -33,40 +31,62 @@
   </div>
 
   <div class="description__metrics">
-    <div class="description__section">
-      <div class="description__section-title">Color</div>
-      @for (key of colorKeys; track key) {
-      <div class="description__metric-row">
-        <span class="description__metric-name">{{ key }}</span>
-        <div class="description__bar">
-          <div
-            class="description__bar-fill"
-            [style.width.%]="100 - product.scores.product.color[key]"
-          ></div>
-        </div>
-        <span class="description__metric-value">
-          {{ 100 - product.scores.product.color[key] }}%
-        </span>
-      </div>
-      }
+    <div class="description__metrics-label">
+      <span>Product Scores</span>
+      <hr class="description__divider" />
     </div>
 
+    @for (sectionName of productSections; track sectionName) { @if
+    (product.scores.product[sectionName]) {
     <div class="description__section">
-      <div class="description__section-title">Pattern</div>
-      @for (key of patternKeys; track key) {
+      <div class="description__section-title">
+        {{ sectionName | titlecase }}
+      </div>
+      @for (key of metricKeys(product.scores.product[sectionName]); track key) {
       <div class="description__metric-row">
-        <span class="description__metric-name">{{ key }}</span>
+        <span class="description__metric-name">{{ key | titlecase }}</span>
         <div class="description__bar">
           <div
             class="description__bar-fill"
-            [style.width.%]="100 - product.scores.product.pattern[key]"
+            [style.width.%]="100 - product.scores.product[sectionName][key]"
           ></div>
         </div>
         <span class="description__metric-value">
-          {{ 100 - product.scores.product.pattern[key] }}%
+          {{ 100 - product.scores.product[sectionName][key] | number: '1.0-1'
+          }}%
         </span>
       </div>
       }
     </div>
+    } }
+
+    <!-- === IMAGE METRICS === -->
+    <div class="description__metrics-label">
+      <span>Image Scores</span>
+      <hr class="description__divider" />
+    </div>
+
+    @for (sectionName of imageSections; track sectionName) { @if
+    (product.scores.image[sectionName]) {
+    <div class="description__section">
+      <div class="description__section-title">
+        {{ sectionName | titlecase }}
+      </div>
+      @for (key of metricKeys(product.scores.image[sectionName]); track key) {
+      <div class="description__metric-row">
+        <span class="description__metric-name">{{ key | titlecase }}</span>
+        <div class="description__bar">
+          <div
+            class="description__bar-fill"
+            [style.width.%]="100 - product.scores.image[sectionName][key]"
+          ></div>
+        </div>
+        <span class="description__metric-value">
+          {{ 100 - product.scores.image[sectionName][key] | number: '1.0-1' }}%
+        </span>
+      </div>
+      }
+    </div>
+    } }
   </div>
 </div>
