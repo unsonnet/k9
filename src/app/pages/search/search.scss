@@ -22,7 +22,7 @@
     overflow: hidden;
   }
 
-  &__input {
+  &__panel {
     display: flex;
     flex-direction: column;
     width: 100%;
@@ -41,7 +41,7 @@
     }
   }
 
-  &__title {
+  &__panel-title {
     font-weight: bold;
     font-size: 24px;
     margin-bottom: 16px;
@@ -61,7 +61,7 @@
     justify-content: center;
   }
 
-  &__logo {
+  &__logo-wrapper {
     display: flex;
     justify-content: center;
     width: 100%;
@@ -112,5 +112,37 @@
     padding: 8px 12px;
     border-radius: 6px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &__overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 24px;
+  }
+
+  &__overlay-box {
+    background: white;
+    padding: 32px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+    align-items: center;
+  }
+
+  &__overlay-field {
+    width: 300px;
+  }
+
+  &__overlay-button {
+    font-size: 16px;
+    border-radius: 2px;
   }
 }
