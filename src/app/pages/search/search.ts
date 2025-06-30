@@ -1,31 +1,33 @@
 import { Component, inject, signal } from '@angular/core';
 import { Reference } from '../../models/reference';
 import { SearchReferenceComponent } from '../../components/search/reference/reference';
-import { SearchProgressComponent } from '../../components/search/progress/progress';
 import { Fetch } from '../../services/fetch';
 import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom } from 'rxjs';
 import { Router } from '@angular/router';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @Component({
   selector: 'app-search',
-  imports: [SearchReferenceComponent, SearchProgressComponent],
+  standalone: true,
+  imports: [SearchReferenceComponent, MatProgressSpinnerModule],
   templateUrl: './search.html',
   styleUrl: './search.scss',
 })
 export class SearchPage {
   readonly loadingMessage = signal('');
-  readonly isErrored = signal(false);
+  readonly errorMessage = signal('');
 
   private readonly fetch = inject(Fetch);
   private readonly router = inject(Router);
 
   async onReferenceSubmit(reference: Reference<File>) {
     this.loadingMessage.set('');
-    this.isErrored.set(false);
+    this.errorMessage.set('');
 
     const job = uuidv4();
     this.loadingMessage.set('testing');
+
     try {
       const apiReference = await this.upload(job, reference);
       const run = await this.initiate(job, apiReference);
@@ -35,9 +37,9 @@ export class SearchPage {
         state: { reference: summary, job },
       });
     } catch (err) {
+      this.loadingMessage.set('');
       const msg = err instanceof Error ? err.message : 'Fatal error (Unknown)';
-      this.loadingMessage.set(msg);
-      this.isErrored.set(true);
+      this.errorMessage.set(msg);
     }
 
     console.log('Reference submitted:', reference);
@@ -57,7 +59,7 @@ export class SearchPage {
       }
       images.push(response.body as string);
     }
-    return { ...reference, images: images };
+    return { ...reference, images };
   }
 
   private async initiate(
@@ -81,10 +83,12 @@ export class SearchPage {
   ): Promise<void> {
     this.loadingMessage.set('Initiating server');
     const start = Date.now();
+
     while (Date.now() - start < timeoutMs) {
       await this.delay(intervalMs);
       const response = await firstValueFrom(this.fetch.poll(job, run));
       if (response.status === 200) return;
+
       switch (response.body as string) {
         case 'start':
           this.loadingMessage.set('Building universe');
@@ -122,6 +126,7 @@ export class SearchPage {
           throw new Error(`K9 collapsed (${response.status})`);
       }
     }
+
     throw new Error('K9 got tired (400)');
   }
 

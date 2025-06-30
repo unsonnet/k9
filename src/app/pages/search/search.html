@@ -1,23 +1,39 @@
 <div class="search-page">
   <div class="search-page__layout">
-    <div class="search-page__left-column">
-      <h1 class="search-page__heading">K9 Search</h1>
+    <div class="search-page__input">
+      <h1 class="search-page__title">K9 Search</h1>
       <app-search-reference (submitReference)="onReferenceSubmit($event)" />
     </div>
 
-    <div class="search-page__right-column">
+    <div class="search-page__status">
       <div
-        class="search-page__logo-container"
-        [class.search-page__logo-container--lifted]="loadingMessage()"
+        class="search-page__logo"
+        [class.search-page__logo--lifted]="loadingMessage() || errorMessage()"
       >
-        <img src="assets/logo.png" alt="Logo" class="search-page__logo" />
+        <img src="assets/logo.png" alt="Logo" class="search-page__logo-image" />
       </div>
 
-      <app-search-progress
-        [class.search-page__progress--visible]="loadingMessage()"
-        [message]="loadingMessage()"
-        [isError]="isErrored()"
-      />
+      @if (loadingMessage()) {
+      <div class="search-page__progress search-page__progress--visible">
+        <mat-progress-spinner
+          class="search-page__progress-spinner"
+          mode="indeterminate"
+          diameter="24"
+          color="primary"
+        />
+        <span class="search-page__progress-message">
+          {{ loadingMessage() }}
+        </span>
+      </div>
+      } @else if (errorMessage()) {
+      <div
+        class="search-page__progress search-page__progress--visible search-page__progress--error"
+      >
+        <span class="search-page__progress-message">
+          {{ errorMessage() }}
+        </span>
+      </div>
+      }
     </div>
   </div>
 </div>

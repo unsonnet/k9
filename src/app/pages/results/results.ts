@@ -90,8 +90,8 @@ export class ResultsPage {
     }
   });
 
-  readonly starredCount = computed(() =>
-    this.sortedProducts().filter((p) => p.starred).length,
+  readonly starredCount = computed(
+    () => this.sortedProducts().filter((p) => p.starred).length,
   );
 
   readonly exportEnabled = computed(() =>

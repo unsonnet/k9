@@ -53,7 +53,10 @@
   @if (hasOverlay) {
   <div class="results__overlay" (click)="closeOverlay()">
     @if (activeProduct()) {
-    <div class="results__overlay-content results__overlay-content--product" (click)="$event.stopPropagation()">
+    <div
+      class="results__overlay-content results__overlay-content--product"
+      (click)="$event.stopPropagation()"
+    >
       <app-product
         [product]="activeProduct()!"
         [reference]="reference()"
@@ -61,12 +64,18 @@
       />
     </div>
     } @else if (loadingMessage()) {
-    <div class="results__overlay-content results__overlay-content--loading" (click)="$event.stopPropagation()">
+    <div
+      class="results__overlay-content results__overlay-content--loading"
+      (click)="$event.stopPropagation()"
+    >
       <h2>{{ loadingMessage() }}</h2>
       <mat-progress-bar mode="indeterminate"></mat-progress-bar>
     </div>
     } @else if (exportUrl()) {
-    <div class="results__overlay-content results__overlay-content--loading" (click)="$event.stopPropagation()">
+    <div
+      class="results__overlay-content results__overlay-content--loading"
+      (click)="$event.stopPropagation()"
+    >
       <a
         [href]="exportUrl()"
         download="exported_products.zip"
@@ -78,7 +87,10 @@
       </a>
     </div>
     } @else if (overlayError()) {
-    <div class="results__overlay-content results__overlay-content--error" (click)="$event.stopPropagation()">
+    <div
+      class="results__overlay-content results__overlay-content--error"
+      (click)="$event.stopPropagation()"
+    >
       <h2>{{ overlayError() }}</h2>
     </div>
     }
