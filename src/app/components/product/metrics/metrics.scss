@@ -1,0 +1,65 @@
+.product-metrics {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+
+  &__label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #777;
+    margin-top: 10px;
+  }
+
+  &__divider {
+    flex: 1;
+    height: 1px;
+    background-color: #777;
+    border: none;
+    margin: 0;
+  }
+
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__section-title {
+    font-weight: 500;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+
+  &__key {
+    flex: 0 0 90px;
+  }
+
+  &__bar {
+    flex: 1;
+    height: 6px;
+    background: #eee;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  &__bar-fill {
+    height: 100%;
+    background-color: #00c853;
+  }
+
+  &__value {
+    flex: 0 0 45px;
+    font-size: 0.8rem;
+    color: #444;
+    min-width: 28px;
+    text-align: right;
+  }
+}

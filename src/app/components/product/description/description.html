@@ -1,92 +1,38 @@
-<div class="description">
-  <div class="description__header" (click)="toggleStar($event)">
-    <div class="description__store-row">
+<div class="product-description">
+  <div class="product-description__header" (click)="toggleStar($event)">
+    <div class="product-description__header-top">
       <div
-        class="description__star"
-        [class.description__star--filled]="product.starred"
+        class="product-description__star"
+        [class.product-description__star--filled]="product.starred"
         title="Toggle star"
       >
         ★
       </div>
-      <div class="description__store">{{ product.description.store }}</div>
+      <div class="product-description__store">
+        {{ product.description.store }}
+      </div>
     </div>
-    <div class="description__name">{{ product.description.name }}</div>
+    <div class="product-description__name">{{ product.description.name }}</div>
   </div>
 
-  <div class="description__info">
-    <div class="description__row">
-      <span class="description__label">Shape:</span>
-      <span class="description__value">
+  <div class="product-description__details">
+    <div class="product-description__row">
+      <span class="product-description__label">Shape:</span>
+      <span class="product-description__value">
         {{ product.description.length }}" × {{ product.description.width }}"
       </span>
     </div>
-    <div class="description__row">
-      <span class="description__label">Material:</span>
-      <span class="description__value">{{ product.description.material }}</span>
+    <div class="product-description__row">
+      <span class="product-description__label">Material:</span>
+      <span class="product-description__value"
+        >{{ product.description.material }}</span
+      >
     </div>
-    <div class="description__row">
-      <span class="description__label">Similarity:</span>
-      <span class="description__value">{{ product.match }}%</span>
+    <div class="product-description__row">
+      <span class="product-description__label">Similarity:</span>
+      <span class="product-description__value">{{ product.match }}%</span>
     </div>
   </div>
 
-  <div class="description__metrics">
-    <div class="description__metrics-label">
-      <span>Product Scores</span>
-      <hr class="description__divider" />
-    </div>
-
-    @for (sectionName of productSections; track sectionName) { @if
-    (product.scores.product[sectionName]) {
-    <div class="description__section">
-      <div class="description__section-title">
-        {{ sectionName | titlecase }}
-      </div>
-      @for (key of metricKeys(product.scores.product[sectionName]); track key) {
-      <div class="description__metric-row">
-        <span class="description__metric-name">{{ key | titlecase }}</span>
-        <div class="description__bar">
-          <div
-            class="description__bar-fill"
-            [style.width.%]="100 - product.scores.product[sectionName][key]"
-          ></div>
-        </div>
-        <span class="description__metric-value">
-          {{ 100 - product.scores.product[sectionName][key] | number: '1.0-1'
-          }}%
-        </span>
-      </div>
-      }
-    </div>
-    } }
-
-    <!-- === IMAGE METRICS === -->
-    <div class="description__metrics-label">
-      <span>Image Scores</span>
-      <hr class="description__divider" />
-    </div>
-
-    @for (sectionName of imageSections; track sectionName) { @if
-    (product.scores.image[sectionName]) {
-    <div class="description__section">
-      <div class="description__section-title">
-        {{ sectionName | titlecase }}
-      </div>
-      @for (key of metricKeys(product.scores.image[sectionName]); track key) {
-      <div class="description__metric-row">
-        <span class="description__metric-name">{{ key | titlecase }}</span>
-        <div class="description__bar">
-          <div
-            class="description__bar-fill"
-            [style.width.%]="100 - product.scores.image[sectionName][key]"
-          ></div>
-        </div>
-        <span class="description__metric-value">
-          {{ 100 - product.scores.image[sectionName][key] | number: '1.0-1' }}%
-        </span>
-      </div>
-      }
-    </div>
-    } }
-  </div>
+  <app-product-metrics [product]="product" />
 </div>
