@@ -13,7 +13,6 @@ export class ProductMetricsComponent {
   @Input({ required: true }) product!: Product;
 
   readonly productSections: (keyof Product['scores']['product'])[] = [
-    'shape',
     'color',
     'pattern',
   ];
