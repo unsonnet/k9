@@ -1,13 +1,13 @@
-<div class="product">
-  <div class="product__sidebar">
+<div class="product__sidebar">
+  <div class="product__sidebar--content">
     <app-product-description
       [product]="product()"
       (starToggled)="starToggled.emit()"
     />
   </div>
+</div>
 
-  <div class="product__galleries">
-    <app-product-gallery [imageUrls]="galleryProduct" />
-    <app-product-gallery [imageUrls]="galleryReference" />
-  </div>
+<div class="product__galleries">
+  <app-product-gallery [imageUrls]="galleryProduct" />
+  <app-product-gallery [imageUrls]="galleryReference" />
 </div>

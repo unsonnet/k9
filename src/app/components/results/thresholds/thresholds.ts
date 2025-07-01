@@ -55,7 +55,8 @@ export class ResultsThresholdsComponent {
   readonly variationFields = Object.keys(this.image.variation);
 
   onFilter(): void {
-    const toRange = (v: number, iv: boolean) => [0, iv ? 100 - v : v] as [number, number];
+    const toRange = (v: number, iv: boolean) =>
+      [0, iv ? 100 - v : v] as [number, number];
 
     const buildSection = (
       source: Record<string, number>,

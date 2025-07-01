@@ -1,38 +1,36 @@
-<div class="product-description">
-  <div class="product-description__header" (click)="toggleStar($event)">
-    <div class="product-description__header-top">
-      <div
-        class="product-description__star"
-        [class.product-description__star--filled]="product.starred"
-        title="Toggle star"
-      >
-        ★
-      </div>
-      <div class="product-description__store">
-        {{ product.description.store }}
-      </div>
+<div class="product-description__header" (click)="toggleStar($event)">
+  <div class="product-description__header-top">
+    <div
+      class="product-description__star"
+      [class.product-description__star--filled]="product.starred"
+      title="Toggle star"
+    >
+      ★
     </div>
-    <div class="product-description__name">{{ product.description.name }}</div>
-  </div>
-
-  <div class="product-description__details">
-    <div class="product-description__row">
-      <span class="product-description__label">Shape:</span>
-      <span class="product-description__value">
-        {{ product.description.length }}" × {{ product.description.width }}"
-      </span>
-    </div>
-    <div class="product-description__row">
-      <span class="product-description__label">Material:</span>
-      <span class="product-description__value"
-        >{{ product.description.material }}</span
-      >
-    </div>
-    <div class="product-description__row">
-      <span class="product-description__label">Similarity:</span>
-      <span class="product-description__value">{{ product.match }}%</span>
+    <div class="product-description__store">
+      {{ product.description.store }}
     </div>
   </div>
-
-  <app-product-metrics [product]="product" />
+  <div class="product-description__name">{{ product.description.name }}</div>
 </div>
+
+<div class="product-description__details">
+  <div class="product-description__row">
+    <span class="product-description__label">Shape:</span>
+    <span class="product-description__value">
+      {{ product.description.length }}" × {{ product.description.width }}"
+    </span>
+  </div>
+  <div class="product-description__row">
+    <span class="product-description__label">Material:</span>
+    <span class="product-description__value"
+      >{{ product.description.material }}</span
+    >
+  </div>
+  <div class="product-description__row">
+    <span class="product-description__label">Similarity:</span>
+    <span class="product-description__value">{{ product.match }}%</span>
+  </div>
+</div>
+
+<app-product-metrics [product]="product" />

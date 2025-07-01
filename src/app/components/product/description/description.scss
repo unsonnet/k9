@@ -1,8 +1,10 @@
-.product-description {
+:host {
   display: flex;
   flex-direction: column;
   gap: 15px;
+}
 
+.product-description {
   &__header {
     display: flex;
     flex-direction: column;

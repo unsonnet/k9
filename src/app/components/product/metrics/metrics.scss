@@ -1,9 +1,11 @@
-.product-metrics {
+:host {
   margin-top: auto;
   display: flex;
   flex-direction: column;
   gap: 15px;
+}
 
+.product-metrics {
   &__label {
     display: flex;
     align-items: center;
