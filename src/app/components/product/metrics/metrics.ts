@@ -27,4 +27,8 @@ export class ProductMetricsComponent {
   metricKeys(section: Record<string, number>): string[] {
     return Object.keys(section);
   }
+
+  truncate(value: number): number {
+    return Math.floor(value);
+  }
 }

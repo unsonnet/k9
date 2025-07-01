@@ -20,7 +20,7 @@
         ></div>
       </div>
       <span class="product-metrics__value">
-        {{ 100 - product.scores.product[sectionName][key] | number: '1.0-1' }}%
+        {{ truncate(100 - product.scores.product[sectionName][key]) }}%
       </span>
     </div>
     }
@@ -48,7 +48,7 @@
         ></div>
       </div>
       <span class="product-metrics__value">
-        {{ 100 - product.scores.image[sectionName][key] | number: '1.0-1' }}%
+        {{ truncate(100 - product.scores.image[sectionName][key]) }}%
       </span>
     </div>
     }

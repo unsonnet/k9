@@ -42,8 +42,8 @@ export class ResultsThresholdsComponent {
     variation: {
       chamfer: 50,
       hausdorff: 50,
-      wasserstein: 50,
       variance: 50,
+      wasserstein: 50,
     } as Record<string, number>,
   };
 
@@ -55,20 +55,21 @@ export class ResultsThresholdsComponent {
   readonly variationFields = Object.keys(this.image.variation);
 
   onFilter(): void {
-    const toRange = (v: number) => [0, v] as [number, number];
+    const toRange = (v: number, iv: boolean) => [0, iv ? 100 - v : v] as [number, number];
 
     const buildSection = (
       source: Record<string, number>,
+      invert: boolean = true,
     ): Record<string, [number, number]> =>
       Object.fromEntries(
-        Object.keys(source).map((key) => [key, toRange(source[key])]),
+        Object.keys(source).map((key) => [key, toRange(source[key], invert)]),
       );
 
     const thresholds: Thresholds = {
       product: {
         shape: {
           missing: false as any,
-          ...buildSection(this.product.shape),
+          ...buildSection(this.product.shape, false),
         },
         color: {
           missing: false as any,
