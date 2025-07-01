@@ -18,6 +18,9 @@ export class ResultsThresholdsComponent {
   readonly exportEnabled = input(true);
 
   product = {
+    material: {
+      material: 0.0,
+    } as Record<string, number>,
     shape: {
       length: 1.5,
       width: 1.5,
@@ -52,7 +55,7 @@ export class ResultsThresholdsComponent {
   readonly productPatternFields = Object.keys(this.product.pattern);
   readonly imageColorFields = Object.keys(this.image.color);
   readonly imagePatternFields = Object.keys(this.image.pattern);
-  readonly variationFields = Object.keys(this.image.variation);
+  readonly imageVariationFields = Object.keys(this.image.variation);
 
   onFilter(): void {
     const toRange = (v: number, iv: boolean) =>
@@ -68,6 +71,10 @@ export class ResultsThresholdsComponent {
 
     const thresholds: Thresholds = {
       product: {
+        material: {
+          missing: false as any,
+          ...buildSection(this.product.material, false),
+        },
         shape: {
           missing: false as any,
           ...buildSection(this.product.shape, false),

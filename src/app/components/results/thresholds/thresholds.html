@@ -66,7 +66,7 @@
     @for (section of [ { label: 'Color', fields: imageColorFields, model:
     image.color, prefix: 'image_color_' }, { label: 'Pattern', fields:
     imagePatternFields, model: image.pattern, prefix: 'image_pattern_' }, {
-    label: 'Variation', fields: variationFields, model: image.variation, prefix:
+    label: 'Variation', fields: imageVariationFields, model: image.variation, prefix:
     'variation_' } ]; track section.label) {
     <div class="threshold-panel__section">
       <p class="threshold-panel__label-muted">{{ section.label }}</p>

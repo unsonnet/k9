@@ -4,6 +4,7 @@ export type ThresholdSection = {
 
 export type Thresholds = {
   product: {
+    material: ThresholdSection;
     shape: ThresholdSection;
     color: ThresholdSection;
     pattern: ThresholdSection;
