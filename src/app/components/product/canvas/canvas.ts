@@ -1,16 +1,15 @@
 import {
   Component,
   ElementRef,
-  Input,
-  Output,
   ViewChild,
   AfterViewInit,
   OnChanges,
   SimpleChanges,
-  EventEmitter,
+  input,
+  output,
 } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
 import { CommonModule } from '@angular/common';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'app-product-canvas',
@@ -20,19 +19,24 @@ import { CommonModule } from '@angular/common';
   styleUrl: './canvas.scss',
 })
 export class ProductCanvasComponent implements AfterViewInit, OnChanges {
-  @Input() imageUrl!: string;
-  @Input() initialTransform?: DOMMatrix;
-  @Output() transformChanged = new EventEmitter<DOMMatrix>();
+  readonly imageUrl = input.required<string>();
+  readonly initialTransform = input<DOMMatrix | undefined>();
+  readonly transformChanged = output<DOMMatrix>();
 
   @ViewChild('canvas', { static: true })
-  canvasRef!: ElementRef<HTMLCanvasElement>;
+  private canvasRef!: ElementRef<HTMLCanvasElement>;
 
   mode: 'translate' | 'rotate' = 'translate';
-  isDragging = false;
-  startX = 0;
-  startY = 0;
-  currentMatrix = new DOMMatrix();
-  loadedImage: HTMLImageElement | null = null;
+
+  private isDragging = false;
+  private startX = 0;
+  private startY = 0;
+  private deltaRotation = 0;
+  private cumulativeRotation = 0;
+
+  private baseMatrix = new DOMMatrix();
+  private currentMatrix = new DOMMatrix();
+  private loadedImage: HTMLImageElement | null = null;
 
   ngAfterViewInit() {
     this.loadImage();
@@ -42,24 +46,31 @@ export class ProductCanvasComponent implements AfterViewInit, OnChanges {
     if (changes['imageUrl']) {
       this.loadImage();
     } else if (changes['initialTransform'] && this.loadedImage) {
-      this.currentMatrix = this.initialTransform ?? this.defaultTransform();
+      this.currentMatrix = this.initialTransform() ?? this.defaultTransform();
       this.drawImage();
     }
   }
 
-  loadImage() {
+  private loadImage() {
     const img = new Image();
-    img.src = this.imageUrl;
+    img.src = this.imageUrl();
     img.onload = () => {
       this.loadedImage = img;
       this.syncCanvasSize();
-      this.currentMatrix = this.initialTransform ?? this.defaultTransform();
+      this.currentMatrix = this.initialTransform() ?? this.defaultTransform();
       this.drawImage();
       this.transformChanged.emit(this.currentMatrix);
     };
   }
 
-  defaultTransform(): DOMMatrix {
+  private syncCanvasSize() {
+    const canvas = this.canvasRef.nativeElement;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+  }
+
+  private defaultTransform(): DOMMatrix {
     if (!this.loadedImage) return new DOMMatrix();
     const canvas = this.canvasRef.nativeElement;
     const scale = Math.min(
@@ -69,14 +80,7 @@ export class ProductCanvasComponent implements AfterViewInit, OnChanges {
     return new DOMMatrix().scale(scale / 1.5);
   }
 
-  syncCanvasSize() {
-    const canvas = this.canvasRef.nativeElement;
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-  }
-
-  drawImage() {
+  private drawImage() {
     if (!this.loadedImage) return;
     const canvas = this.canvasRef.nativeElement;
     const ctx = canvas.getContext('2d');
@@ -85,9 +89,9 @@ export class ProductCanvasComponent implements AfterViewInit, OnChanges {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    ctx.save();
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
+    ctx.save();
     ctx.translate(cx, cy);
     ctx.transform(
       this.currentMatrix.a,
@@ -133,36 +137,47 @@ export class ProductCanvasComponent implements AfterViewInit, OnChanges {
     this.isDragging = true;
     this.startX = event.offsetX;
     this.startY = event.offsetY;
+    this.baseMatrix = this.currentMatrix;
+    this.deltaRotation = 0;
   }
 
   onMouseMove(event: MouseEvent) {
     if (!this.isDragging) return;
-    const canvas = this.canvasRef.nativeElement;
-    const cx = canvas.width / 2;
-    const cy = canvas.height / 2;
-    const dx = event.offsetX - this.startX;
-    const dy = event.offsetY - this.startY;
 
     const delta = new DOMMatrix();
     if (this.mode === 'translate') {
-      delta.translateSelf(dx, dy);
+      delta.translateSelf(
+        event.offsetX - this.startX,
+        event.offsetY - this.startY,
+      );
     } else {
+      const canvas = this.canvasRef.nativeElement;
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+
       const a1 = Math.atan2(this.startY - cy, this.startX - cx);
       const a2 = Math.atan2(event.offsetY - cy, event.offsetX - cx);
-      delta.rotateSelf(((a2 - a1) * 180) / Math.PI);
+      this.deltaRotation = ((a2 - a1) * 180) / Math.PI;
+
+      if (event.shiftKey) {
+        const total = this.cumulativeRotation + this.deltaRotation;
+        const snapped = Math.round(total / 45) * 45;
+        this.deltaRotation += snapped - total;
+      }
+
+      delta.rotateSelf(this.deltaRotation);
     }
 
-    this.currentMatrix = delta.multiply(this.currentMatrix);
-    this.startX = event.offsetX;
-    this.startY = event.offsetY;
+    this.currentMatrix = delta.multiply(this.baseMatrix);
     this.drawImage();
   }
 
   onMouseUp() {
-    if (this.isDragging) {
-      this.isDragging = false;
-      this.transformChanged.emit(this.currentMatrix);
-    }
+    if (!this.isDragging) return;
+    this.isDragging = false;
+    this.cumulativeRotation =
+      (this.cumulativeRotation + this.deltaRotation) % 360;
+    this.transformChanged.emit(this.currentMatrix);
   }
 
   onWheel(event: WheelEvent) {
@@ -171,14 +186,14 @@ export class ProductCanvasComponent implements AfterViewInit, OnChanges {
     const rect = canvas.getBoundingClientRect();
     const cx = canvas.width / 2;
     const cy = canvas.height / 2;
-    const mouseX = event.clientX - rect.left;
-    const mouseY = event.clientY - rect.top;
+    const mx = event.clientX - rect.left;
+    const my = event.clientY - rect.top;
     const zoom = event.deltaY < 0 ? 1.1 : 0.9;
 
     const delta = new DOMMatrix()
-      .translate(mouseX - cx, mouseY - cy)
+      .translate(mx - cx, my - cy)
       .scale(zoom)
-      .translate(-(mouseX - cx), -(mouseY - cy));
+      .translate(-(mx - cx), -(my - cy));
 
     this.currentMatrix = delta.multiply(this.currentMatrix);
     this.drawImage();
