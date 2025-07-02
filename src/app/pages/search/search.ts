@@ -5,8 +5,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { firstValueFrom } from 'rxjs';
 
 import { Reference } from '../../models/reference';
-import { Fetch } from '../../services/fetch';
+import { FetchService } from '../../services/fetch';
+
 import { SearchReferenceComponent } from '../../components/search/reference/reference';
+import { SearchProgressComponent } from '../../components/search/progress/progress';
 
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -18,6 +20,7 @@ import { MatButtonModule } from '@angular/material/button';
   standalone: true,
   imports: [
     SearchReferenceComponent,
+    SearchProgressComponent,
     MatProgressSpinnerModule,
     MatFormFieldModule,
     MatInputModule,
@@ -37,7 +40,7 @@ export class SearchPage {
   jobId = '';
 
   // ─── Dependencies ────────────────────────────────────────────────
-  private readonly fetch = inject(Fetch);
+  private readonly fetch = inject(FetchService);
   private readonly router = inject(Router);
 
   // ─── Overlay Keyboard Shortcut ───────────────────────────────────
@@ -193,7 +196,6 @@ export class SearchPage {
     return response.body;
   }
 
-  // ─── Utility ─────────────────────────────────────────────────────
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }

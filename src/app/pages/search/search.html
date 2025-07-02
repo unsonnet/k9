@@ -8,55 +8,29 @@
       />
     </div>
 
-    <div class="search-page__status">
-      <div
-        class="search-page__logo-wrapper"
-        [class.search-page__logo-wrapper--lifted]="loadingMessage() || errorMessage()"
-      >
-        <img src="assets/logo.png" alt="Logo" class="search-page__logo-image" />
-      </div>
+    <app-search-progress
+      [loadingMessage]="loadingMessage()"
+      [errorMessage]="errorMessage()"
+    />
+  </div>
 
-      @if (loadingMessage()) {
-      <div class="search-page__progress search-page__progress--visible">
-        <mat-progress-spinner
-          class="search-page__progress-spinner"
-          mode="indeterminate"
-          diameter="24"
+  @if (hasOverlay) {
+    <div class="search-page__overlay" (click)="closeOverlay()">
+      <div class="search-page__overlay-box" (click)="$event.stopPropagation()">
+        <mat-form-field appearance="outline" class="search-page__overlay-field">
+          <mat-label>Job ID</mat-label>
+          <input matInput [(ngModel)]="jobId" />
+        </mat-form-field>
+
+        <button
+          mat-raised-button
           color="primary"
-        />
-        <span class="search-page__progress-message">
-          {{ loadingMessage() }}
-        </span>
+          class="search-page__overlay-button"
+          (click)="onJobIdSubmit()"
+        >
+          View
+        </button>
       </div>
-      } @else if (errorMessage()) {
-      <div
-        class="search-page__progress search-page__progress--visible search-page__progress--error"
-      >
-        <span class="search-page__progress-message">
-          {{ errorMessage() }}
-        </span>
-      </div>
-      }
     </div>
-  </div>
+  }
 </div>
-
-@if (hasOverlay) {
-<div class="search-page__overlay" (click)="closeOverlay()">
-  <div class="search-page__overlay-box" (click)="$event.stopPropagation()">
-    <mat-form-field appearance="outline" class="search-page__overlay-field">
-      <mat-label>Job ID</mat-label>
-      <input matInput [(ngModel)]="jobId" />
-    </mat-form-field>
-
-    <button
-      mat-raised-button
-      color="primary"
-      class="search-page__overlay-button"
-      (click)="onJobIdSubmit()"
-    >
-      View
-    </button>
-  </div>
-</div>
-}

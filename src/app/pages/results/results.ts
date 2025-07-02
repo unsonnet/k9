@@ -15,7 +15,7 @@ import { Product } from '../../models/product';
 import { Thresholds } from '../../models/thresholds';
 import { Reference } from '../../models/reference';
 import { Export } from '../../services/export';
-import { Fetch } from '../../services/fetch';
+import { FetchService } from '../../services/fetch';
 
 @Component({
   selector: 'app-results',
@@ -35,7 +35,7 @@ import { Fetch } from '../../services/fetch';
 })
 export class ResultsPage {
   // === Injected Services ===
-  private readonly fetch = inject(Fetch);
+  private readonly fetch = inject(FetchService);
   private readonly exportService = inject(Export);
 
   // === Initial State from Router ===

@@ -1,14 +1,28 @@
-<div class="progress-box" [class.progress-box--error]="isError()">
-  @if (!isError()) {
-  <mat-progress-spinner
-    mode="indeterminate"
-    diameter="24"
-    color="primary"
-  ></mat-progress-spinner>
-  <span class="progress-box__message"> {{ message() }} </span>
-  } @else {
-  <span class="progress-box__message progress-box__message--error">
-    {{ message() }}
-  </span>
-  }
+<div
+  class="search-progress__logo-wrapper"
+  [class.search-progress__logo-wrapper--lifted]="loadingMessage() || errorMessage()"
+>
+  <img src="assets/logo.png" alt="Logo" class="search-progress__logo-image" />
 </div>
+
+@if (loadingMessage()) {
+  <div class="search-progress__progress search-progress__progress--visible">
+    <mat-progress-spinner
+      class="search-progress__spinner"
+      mode="indeterminate"
+      diameter="24"
+      color="primary"
+    />
+    <span class="search-progress__message">
+      {{ loadingMessage() }}
+    </span>
+  </div>
+} @else if (errorMessage()) {
+  <div
+    class="search-progress__progress search-progress__progress--visible search-progress__progress--error"
+  >
+    <span class="search-progress__message">
+      {{ errorMessage() }}
+    </span>
+  </div>
+}

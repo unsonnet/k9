@@ -6,22 +6,17 @@ import { Observable, of } from 'rxjs';
 import { Reference } from '../models/reference';
 import { Thresholds } from '../models/thresholds';
 import { Product } from '../models/product';
-
-export type FetchResponse<T> = {
-  status: number;
-  body: T | null;
-  error?: string | null;
-};
+import { K9Response } from '../models/response';
 
 @Injectable({
   providedIn: 'root',
 })
-export class Fetch {
+export class FetchService {
   constructor(private http: HttpClient) {}
 
   private base = 'https://824xuvy567.execute-api.us-east-2.amazonaws.com/k9';
 
-  upload(job: string, file: File): Observable<FetchResponse<string>> {
+  upload(job: string, file: File): Observable<K9Response<string>> {
     const ext = file.name.substring(file.name.lastIndexOf('.'));
     const name = `${uuidv4()}${ext}`;
     const url = `${this.base}/${job}/album/${encodeURIComponent(name)}`;
@@ -40,7 +35,7 @@ export class Fetch {
   initiate(
     job: string,
     reference: Reference<string>,
-  ): Observable<FetchResponse<string>> {
+  ): Observable<K9Response<string>> {
     const url = `${this.base}/${job}/fetch`;
     return this.http
       .put(url, reference, { responseType: 'text', observe: 'response' })
@@ -56,7 +51,7 @@ export class Fetch {
       );
   }
 
-  poll(job: string, run: string): Observable<FetchResponse<string>> {
+  poll(job: string, run: string): Observable<K9Response<string>> {
     const url = `${this.base}/${job}/fetch?run=${run}`;
     return this.http.head(url, { observe: 'response' }).pipe(
       map((response) => ({
@@ -73,7 +68,7 @@ export class Fetch {
     );
   }
 
-  summarize(job: string): Observable<FetchResponse<Reference<string>>> {
+  summarize(job: string): Observable<K9Response<Reference<string>>> {
     const url = `${this.base}/${job}/fetch`;
     return this.http.get<Reference<string>>(url, { observe: 'response' }).pipe(
       map((response) => ({
@@ -94,7 +89,7 @@ export class Fetch {
     job: string,
     thresholds: Thresholds,
     start: number,
-  ): Observable<FetchResponse<Product[]>> {
+  ): Observable<K9Response<Product[]>> {
     const url = `${this.base}/${job}/fetch?start=${start}`;
     return this.http
       .post<Product[]>(url, thresholds, { observe: 'response' })
