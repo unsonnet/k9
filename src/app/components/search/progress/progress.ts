@@ -1,14 +1,15 @@
 import { Component, input } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 @Component({
   selector: 'app-search-progress',
   standalone: true,
-  imports: [MatProgressSpinnerModule],
+  imports: [CommonModule, MatProgressSpinnerModule],
   templateUrl: './progress.html',
   styleUrl: './progress.scss',
 })
 export class SearchProgressComponent {
-  readonly message = input('');
-  readonly isError = input(false);
+  readonly loadingMessage = input.required<string>();
+  readonly errorMessage = input.required<string>();
 }
