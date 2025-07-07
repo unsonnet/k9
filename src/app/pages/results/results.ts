@@ -14,7 +14,7 @@ import { ProductPage } from '../product/product';
 import { Product } from '../../models/product';
 import { Thresholds } from '../../models/thresholds';
 import { Reference } from '../../models/reference';
-import { Export } from '../../services/export';
+import { ExportService } from '../../services/export';
 import { FetchService } from '../../services/fetch';
 
 @Component({
@@ -36,7 +36,7 @@ import { FetchService } from '../../services/fetch';
 export class ResultsPage {
   // === Injected Services ===
   private readonly fetch = inject(FetchService);
-  private readonly exportService = inject(Export);
+  private readonly exportService = inject(ExportService);
 
   // === Initial State from Router ===
   readonly reference = signal<Reference<string>>({

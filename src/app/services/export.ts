@@ -6,7 +6,7 @@ import { Reference } from '../models/reference';
 @Injectable({
   providedIn: 'root',
 })
-export class Export {
+export class ExportService {
   constructor() {}
 
   async exportProducts(reference: Reference<string>, products: Product[]) {
