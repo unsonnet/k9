@@ -18,7 +18,10 @@ export class AuthService {
   private base =
     'https://824xuvy567.execute-api.us-east-2.amazonaws.com/securek9/auth';
 
-  login(username: string, password: string): Observable<K9Response<LoginStatus>> {
+  login(
+    username: string,
+    password: string,
+  ): Observable<K9Response<LoginStatus>> {
     const url = `${this.base}/login`;
 
     return this.http
@@ -37,8 +40,10 @@ export class AuthService {
           }
         }),
         map((res) => {
-          if (res.status === 200) return { status: 200, body: LoginStatus.SUCCESS };
-          if (res.status === 202) return { status: 202, body: LoginStatus.RESET };
+          if (res.status === 200)
+            return { status: 200, body: LoginStatus.SUCCESS };
+          if (res.status === 202)
+            return { status: 202, body: LoginStatus.RESET };
           return { status: res.status, body: LoginStatus.DENIED };
         }),
         catchError((err) =>
@@ -64,7 +69,11 @@ export class AuthService {
 
     const url = `${this.base}/reset`;
     return this.http
-      .post<any>(url, { username, newPassword, session }, { observe: 'response' })
+      .post<any>(
+        url,
+        { username, newPassword, session },
+        { observe: 'response' },
+      )
       .pipe(
         tap(() => this.tokens.clearResetSession()),
         map((res) => ({

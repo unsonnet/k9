@@ -12,7 +12,9 @@ export interface AuthTokens {
 })
 export class TokenService {
   private _tokens = signal<AuthTokens | null>(null);
-  private _resetSession = signal<{ username: string; session: string } | null>(null);
+  private _resetSession = signal<{ username: string; session: string } | null>(
+    null,
+  );
 
   set(tokens: AuthTokens): void {
     this._tokens.set(tokens);

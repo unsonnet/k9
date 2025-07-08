@@ -1,5 +1,7 @@
+<h1 class="search-reference__title">K9 Search</h1>
+
 <form
-  class="reference-form"
+  class="search-reference__form"
   [formGroup]="referenceForm"
   (ngSubmit)="onSubmit()"
 >
@@ -10,38 +12,38 @@
       <mat-option [value]="material">{{ material | titlecase }}</mat-option>
       }
     </mat-select>
-    @if (referenceForm.get('material')?.touched &&
-    referenceForm.get('material')?.hasError('required')) {
+    @if ( referenceForm.get('material')?.touched &&
+    referenceForm.get('material')?.hasError('required') ) {
     <mat-error>Material is required</mat-error>
     }
   </mat-form-field>
 
-  <div class="reference-form__row">
-    <mat-form-field class="reference-form__field">
+  <div class="search-reference__row">
+    <mat-form-field class="search-reference__field">
       <mat-label>Length</mat-label>
       <input matInput formControlName="length" type="number" />
-      <span class="reference-form__unit" matSuffix>in</span>
+      <span class="search-reference__unit" matSuffix>in</span>
     </mat-form-field>
 
-    <mat-form-field class="reference-form__field">
+    <mat-form-field class="search-reference__field">
       <mat-label>Width</mat-label>
       <input matInput formControlName="width" type="number" />
-      <span class="reference-form__unit" matSuffix>in</span>
+      <span class="search-reference__unit" matSuffix>in</span>
     </mat-form-field>
   </div>
 
-  <div class="reference-form__image">
+  <div class="search-reference__images">
     <app-search-images formControlName="images" />
-    @if (referenceForm.get('images')?.touched &&
-    referenceForm.get('images')?.hasError('required')) {
-    <mat-error class="reference-form__error"
-      >At least one image is required</mat-error
-    >
+    @if ( referenceForm.get('images')?.touched &&
+    referenceForm.get('images')?.hasError('required') ) {
+    <mat-error class="search-reference__error">
+      At least one image is required
+    </mat-error>
     }
   </div>
 
   <button
-    class="reference-form__submit"
+    class="search-reference__submit"
     mat-raised-button
     color="primary"
     type="submit"

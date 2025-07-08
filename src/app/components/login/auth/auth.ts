@@ -1,10 +1,4 @@
-import {
-  Component,
-  computed,
-  effect,
-  output,
-  signal,
-} from '@angular/core';
+import { Component, computed, output, signal } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -39,14 +33,19 @@ export class LoginAuthComponent {
 
   loading = signal(false);
   resetMode = signal(false);
-  statusMessage = signal<{ text: string; type: 'success' | 'error' } | null>(null);
+  statusMessage = signal<{ text: string; type: 'success' | 'error' } | null>(
+    null,
+  );
 
   newPassword = new FormControl('', Validators.required);
   private newPasswordValue = signal('');
 
   form: FormGroup;
 
-  constructor(private fb: FormBuilder, private auth: AuthService) {
+  constructor(
+    private fb: FormBuilder,
+    private auth: AuthService,
+  ) {
     this.form = this.fb.group({
       username: ['', Validators.required],
       password: ['', Validators.required],
@@ -68,9 +67,7 @@ export class LoginAuthComponent {
     };
   });
 
-  allValid = computed(() =>
-    Object.values(this.passwordValid()).every(Boolean)
-  );
+  allValid = computed(() => Object.values(this.passwordValid()).every(Boolean));
 
   onSubmit(): void {
     if (this.form.invalid) {
