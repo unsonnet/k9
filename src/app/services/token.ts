@@ -12,13 +12,25 @@ export interface AuthTokens {
 })
 export class TokenService {
   private _tokens = signal<AuthTokens | null>(null);
+  private _resetSession = signal<{ username: string; session: string } | null>(null);
 
   set(tokens: AuthTokens): void {
     this._tokens.set(tokens);
+    this.clearResetSession();
+  }
+
+  setResetSession(username: string, session: string): void {
+    this._resetSession.set({ username, session });
+    this._tokens.set(null);
   }
 
   clear(): void {
     this._tokens.set(null);
+    this._resetSession.set(null);
+  }
+
+  clearResetSession(): void {
+    this._resetSession.set(null);
   }
 
   get accessToken(): string | null {
@@ -31,6 +43,14 @@ export class TokenService {
 
   get refreshToken(): string | null {
     return this._tokens()?.refreshToken ?? null;
+  }
+
+  get resetSession(): string | null {
+    return this._resetSession()?.session ?? null;
+  }
+
+  get resetUsername(): string | null {
+    return this._resetSession()?.username ?? null;
   }
 
   get all(): AuthTokens | null {

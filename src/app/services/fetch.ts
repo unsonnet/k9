@@ -16,7 +16,6 @@ import { AuthService } from './auth';
 export class FetchService {
   constructor(
     private http: HttpClient,
-    private tokens: TokenService,
     private auth: AuthService,
   ) {}
 
@@ -26,10 +25,10 @@ export class FetchService {
   private withAuthHeaders<T>(
     fn: (headers: HttpHeaders) => Observable<K9Response<T>>,
   ): Observable<K9Response<T>> {
-    const token = this.tokens.accessToken;
+    const token = this.auth.tokens.accessToken;
 
     // Token exists and not expired? Use it without refreshing.
-    if (token && !this.tokens.expired) {
+    if (token && !this.auth.tokens.expired) {
       const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
       return fn(headers);
     }
@@ -37,7 +36,7 @@ export class FetchService {
     // Otherwise, try refreshing before making the request.
     return this.auth.refresh().pipe(
       switchMap(() => {
-        const refreshed = this.tokens.accessToken;
+        const refreshed = this.auth.tokens.accessToken;
         const headers = new HttpHeaders(
           refreshed ? { Authorization: `Bearer ${refreshed}` } : {},
         );
