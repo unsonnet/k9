@@ -1,0 +1,84 @@
+.title {
+  font-weight: bold;
+  font-size: 24px;
+  margin-bottom: 16px;
+  text-align: center;
+  flex: 0 0 auto;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 16px;
+  padding: 8px;
+  overflow: hidden;
+
+  &__submit {
+    flex: 0 0 auto;
+    min-height: 30px;
+    height: 30px;
+    font-size: 16px;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__spinner {
+    width: 20px;
+    height: 20px;
+    stroke-width: 3px;
+  }
+
+  &__status {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 400;
+    padding-left: 16px;
+    line-height: 16px;
+
+    &--error {
+      color: var(--mat-form-field-error-text-color, var(--mat-sys-error));
+    }
+
+    &--success {
+      color: green;
+    }
+  }
+}
+
+.auth-form__requirements {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 16px;
+  font-size: 0.875rem;
+
+  li {
+    position: relative;
+    padding-left: 24px;
+    margin-bottom: 4px;
+    color: var(--mat-form-field-error-text-color, var(--mat-sys-error));
+
+    &::before {
+      content: '✖';
+      position: absolute;
+      left: 0;
+      color: inherit;
+    }
+
+    &.valid {
+      color: green;
+
+      &::before {
+        content: '✔';
+        color: green;
+      }
+    }
+  }
+}
+
+.auth-form__header {
+  font-weight: bold;
+  margin: 8px 0;
+}
