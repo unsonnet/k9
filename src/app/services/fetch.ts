@@ -29,7 +29,7 @@ export class FetchService {
     const token = this.tokens.accessToken;
 
     // Token exists and not expired? Use it without refreshing.
-    if (token && !this.tokens.isAccessTokenExpired) {
+    if (token && !this.tokens.expired) {
       const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
       return fn(headers);
     }
@@ -49,7 +49,7 @@ export class FetchService {
   upload(job: string, file: File): Observable<K9Response<string>> {
     const ext = file.name.substring(file.name.lastIndexOf('.'));
     const name = `${uuidv4()}${ext}`;
-    const url = `${this.base}/${job}/album?filename=${encodeURIComponent(name)}`;
+    const url = `${this.base}/${job}/album/${encodeURIComponent(name)}`;
     return this.withAuthHeaders((headers) =>
       this.http.put(url, file, { observe: 'response', headers }).pipe(
         map((res) => ({ status: res.status, body: name })),

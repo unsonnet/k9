@@ -24,40 +24,6 @@ export class AuthService {
       .post<any>(url, { username, password }, { observe: 'response' })
       .pipe(
         tap((res) => {
-          const session = res.body?.session;
-          if (session) {
-            this.tokens.setSession(session);
-          }
-        }),
-        map((res) => ({
-          status: res.status,
-          body: !!res.body?.session,
-        })),
-        catchError((err) =>
-          of({
-            status: err.status || 500,
-            body: false,
-            error: err.error?.message ?? err.message ?? 'Login failed',
-          }),
-        ),
-      );
-  }
-
-  verify(code: string): Observable<K9Response<boolean>> {
-    const session = this.tokens.session;
-    if (!session) {
-      return of({
-        status: 401,
-        body: false,
-        error: 'Missing MFA session',
-      });
-    }
-
-    const url = `${this.base}/verify`;
-    return this.http
-      .post<any>(url, { code, session }, { observe: 'response' })
-      .pipe(
-        tap((res) => {
           const body = res.body ?? {};
           if (body.accessToken && body.idToken) {
             this.tokens.set({
@@ -75,7 +41,7 @@ export class AuthService {
           of({
             status: err.status || 500,
             body: false,
-            error: err.error?.message ?? err.message ?? 'Verification failed',
+            error: err.error?.message ?? err.message ?? 'Login failed',
           }),
         ),
       );
