@@ -1,13 +1,12 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { v4 as uuidv4 } from 'uuid';
-import { catchError, map, switchMap } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
 import { Reference } from '../models/reference';
 import { Thresholds } from '../models/thresholds';
 import { Product } from '../models/product';
 import { K9Response } from '../models/response';
-import { TokenService } from './token';
 import { AuthService } from './auth';
 
 @Injectable({
@@ -22,34 +21,15 @@ export class FetchService {
   private base =
     'https://824xuvy567.execute-api.us-east-2.amazonaws.com/securek9/fetch';
 
-  private withAuthHeaders<T>(
-    fn: (headers: HttpHeaders) => Observable<K9Response<T>>,
-  ): Observable<K9Response<T>> {
-    const token = this.auth.tokens.idToken;
-
-    // Token exists and not expired? Use it without refreshing.
-    if (token && !this.auth.tokens.expired) {
-      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-      return fn(headers);
-    }
-
-    // Otherwise, try refreshing before making the request.
-    return this.auth.refresh().pipe(
-      switchMap(() => {
-        const refreshed = this.auth.tokens.idToken;
-        const headers = new HttpHeaders(
-          refreshed ? { Authorization: `Bearer ${refreshed}` } : {},
-        );
-        return fn(headers);
-      }),
-    );
+  get available(): boolean {
+    return !this.auth.tokens.invalid;
   }
 
   upload(job: string, file: File): Observable<K9Response<string>> {
     const ext = file.name.substring(file.name.lastIndexOf('.'));
     const name = `${uuidv4()}${ext}`;
     const url = `${this.base}/${job}/album/${encodeURIComponent(name)}`;
-    return this.withAuthHeaders((headers) =>
+    return this.auth.withAuthHeaders((headers) =>
       this.http.put(url, file, { observe: 'response', headers }).pipe(
         map((res) => ({ status: res.status, body: name })),
         catchError((err) =>
@@ -68,7 +48,7 @@ export class FetchService {
     reference: Reference<string>,
   ): Observable<K9Response<string>> {
     const url = `${this.base}/${job}`;
-    return this.withAuthHeaders((headers) =>
+    return this.auth.withAuthHeaders((headers) =>
       this.http
         .put(url, reference, {
           responseType: 'text',
@@ -90,7 +70,7 @@ export class FetchService {
 
   poll(job: string, run: string): Observable<K9Response<string>> {
     const url = `${this.base}/${job}?run=${run}`;
-    return this.withAuthHeaders((headers) =>
+    return this.auth.withAuthHeaders((headers) =>
       this.http.head(url, { observe: 'response', headers }).pipe(
         map((res) => ({
           status: res.status,
@@ -109,7 +89,7 @@ export class FetchService {
 
   summarize(job: string): Observable<K9Response<Reference<string>>> {
     const url = `${this.base}/${job}`;
-    return this.withAuthHeaders((headers) =>
+    return this.auth.withAuthHeaders((headers) =>
       this.http
         .get<Reference<string>>(url, { observe: 'response', headers })
         .pipe(
@@ -134,7 +114,7 @@ export class FetchService {
     start: number,
   ): Observable<K9Response<Product[]>> {
     const url = `${this.base}/${job}?start=${start}`;
-    return this.withAuthHeaders((headers) =>
+    return this.auth.withAuthHeaders((headers) =>
       this.http
         .post<Product[]>(url, thresholds, { observe: 'response', headers })
         .pipe(

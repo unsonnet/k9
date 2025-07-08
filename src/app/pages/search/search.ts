@@ -43,6 +43,12 @@ export class SearchPage {
   private readonly fetch = inject(FetchService);
   private readonly router = inject(Router);
 
+  constructor() {
+    if (!this.fetch.available) {
+      this.router.navigateByUrl('/');
+    }
+  }
+
   // ─── Overlay Keyboard Shortcut ───────────────────────────────────
   @HostListener('document:keydown', ['$event'])
   onKeydown(event: KeyboardEvent) {

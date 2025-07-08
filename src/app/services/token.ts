@@ -60,15 +60,20 @@ export class TokenService {
   }
 
   get expired(): boolean {
-    const token = this.accessToken;
-    if (!token) return true;
-
+    if (!this.idToken || !this.accessToken) return true;  
     try {
+      const token = this.accessToken;
       const { exp } = jwtDecode<{ exp: number }>(token);
       const now = Math.floor(Date.now() / 1000);
       return exp <= now;
     } catch {
       return true;
     }
+  }
+
+  get invalid(): boolean {
+    if (!this.idToken || !this.accessToken) return true;
+    if (this.expired && !this.refreshToken) return true;
+    return false;
   }
 }

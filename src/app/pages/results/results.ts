@@ -51,12 +51,21 @@ export class ResultsPage {
   readonly job = signal<string>('');
 
   constructor() {
-    const state = inject(Router).getCurrentNavigation()?.extras.state as
+    const fetch = this.fetch;
+    const router = inject(Router);
+
+    if (!fetch.available) {
+      router.navigateByUrl('/');
+      return;
+    }
+
+    const state = router.getCurrentNavigation()?.extras.state as
       | { reference: Reference<string>; job: string }
       | undefined;
 
     if (!state?.reference || !state?.job) {
-      throw new Error('Results page loaded without reference or job');
+      router.navigateByUrl('/search');
+      return;
     }
 
     this.reference.set(state.reference);

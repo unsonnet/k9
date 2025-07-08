@@ -1,6 +1,6 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap } from 'rxjs/operators';
 import { Observable, of } from 'rxjs';
 import { K9Response } from '../models/response';
 import { TokenService } from './token';
@@ -127,5 +127,26 @@ export class AuthService {
           }),
         ),
       );
+  }
+
+  withAuthHeaders<T>(
+    fn: (headers: HttpHeaders) => Observable<K9Response<T>>,
+  ): Observable<K9Response<T>> {
+    const token = this.tokens.idToken;
+
+    if (token && !this.tokens.expired) {
+      const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+      return fn(headers);
+    }
+
+    return this.refresh().pipe(
+      switchMap(() => {
+        const refreshed = this.tokens.idToken;
+        const headers = new HttpHeaders(
+          refreshed ? { Authorization: `Bearer ${refreshed}` } : {},
+        );
+        return fn(headers);
+      }),
+    );
   }
 }
