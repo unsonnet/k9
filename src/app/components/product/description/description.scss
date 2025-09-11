@@ -1,7 +1,7 @@
 :host {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
 }
 
 .product-description {
@@ -70,6 +70,7 @@
     display: flex;
     align-items: center;
     gap: 6px;
+    font-size: 0.9rem;
 
     .product-description__label {
       font-weight: 500;
@@ -77,7 +78,7 @@
 
     .product-description__value {
       font-weight: 400;
-      color: #444;
+      color: #777;
       text-transform: capitalize;
     }
   }

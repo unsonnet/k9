@@ -2,18 +2,22 @@
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 20px;
+  font-size: 0.9rem;
 }
 
 .product-metrics {
+  &__section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
   &__label {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: #777;
-    margin-top: 10px;
+    font-weight: 500;
   }
 
   &__divider {
@@ -24,24 +28,14 @@
     margin: 0;
   }
 
-  &__section {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  &__section-title {
-    font-weight: 500;
-  }
-
   &__row {
     display: flex;
     align-items: center;
-    font-size: 0.9rem;
   }
 
   &__key {
     flex: 0 0 90px;
+    color: #777;
   }
 
   &__bar {
@@ -60,7 +54,7 @@
   &__value {
     flex: 0 0 40px;
     font-size: 0.8rem;
-    color: #444;
+    color: #777;
     min-width: 28px;
     text-align: right;
   }
