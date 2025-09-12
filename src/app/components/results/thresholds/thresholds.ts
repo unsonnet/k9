@@ -28,34 +28,18 @@ export class ResultsThresholdsComponent {
     color: {
       primary: 50,
       secondary: 50,
+      tertiary: 50,
     } as Record<string, number>,
     pattern: {
       primary: 50,
       secondary: 50,
-    } as Record<string, number>,
-  };
-
-  image = {
-    color: {
-      primary: 50,
-    } as Record<string, number>,
-    pattern: {
-      cosine: 50,
-    } as Record<string, number>,
-    variation: {
-      chamfer: 50,
-      hausdorff: 50,
-      variance: 50,
-      wasserstein: 50,
+      tertiary: 50,
     } as Record<string, number>,
   };
 
   readonly productShapeFields = Object.keys(this.product.shape);
   readonly productColorFields = Object.keys(this.product.color);
   readonly productPatternFields = Object.keys(this.product.pattern);
-  readonly imageColorFields = Object.keys(this.image.color);
-  readonly imagePatternFields = Object.keys(this.image.pattern);
-  readonly imageVariationFields = Object.keys(this.image.variation);
 
   onFilter(): void {
     const toRange = (v: number, iv: boolean) =>
@@ -70,37 +54,21 @@ export class ResultsThresholdsComponent {
       );
 
     const thresholds: Thresholds = {
-      product: {
-        material: {
-          missing: false as any,
-          ...buildSection(this.product.material, false),
-        },
-        shape: {
-          missing: false as any,
-          ...buildSection(this.product.shape, false),
-        },
-        color: {
-          missing: false as any,
-          ...buildSection(this.product.color),
-        },
-        pattern: {
-          missing: false as any,
-          ...buildSection(this.product.pattern),
-        },
+      material: {
+        missing: false as any,
+        ...buildSection(this.product.material, false),
       },
-      image: {
-        color: {
-          missing: false as any,
-          ...buildSection(this.image.color),
-        },
-        pattern: {
-          missing: false as any,
-          ...buildSection(this.image.pattern),
-        },
-        variation: {
-          missing: false as any,
-          ...buildSection(this.image.variation),
-        },
+      shape: {
+        missing: false as any,
+        ...buildSection(this.product.shape, false),
+      },
+      color: {
+        missing: false as any,
+        ...buildSection(this.product.color),
+      },
+      pattern: {
+        missing: false as any,
+        ...buildSection(this.product.pattern),
       },
     };
 

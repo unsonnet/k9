@@ -33,41 +33,12 @@
       </div>
       }
     </div>
-
     <hr />
 
     @for (section of [ { label: 'Color', fields: productColorFields, model:
     product.color, prefix: 'product_color_' }, { label: 'Pattern', fields:
     productPatternFields, model: product.pattern, prefix: 'product_pattern_' }
     ]; track section.label) {
-    <div class="threshold-panel__section">
-      <p class="threshold-panel__label-muted">{{ section.label }}</p>
-      @for (key of section.fields; track key) {
-      <div class="threshold-panel__field">
-        <span>{{ key | titlecase }}</span>
-        <span>{{ section.model[key] }}%</span>
-      </div>
-      <div class="threshold-panel__slider">
-        <mat-slider min="0" max="100" step="1">
-          <input
-            matSliderThumb
-            [(ngModel)]="section.model[key]"
-            [name]="section.prefix + key"
-          />
-        </mat-slider>
-      </div>
-      }
-    </div>
-    <hr />
-    }
-
-    <h2>Filter by Image</h2>
-
-    @for (section of [ { label: 'Color', fields: imageColorFields, model:
-    image.color, prefix: 'image_color_' }, { label: 'Pattern', fields:
-    imagePatternFields, model: image.pattern, prefix: 'image_pattern_' }, {
-    label: 'Variation', fields: imageVariationFields, model: image.variation,
-    prefix: 'variation_' } ]; track section.label) {
     <div class="threshold-panel__section">
       <p class="threshold-panel__label-muted">{{ section.label }}</p>
       @for (key of section.fields; track key) {

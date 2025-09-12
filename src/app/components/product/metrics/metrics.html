@@ -1,21 +1,21 @@
 @for (sectionName of productSections; track sectionName) { @if
-(product.scores.product[sectionName]) {
+(product.scores[sectionName]) {
 <div class="product-metrics__section">
   <div class="product-metrics__label">
     <span>{{ sectionName | titlecase }}</span>
     <hr class="product-metrics__divider" />
   </div>
-  @for (key of metricKeys(product.scores.product[sectionName]); track key) {
+  @for (key of metricKeys(product.scores[sectionName]); track key) {
   <div class="product-metrics__row">
     <span class="product-metrics__key">{{ key | titlecase }}</span>
     <div class="product-metrics__bar">
       <div
         class="product-metrics__bar-fill"
-        [style.width.%]="100 - product.scores.product[sectionName][key]"
+        [style.width.%]="100 - product.scores[sectionName][key]"
       ></div>
     </div>
     <span class="product-metrics__value">
-      {{ truncate(100 - product.scores.product[sectionName][key]) }}%
+      {{ truncate(100 - product.scores[sectionName][key]) }}%
     </span>
   </div>
   }

@@ -12,15 +12,9 @@ import { Product } from '../../../models/product';
 export class ProductMetricsComponent {
   @Input({ required: true }) product!: Product;
 
-  readonly productSections: (keyof Product['scores']['product'])[] = [
+  readonly productSections: (keyof Product['scores'])[] = [
     'color',
     'pattern',
-  ];
-
-  readonly imageSections: (keyof Product['scores']['image'])[] = [
-    'color',
-    'pattern',
-    'variation',
   ];
 
   metricKeys(section: Record<string, number>): string[] {

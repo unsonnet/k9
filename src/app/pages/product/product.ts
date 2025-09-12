@@ -24,11 +24,11 @@ export class ProductPage {
   readonly starToggled = output<void>();
 
   get colorKeys() {
-    return Object.keys(this.product().scores.product.color);
+    return Object.keys(this.product().scores.color);
   }
 
   get patternKeys() {
-    return Object.keys(this.product().scores.product.pattern);
+    return Object.keys(this.product().scores.pattern);
   }
 
   toggleStar(event: MouseEvent) {

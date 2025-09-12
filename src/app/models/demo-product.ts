@@ -9,16 +9,9 @@ export const exampleProducts: Product[] = [
       'https://picsum.photos/id/100/400/400',
     ],
     scores: {
-      product: {
-        shape: { length: 8, width: 8, thickness: 2 },
-        color: { red: 0.7, green: 0.2, blue: 0.1 },
-        pattern: { striped: 0.5, dotted: 0.3 },
-      },
-      image: {
-        color: { saturation: 0.8, brightness: 0.6 },
-        pattern: { noise: 0.1 },
-        variation: { angle: 15, scale: 1.1 },
-      },
+      shape: { length: 8, width: 8, thickness: 2 },
+      color: { red: 0.7, green: 0.2, blue: 0.1 },
+      pattern: { striped: 0.5, dotted: 0.3 },
     },
     description: {
       store: 'Glasshouse',
@@ -35,16 +28,9 @@ export const exampleProducts: Product[] = [
     match: 1,
     images: ['https://picsum.photos/id/1027/400/400'],
     scores: {
-      product: {
         shape: { length: 6, width: 6, thickness: 3 },
         color: { red: 0.2, green: 0.3, blue: 0.6 },
         pattern: { dotted: 0.7 },
-      },
-      image: {
-        color: { saturation: 0.3, brightness: 0.7 },
-        pattern: { noise: 0.2 },
-        variation: { angle: 5, scale: 1.0 },
-      },
     },
     description: {
       store: 'Craftware Co.',
@@ -61,16 +47,9 @@ export const exampleProducts: Product[] = [
     match: 2,
     images: ['https://picsum.photos/id/1041/400/400'],
     scores: {
-      product: {
         shape: { length: 12, width: 7, thickness: 6 },
         color: { red: 0.4, green: 0.5, blue: 0.2 },
         pattern: { striped: 0.6 },
-      },
-      image: {
-        color: { saturation: 0.6, brightness: 0.8 },
-        pattern: { noise: 0.1 },
-        variation: { angle: 10, scale: 1.05 },
-      },
     },
     description: {
       store: 'BrewHouse',
@@ -90,16 +69,9 @@ export const exampleProducts: Product[] = [
       'https://picsum.photos/id/1069/400/400',
     ],
     scores: {
-      product: {
         shape: { length: 10, width: 10, thickness: 1 },
         color: { red: 0.1, green: 0.4, blue: 0.8 },
         pattern: { dotted: 0.4, striped: 0.2 },
-      },
-      image: {
-        color: { saturation: 0.5, brightness: 0.9 },
-        pattern: { noise: 0.15 },
-        variation: { angle: 20, scale: 0.95 },
-      },
     },
     description: {
       store: 'BlueClay Studio',
@@ -116,16 +88,9 @@ export const exampleProducts: Product[] = [
     match: 4,
     images: ['https://picsum.photos/id/1076/400/400'],
     scores: {
-      product: {
         shape: { length: 5, width: 5, thickness: 2 },
         color: { red: 0.5, green: 0.5, blue: 0.5 },
         pattern: { dotted: 0.9 },
-      },
-      image: {
-        color: { saturation: 0.2, brightness: 0.4 },
-        pattern: { noise: 0.3 },
-        variation: { angle: 0, scale: 1.0 },
-      },
     },
     description: {
       store: 'TinyPlates',
@@ -142,16 +107,9 @@ export const exampleProducts: Product[] = [
     match: 5,
     images: ['https://picsum.photos/id/1084/400/400'],
     scores: {
-      product: {
         shape: { length: 9, width: 6, thickness: 4 },
         color: { red: 0.8, green: 0.3, blue: 0.1 },
         pattern: { striped: 0.3 },
-      },
-      image: {
-        color: { saturation: 0.7, brightness: 0.5 },
-        pattern: { noise: 0.05 },
-        variation: { angle: 12, scale: 1.2 },
-      },
     },
     description: {
       store: 'Glassroots',

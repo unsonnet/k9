@@ -3,16 +3,9 @@ export type MetricSection = {
 };
 
 export type Metrics = {
-  product: {
-    shape: MetricSection;
-    color: MetricSection;
-    pattern: MetricSection;
-  };
-  image: {
-    color: MetricSection;
-    pattern: MetricSection;
-    variation: MetricSection;
-  };
+  shape: MetricSection;
+  color: MetricSection;
+  pattern: MetricSection;
 };
 
 export type Product = {
