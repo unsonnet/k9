@@ -11,11 +11,11 @@
     <div class="product-metrics__bar">
       <div
         class="product-metrics__bar-fill"
-        [style.width.%]="100 - product.scores[sectionName][key]"
+        [style.width.%]="100 - 100 * product.scores[sectionName][key]"
       ></div>
     </div>
     <span class="product-metrics__value">
-      {{ truncate(100 - product.scores[sectionName][key]) }}%
+      {{ truncate(100 - 100 * product.scores[sectionName][key]) }}%
     </span>
   </div>
   }

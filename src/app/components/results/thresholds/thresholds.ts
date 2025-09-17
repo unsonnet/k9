@@ -18,8 +18,9 @@ export class ResultsThresholdsComponent {
   readonly exportEnabled = input(true);
 
   product = {
-    material: {
-      material: 0.0,
+    type_: {
+      type: 0.5,
+      material: 0.5,
     } as Record<string, number>,
     shape: {
       length: 1.5,
@@ -42,24 +43,23 @@ export class ResultsThresholdsComponent {
   readonly productPatternFields = Object.keys(this.product.pattern);
 
   onFilter(): void {
-    const toRange = (v: number, iv: boolean) =>
-      [0, iv ? 100 - v : v] as [number, number];
+    const toRange = (v: number, iv: boolean) => (iv ? (100 - v) / 100 : v);
 
     const buildSection = (
       source: Record<string, number>,
       invert: boolean = true,
-    ): Record<string, [number, number]> =>
+    ): Record<string, number> =>
       Object.fromEntries(
         Object.keys(source).map((key) => [key, toRange(source[key], invert)]),
       );
 
     const thresholds: Thresholds = {
-      material: {
+      type_: {
         missing: false as any,
-        ...buildSection(this.product.material, false),
+        ...buildSection(this.product.type_, false),
       },
       shape: {
-        missing: false as any,
+        missing: true as any,
         ...buildSection(this.product.shape, false),
       },
       color: {

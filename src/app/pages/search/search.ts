@@ -92,9 +92,7 @@ export class SearchPage {
     this.loadingMessage.set('testing');
 
     try {
-      const apiReference = await this.upload(job, reference);
-      const run = await this.initiate(job, apiReference);
-      await this.poll(job, run);
+      await this.initiate(job, await this.upload(job, reference));
       const summary = await this.summarize(job);
       await this.router.navigateByUrl('/results', {
         state: { reference: summary, job },
@@ -131,67 +129,12 @@ export class SearchPage {
     job: string,
     reference: Reference<string>,
   ): Promise<string> {
-    this.loadingMessage.set('Initiating server');
-    const response = await firstValueFrom(this.fetch.initiate(job, reference));
+    this.loadingMessage.set('Launching K9');
+    const response = await firstValueFrom(this.fetch.index(job, reference));
     if (response.status !== 200 || !response.body) {
-      throw new Error(`Failed to initiate (${response.status})`);
+      throw new Error(`Failed to launch (${response.status})`);
     }
     return response.body as string;
-  }
-
-  private async poll(
-    job: string,
-    run: string,
-    intervalMs = 10_000,
-    timeoutMs = 600_000,
-  ): Promise<void> {
-    this.loadingMessage.set('Initiating server');
-    const start = Date.now();
-
-    while (Date.now() - start < timeoutMs) {
-      await this.delay(intervalMs);
-      const response = await firstValueFrom(this.fetch.poll(job, run));
-      if (response.status === 200) return;
-
-      switch (response.body as string) {
-        case 'start':
-          this.loadingMessage.set('Building universe');
-          break;
-        case 'load':
-          this.loadingMessage.set('Preparing K9 for the wild');
-          break;
-        case 'metric.product.material':
-          this.loadingMessage.set('Packing heavy materials');
-          break;
-        case 'metric.product.shape':
-          this.loadingMessage.set('Sharpening pointy shapes');
-          break;
-        case 'metric.product.color':
-          this.loadingMessage.set('Pouring pretty colors');
-          break;
-        case 'metric.product.pattern':
-          this.loadingMessage.set('Tracing wavey patterns');
-          break;
-        case 'metric.image.color':
-          this.loadingMessage.set('[Legacy] Pouring pretty colors');
-          break;
-        case 'metric.image.pattern':
-          this.loadingMessage.set('[Legacy] Tracing wavey patterns');
-          break;
-        case 'metric.image.variation':
-          this.loadingMessage.set('[Legacy] Casting light variations');
-          break;
-        case 'save':
-          this.loadingMessage.set('Releasing K9 to the wild');
-          break;
-        case 'fail':
-          throw new Error(`K9 got confused (${response.status})`);
-        case 'crash':
-          throw new Error(`K9 collapsed (${response.status})`);
-      }
-    }
-
-    throw new Error('K9 got tired (400)');
   }
 
   private async summarize(job: string): Promise<Reference<string>> {

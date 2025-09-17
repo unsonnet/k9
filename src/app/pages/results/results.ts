@@ -124,7 +124,7 @@ export class ResultsPage {
 
     try {
       const response = await firstValueFrom(
-        this.fetch.filter(this.job(), thresholds, 0),
+        this.fetch.search(this.job(), thresholds, 0),
       );
 
       if (response.status !== 200 || !response.body) {

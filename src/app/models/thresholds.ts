@@ -1,9 +1,9 @@
 export type ThresholdSection = {
-  [metric: string]: [number, number];
+  [metric: string]: number;
 } & { missing: boolean };
 
 export type Thresholds = {
-  material: ThresholdSection;
+  type_: ThresholdSection;
   shape: ThresholdSection;
   color: ThresholdSection;
   pattern: ThresholdSection;

@@ -11,7 +11,7 @@ export class ExportService {
 
   async exportProducts(reference: Reference<string>, products: Product[]) {
     const zip = new JSZip();
-    const csvRows = ['id,name,store,url,material,length,width,thickness'];
+    const csvRows = ['id,name,store,url,material,length (in),width (in),thickness (mm)'];
 
     // --- Reference entry ---
     csvRows.push(
@@ -46,15 +46,18 @@ export class ExportService {
     // --- Product entries ---
     let counter = 1;
     for (const product of products) {
+      const toInches = (cm?: number) => cm == undefined ? '' : Math.trunc(cm / 2.54);
+
       const {
         name,
         store,
         url,
         material,
-        length = '',
-        width = '',
-        thickness = '',
+        length,
+        width,
+        thickness,
       } = product.description;
+
 
       const exportId = counter++;
       const folderName = this.sanitizeFolderName(`${exportId}_${name}`);
@@ -80,8 +83,8 @@ export class ExportService {
           `"${store}"`,
           `"${url}"`,
           `"${material}"`,
-          length,
-          width,
+          toInches(length),
+          toInches(width),
           thickness,
         ].join(','),
       );

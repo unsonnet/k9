@@ -43,7 +43,7 @@ export class FetchService {
     );
   }
 
-  initiate(
+  index(
     job: string,
     reference: Reference<string>,
   ): Observable<K9Response<string>> {
@@ -68,25 +68,6 @@ export class FetchService {
     );
   }
 
-  poll(job: string, run: string): Observable<K9Response<string>> {
-    const url = `${this.base}/${job}?run=${run}`;
-    return this.auth.withAuthHeaders((headers) =>
-      this.http.head(url, { observe: 'response', headers }).pipe(
-        map((res) => ({
-          status: res.status,
-          body: res.headers.get('Stage'),
-        })),
-        catchError((err) =>
-          of({
-            status: err.status || 500,
-            body: err.headers?.get?.('Stage') || 'crash',
-            error: err.headers?.get?.('Error-Message') ?? err.message ?? null,
-          }),
-        ),
-      ),
-    );
-  }
-
   summarize(job: string): Observable<K9Response<Reference<string>>> {
     const url = `${this.base}/${job}`;
     return this.auth.withAuthHeaders((headers) =>
@@ -108,7 +89,7 @@ export class FetchService {
     );
   }
 
-  filter(
+  search(
     job: string,
     thresholds: Thresholds,
     start: number,

@@ -15,6 +15,16 @@ export class ProductDescriptionComponent {
   @Input({ required: true }) product!: Product;
   @Output() starToggled = new EventEmitter<void>();
 
+  get lengthInInches(): string {
+    const length = this.product?.description?.length;
+    return length != null ? Math.trunc(length / 2.54).toString() : '';
+  }
+
+  get widthInInches(): string {
+    const width = this.product?.description?.width;
+    return width != null ? Math.trunc(width / 2.54).toString() : '';
+  }
+
   toggleStar(event: MouseEvent) {
     event.stopPropagation();
     this.starToggled.emit();
