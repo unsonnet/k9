@@ -2,13 +2,13 @@
   "name": "k9",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://unsonnet.github.io/k9",
+  "homepage": "https://www.srodvasquez.com",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "preview": "npx serve out",
     "lint": "eslint",
-    "deploy": "gh-pages -d out"
+    "deploy": "gh-pages -d out -r k9"
   },
   "dependencies": {
     "@types/jszip": "^3.4.0",
