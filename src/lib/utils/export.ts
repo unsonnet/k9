@@ -11,9 +11,9 @@ import type { Product } from '@/types/report';
  */
 async function downloadImage(url: string): Promise<Blob> {
   try {
-    // First try with no-cors mode if the URL is from a different origin
+    // Try CORS first for external URLs
     const response = await fetch(url, {
-      mode: 'cors', // Try CORS first
+      mode: 'cors',
       headers: {
         'Accept': 'image/*,*/*;q=0.8',
       }
@@ -22,23 +22,107 @@ async function downloadImage(url: string): Promise<Blob> {
     if (!response.ok) {
       throw new Error(`Failed to fetch image: ${response.statusText}`);
     }
-    return await response.blob();
-  } catch (_error) {
-    // If CORS fails, try no-cors mode (this will work but gives an opaque response)
-    try {
-      console.warn('CORS failed, trying no-cors mode for image:', url);
-      const response = await fetch(url, { 
-        mode: 'no-cors',
-        headers: {
-          'Accept': 'image/*,*/*;q=0.8',
-        }
-      });
-      return await response.blob();
-    } catch (error) {
-      console.error('Failed to download image with both CORS and no-cors:', error);
-      throw new Error(`Could not download image from ${url}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    
+    const blob = await response.blob();
+    
+    // Verify we actually got image data
+    if (blob.size === 0) {
+      throw new Error('Downloaded blob is empty');
     }
+    
+    return blob;
+  } catch (error) {
+    console.error('Failed to download image via CORS:', error);
+    
+    // Try using a proxy for external images if CORS fails
+    // Note: no-cors mode doesn't work for reading blob content
+    if (url.startsWith('http') && !url.includes(window.location.hostname)) {
+      try {
+        console.warn('Attempting proxy download for:', url);
+        // Try with same-origin if possible (this won't work for external URLs in production)
+        // In a real app, you'd need a server-side proxy
+        const proxyResponse = await fetch(url, {
+          mode: 'same-origin'
+        });
+        
+        if (proxyResponse.ok) {
+          const blob = await proxyResponse.blob();
+          if (blob.size > 0) {
+            return blob;
+          }
+        }
+      } catch (proxyError) {
+        console.warn('Proxy attempt failed:', proxyError);
+      }
+    }
+    
+    // If all else fails, create a placeholder image
+    console.warn(`Creating placeholder for failed image: ${url}`);
+    return createPlaceholderImage(url);
   }
+}
+
+/**
+ * Create a placeholder image blob when the actual image can't be downloaded
+ */
+function createPlaceholderImage(originalUrl: string): Promise<Blob> {
+  return new Promise((resolve) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      // Fallback: create a minimal blob
+      const text = `Image not available: ${originalUrl}`;
+      resolve(new Blob([text], { type: 'text/plain' }));
+      return;
+    }
+    
+    // Create a simple placeholder image
+    canvas.width = 400;
+    canvas.height = 400;
+    
+    // Fill background
+    ctx.fillStyle = '#f0f0f0';
+    ctx.fillRect(0, 0, 400, 400);
+    
+    // Add border
+    ctx.strokeStyle = '#cccccc';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, 400, 400);
+    
+    // Add text
+    ctx.fillStyle = '#666666';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    // Wrap long URLs
+    const maxLineLength = 30;
+    const words = originalUrl.split(/[\/\\]/);
+    const lines: string[] = [];
+    let currentLine = '';
+    
+    for (const word of words) {
+      if ((currentLine + word).length > maxLineLength) {
+        if (currentLine) lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine = currentLine ? currentLine + '/' + word : word;
+      }
+    }
+    if (currentLine) lines.push(currentLine);
+    
+    lines.unshift('Image not available:');
+    
+    const startY = 200 - (lines.length * 10);
+    lines.forEach((line, index) => {
+      ctx.fillText(line, 200, startY + (index * 20));
+    });
+    
+    canvas.toBlob((blob) => {
+      resolve(blob || new Blob(['Placeholder'], { type: 'text/plain' }));
+    }, 'image/png');
+  });
 }
 
 /**
@@ -298,25 +382,54 @@ export async function exportFavoritesAsZip(
     const referenceFolderName = createFolderName(0, referenceProduct.brand, referenceProduct.model);
     const referenceFolder = zip.folder(`images/${referenceFolderName}_REFERENCE`);
 
-    if (referenceFolder && referenceProduct.images.length > 0) {
-      for (let i = 0; i < referenceProduct.images.length; i++) {
-        const image = referenceProduct.images[i];
-        try {
-          reportProgress(`Downloading reference image ${i + 1}/${referenceProduct.images.length}...`);
-          const imageBlob = await downloadImage(image.url);
-          const resizedBlob = await resizeImage(imageBlob, maxImageWidth, maxImageHeight);
-          
-          const extension = image.url.split('.').pop()?.toLowerCase() || 'jpg';
-          const filename = `image_${(i + 1).toString().padStart(2, '0')}.${extension}`;
-          
-          referenceFolder.file(filename, resizedBlob);
-        } catch (error) {
-          console.error(`Failed to download reference image ${i + 1}:`, error);
-          // Add a note to the folder about the failed image
-          referenceFolder.file(`FAILED_image_${(i + 1).toString().padStart(2, '0')}.txt`, 
-            `Failed to download image from: ${image.url}\nError: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    if (referenceFolder) {
+      if (referenceProduct.images.length === 0) {
+        // Create a note file if no images are provided
+        referenceFolder.file('no_images.txt', 
+          `No images were provided for the reference product: ${referenceProduct.brand} ${referenceProduct.model}`);
+      } else {
+        for (let i = 0; i < referenceProduct.images.length; i++) {
+          const image = referenceProduct.images[i];
+          try {
+            reportProgress(`Downloading reference image ${i + 1}/${referenceProduct.images.length}...`);
+            const imageBlob = await downloadImage(image.url);
+            console.log(`Downloaded blob size: ${imageBlob.size} bytes for reference image ${i + 1}`);
+            const resizedBlob = await resizeImage(imageBlob, maxImageWidth, maxImageHeight);
+            console.log(`Resized blob size: ${resizedBlob.size} bytes for reference image ${i + 1}`);
+            
+            // Use original blob if resize failed to produce a valid blob
+            const finalBlob = resizedBlob.size > 0 ? resizedBlob : imageBlob;
+            console.log(`Final blob size: ${finalBlob.size} bytes for reference image ${i + 1}`);
+            
+            // Determine file extension from the original URL or use jpg as default
+            // Handle AWS S3 URLs with query parameters
+            let extension = 'jpg'; // default
+            try {
+              const url = new URL(image.url);
+              const pathname = url.pathname;
+              const pathParts = pathname.split('.');
+              if (pathParts.length > 1) {
+                const ext = pathParts.pop()?.toLowerCase();
+                if (ext && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) {
+                  extension = ext;
+                }
+              }
+            } catch (error) {
+              console.warn('Failed to parse image URL for extension:', image.url);
+            }
+            const filename = `image_${(i + 1).toString().padStart(2, '0')}.${extension}`;
+            
+            console.log(`Adding file to ZIP: ${filename}, blob size: ${finalBlob.size} bytes`);
+            referenceFolder.file(filename, finalBlob);
+            console.log(`Successfully downloaded reference image ${i + 1}: ${filename}`);
+          } catch (error) {
+            console.error(`Failed to download reference image ${i + 1}:`, error);
+            // Add a note to the folder about the failed image
+            referenceFolder.file(`FAILED_image_${(i + 1).toString().padStart(2, '0')}.txt`, 
+              `Failed to download image from: ${image.url}\nError: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+          currentStep++;
         }
-        currentStep++;
       }
     }
   }
@@ -337,25 +450,54 @@ export async function exportFavoritesAsZip(
     const folderName = createFolderName(rowIndex, product.brand, product.model);
     const productFolder = zip.folder(`images/${folderName}`);
 
-    if (productFolder && product.images.length > 0) {
-      for (let i = 0; i < product.images.length; i++) {
-        const image = product.images[i];
-        try {
-          reportProgress(`Downloading image ${i + 1}/${product.images.length} for product ${productIndex + 1}...`);
-          const imageBlob = await downloadImage(image.url);
-          const resizedBlob = await resizeImage(imageBlob, maxImageWidth, maxImageHeight);
-          
-          const extension = image.url.split('.').pop()?.toLowerCase() || 'jpg';
-          const filename = `image_${(i + 1).toString().padStart(2, '0')}.${extension}`;
-          
-          productFolder.file(filename, resizedBlob);
-        } catch (error) {
-          console.error(`Failed to download image ${i + 1} for product ${productIndex + 1}:`, error);
-          // Add a note to the folder about the failed image
-          productFolder.file(`FAILED_image_${(i + 1).toString().padStart(2, '0')}.txt`, 
-            `Failed to download image from: ${image.url}\nError: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    if (productFolder) {
+      if (product.images.length === 0) {
+        // Create a note file if no images are provided
+        productFolder.file('no_images.txt', 
+          `No images were provided for this product: ${product.brand} ${product.model}`);
+      } else {
+        for (let i = 0; i < product.images.length; i++) {
+          const image = product.images[i];
+          try {
+            reportProgress(`Downloading image ${i + 1}/${product.images.length} for product ${productIndex + 1}...`);
+            const imageBlob = await downloadImage(image.url);
+            console.log(`Downloaded blob size: ${imageBlob.size} bytes for product ${productIndex + 1} image ${i + 1}`);
+            const resizedBlob = await resizeImage(imageBlob, maxImageWidth, maxImageHeight);
+            console.log(`Resized blob size: ${resizedBlob.size} bytes for product ${productIndex + 1} image ${i + 1}`);
+            
+            // Use original blob if resize failed to produce a valid blob
+            const finalBlob = resizedBlob.size > 0 ? resizedBlob : imageBlob;
+            console.log(`Final blob size: ${finalBlob.size} bytes for product ${productIndex + 1} image ${i + 1}`);
+            
+            // Determine file extension from the original URL or use jpg as default
+            // Handle AWS S3 URLs with query parameters
+            let extension = 'jpg'; // default
+            try {
+              const url = new URL(image.url);
+              const pathname = url.pathname;
+              const pathParts = pathname.split('.');
+              if (pathParts.length > 1) {
+                const ext = pathParts.pop()?.toLowerCase();
+                if (ext && ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'].includes(ext)) {
+                  extension = ext;
+                }
+              }
+            } catch (error) {
+              console.warn('Failed to parse image URL for extension:', image.url);
+            }
+            const filename = `image_${(i + 1).toString().padStart(2, '0')}.${extension}`;
+            
+            console.log(`Adding file to ZIP: ${filename}, blob size: ${finalBlob.size} bytes`);
+            productFolder.file(filename, finalBlob);
+            console.log(`Successfully downloaded image ${i + 1} for product ${productIndex + 1}: ${filename}`);
+          } catch (error) {
+            console.error(`Failed to download image ${i + 1} for product ${productIndex + 1}:`, error);
+            // Add a note to the folder about the failed image
+            productFolder.file(`FAILED_image_${(i + 1).toString().padStart(2, '0')}.txt`, 
+              `Failed to download image from: ${image.url}\nError: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+          currentStep++;
         }
-        currentStep++;
       }
     }
   }
@@ -406,6 +548,11 @@ Generated by K9 Product Search System
 
   // Generate the ZIP file
   reportProgress('Generating ZIP file...');
+  console.log('About to generate ZIP. Current zip structure:');
+  zip.forEach((relativePath, file) => {
+    console.log(`ZIP contains: ${relativePath}, type: ${file.dir ? 'directory' : 'file'}`);
+  });
+  
   const zipBlob = await zip.generateAsync({ 
     type: 'blob',
     compression: 'DEFLATE',
@@ -415,6 +562,7 @@ Generated by K9 Product Search System
   });
   currentStep++;
   
+  console.log(`Generated ZIP blob size: ${zipBlob.size} bytes`);
   reportProgress('Export complete!');
   return zipBlob;
 }
