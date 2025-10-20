@@ -28,7 +28,8 @@ from models.api import (
 from models.common import Image, Name, Product
 from utils.auth import create_token
 from utils.http import Forbidden, InvalidRequest, NotFound, Unauthorized
-from services.repositories import ImagesStorage, ProductsRepository, ReportsRepository, UsersRepository
+from services.container import container
+from services.ports import ImagesStoragePort, ProductsRepositoryPort, ReportsRepositoryPort, UsersRepositoryPort
 
 
 class AuthService:
@@ -65,8 +66,9 @@ class AuthService:
 
 
 class UsersService:
-    def __init__(self) -> None:
-        self.repo = UsersRepository()
+    def __init__(self, repo: Optional[UsersRepositoryPort] = None) -> None:
+        # Default to container-selected repo
+        self.repo = repo or container().users_repo()
 
     def get(self, uid: str) -> Dict[str, Any]:
         return self.repo.get(uid)
@@ -105,9 +107,9 @@ class UsersService:
 
 
 class ProductsService:
-    def __init__(self) -> None:
-        self.repo = ProductsRepository()
-        self.images = ImagesStorage()
+    def __init__(self, repo: Optional[ProductsRepositoryPort] = None, images: Optional[ImagesStoragePort] = None) -> None:
+        self.repo = repo or container().products_repo()
+        self.images = images or container().images_store()
 
     def get(self, pid: str) -> Dict[str, Any]:
         return self.repo.get(pid)
@@ -293,9 +295,9 @@ class ProductsService:
 
 
 class ReportsService:
-    def __init__(self) -> None:
-        self.repo = ReportsRepository()
-        self.products = ProductsRepository()
+    def __init__(self, repo: Optional[ReportsRepositoryPort] = None, products: Optional[ProductsRepositoryPort] = None) -> None:
+        self.repo = repo or container().reports_repo()
+        self.products = products or container().products_repo()
 
     @staticmethod
     def _to_api_report(item: Dict[str, Any]) -> Dict[str, Any]:
@@ -310,9 +312,8 @@ class ReportsService:
         if author:
             items, nt = self.repo.list_by_author(author, limit, next_token)
             return [self._to_api_report(i) for i in items], nt
-        # For admin list-all, use scan for simplicity
-        items, nt = UsersRepository().list(limit, next_token)  # type: ignore — placeholder; would be reports scan
-        return [self._to_api_report(i) for i in items], nt
+        # Admin list-all placeholder: not implemented; return empty for now
+        return [], None
 
     def get(self, rid: str) -> Dict[str, Any]:
         item = self.repo.get(rid)
