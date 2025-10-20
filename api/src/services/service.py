@@ -76,12 +76,21 @@ class UsersService:
 
     def create(self, username: str, email: str, role: str, preferences: Optional[Dict[str, str]]) -> Dict[str, Any]:
         uid = str(uuid.uuid4())
-        item = {"id": uid, "username": username, "email": email, "role": role, "preferences": preferences or {}}
+        now = datetime.now(timezone.utc).isoformat()
+        item = {
+            "id": uid,
+            "username": username,
+            "email": email,
+            "role": role,
+            "preferences": preferences or {},
+            "createdAt": now,
+        }
         self.repo.put(item)
         return item
 
     def update(self, uid: str, updates: Dict[str, Any]) -> Dict[str, Any]:
         item = self.repo.get(uid)
+        item["updatedAt"] = datetime.now(timezone.utc).isoformat()
         for k, v in updates.items():
             if v is None:
                 if k in item:
@@ -105,18 +114,21 @@ class ProductsService:
 
     def create(self, req: CreateProductRequest) -> Dict[str, Any]:
         pid = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
         item = {
             "id": pid,
             "name": req.name.model_dump(),
             "category": req.category,
             "formats": [],
             "images": [],
+            "createdAt": now,
         }
         self.repo.put(item)
         return item
 
     def update(self, pid: str, req: UpdateProductRequest) -> Dict[str, Any]:
         item = self.repo.get(pid)
+        item["updatedAt"] = datetime.now(timezone.utc).isoformat()
         if req.name is not None:
             # merge nullable fields
             for field, value in req.name.model_dump().items():
@@ -139,13 +151,15 @@ class ProductsService:
     def create_format(self, pid: str, req: CreateFormatRequest) -> Dict[str, Any]:
         item = self.repo.get(pid)
         fid = str(uuid.uuid4())
-        fmt: Dict[str, Any] = {"id": fid, "aspect": req.aspect}
+        now = datetime.now(timezone.utc).isoformat()
+        fmt: Dict[str, Any] = {"id": fid, "aspect": req.aspect, "createdAt": now}
         for d in ("length", "width", "thickness"):
             val = getattr(req, d)
             if val is not None:
                 fmt[d] = val.model_dump()
         fmt["vendors"] = []
         item.setdefault("formats", []).append(fmt)
+        item["updatedAt"] = now
         self.repo.put(item)
         return fmt
 
@@ -155,6 +169,7 @@ class ProductsService:
         fmt = next((f for f in formats if f["id"] == fid), None)
         if not fmt:
             raise NotFound("Format not found")
+        now = datetime.now(timezone.utc).isoformat()
         if req.aspect is not None:
             fmt["aspect"] = req.aspect
         for d in ("length", "width", "thickness"):
@@ -165,6 +180,8 @@ class ProductsService:
                     del fmt[d]
             elif val is not None:
                 fmt[d] = val.model_dump()
+        fmt["updatedAt"] = now
+        item["updatedAt"] = now
         self.repo.put(item)
         return fmt
 
@@ -174,6 +191,7 @@ class ProductsService:
         item["formats"] = [f for f in item.get("formats", []) if f["id"] != fid]
         if len(item["formats"]) == before:
             raise NotFound("Format not found")
+        item["updatedAt"] = datetime.now(timezone.utc).isoformat()
         self.repo.put(item)
 
     def create_vendor(self, pid: str, fid: str, req: CreateVendorRequest) -> Dict[str, Any]:
@@ -183,8 +201,11 @@ class ProductsService:
         if not fmt:
             raise NotFound("Format not found")
         vid = str(uuid.uuid4())
-        vendor = {"id": vid, **req.model_dump(exclude_none=True)}
+        now = datetime.now(timezone.utc).isoformat()
+        vendor = {"id": vid, **req.model_dump(exclude_none=True), "createdAt": now}
         fmt.setdefault("vendors", []).append(vendor)
+        fmt["updatedAt"] = now
+        item["updatedAt"] = now
         self.repo.put(item)
         return vendor
 
@@ -203,6 +224,10 @@ class ProductsService:
                 vendor.pop(k, None)
             else:
                 vendor[k] = v
+        now = datetime.now(timezone.utc).isoformat()
+        vendor["updatedAt"] = now
+        fmt["updatedAt"] = now
+        item["updatedAt"] = now
         self.repo.put(item)
         return vendor
 
@@ -216,6 +241,9 @@ class ProductsService:
         fmt["vendors"] = [v for v in fmt.get("vendors", []) if v["id"] != vid]
         if len(fmt["vendors"]) == before:
             raise NotFound("Vendor not found")
+        now = datetime.now(timezone.utc).isoformat()
+        fmt["updatedAt"] = now
+        item["updatedAt"] = now
         self.repo.put(item)
 
     def create_image(self, pid: str, image_bytes: bytes, mask_b64: str, hom_b64: str) -> Dict[str, Any]:
@@ -236,8 +264,10 @@ class ProductsService:
         url = self.images.presign(key)
         # update product record
         item = self.repo.get(pid)
-        image_obj = {"id": iid, "url": url}
+        now = datetime.now(timezone.utc).isoformat()
+        image_obj = {"id": iid, "url": url, "createdAt": now}
         item.setdefault("images", []).append(image_obj)
+        item["updatedAt"] = now
         self.repo.put(item)
         return image_obj
 
@@ -247,6 +277,9 @@ class ProductsService:
         img = next((i for i in item.get("images", []) if i["id"] == iid), None)
         if not img:
             raise NotFound("Image not found")
+        img["updatedAt"] = datetime.now(timezone.utc).isoformat()
+        item["updatedAt"] = img["updatedAt"]
+        self.repo.put(item)
         return img
 
     def delete_image(self, pid: str, iid: str) -> None:
@@ -255,6 +288,7 @@ class ProductsService:
         item["images"] = [i for i in item.get("images", []) if i["id"] != iid]
         if len(item["images"]) == before:
             raise NotFound("Image not found")
+        item["updatedAt"] = datetime.now(timezone.utc).isoformat()
         self.repo.put(item)
 
 
@@ -263,16 +297,26 @@ class ReportsService:
         self.repo = ReportsRepository()
         self.products = ProductsRepository()
 
+    @staticmethod
+    def _to_api_report(item: Dict[str, Any]) -> Dict[str, Any]:
+        # Map storage field createdAt -> API field date
+        api = dict(item)
+        if "createdAt" in api:
+            api["date"] = api.pop("createdAt")
+        return api
+
     def list(self, requester: str, limit: int, next_token: Optional[str], everyone: bool) -> Tuple[List[Dict[str, Any]], Optional[str]]:
         author = None if everyone else requester
         if author:
-            return self.repo.list_by_author(author, limit, next_token)
+            items, nt = self.repo.list_by_author(author, limit, next_token)
+            return [self._to_api_report(i) for i in items], nt
         # For admin list-all, use scan for simplicity
         items, nt = UsersRepository().list(limit, next_token)  # type: ignore — placeholder; would be reports scan
-        return items, nt
+        return [self._to_api_report(i) for i in items], nt
 
     def get(self, rid: str) -> Dict[str, Any]:
-        return self.repo.get(rid)
+        item = self.repo.get(rid)
+        return self._to_api_report(item)
 
     def create(self, author: str, title: str, reference: str) -> Dict[str, Any]:
         prod = self.products.get(reference)
@@ -282,12 +326,12 @@ class ReportsService:
             "id": rid,
             "author": author,
             "title": title,
-            "date": now,
+            "createdAt": now,
             "reference": prod,
             "favorites": [],
         }
         self.repo.put(item)
-        return item
+        return self._to_api_report(item)
 
     def update(self, rid: str, updates: Dict[str, Any]) -> Dict[str, Any]:
         item = self.repo.get(rid)
@@ -295,8 +339,9 @@ class ReportsService:
             prod = self.products.get(updates["reference"])  # validate exists
             updates["reference"] = prod
         item.update({k: v for k, v in updates.items() if v is not None})
+        item["updatedAt"] = datetime.now(timezone.utc).isoformat()
         self.repo.put(item)
-        return item
+        return self._to_api_report(item)
 
     def delete(self, rid: str) -> None:
         self.repo.delete(rid)
@@ -310,4 +355,5 @@ class ReportsService:
             favs.append(prod)
         if not add and exists:
             favs[:] = [p for p in favs if p["id"] != pid]
+        item["updatedAt"] = datetime.now(timezone.utc).isoformat()
         self.repo.put(item)
