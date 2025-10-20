@@ -13,7 +13,7 @@ Request password reset for user account.
 
 ## Response 204
 
-No content — password reset email sent
+No content — password reset link sent to email
 
 ## Response 400
 

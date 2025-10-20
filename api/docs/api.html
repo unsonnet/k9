@@ -137,6 +137,316 @@ border:1px solid var(--border);color:var(--ink);}
 <main class="container">
 <header class="api-header"><h1>API Reference</h1></header>
 
+<section class="api-group" id="auth-api">
+<header class="group-header"><h2>Auth API</h2></header>
+<div class="group-content">
+<article class="endpoint" id="post-authforgot">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge post">POST</span> <code>/auth/forgot</code></div>
+  <p class="endpoint-summary">Request password reset for user account.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">email</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User email</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">204</button>
+<button class="response-tab client" type="button">400</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>No content — password reset link sent to email</p></div></div>
+<div class="response-content"><div class="doc"><p>Bad request — invalid request payload (<code>InvalidRequest</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — user with email does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="post-authlogin">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge post">POST</span> <code>/auth/login</code></div>
+  <p class="endpoint-summary">Authenticate user with email and password.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">email</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User email</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">password</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User password</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">200</button>
+<button class="response-tab success" type="button">202</button>
+<button class="response-tab client" type="button">400</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>OK — user logged in</p></div><h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">user</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">accessToken</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">JWT access token</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">refreshToken</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">JWT refresh token</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">expiresIn</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Access token expiry (<code>seconds</code>)</div>
+</div>
+</div>
+</div></div>
+<div class="response-content"><div class="doc"><p>Accepted — new password required</p></div><h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">user</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">challenge</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Challenge type (<code>NEW_PASSWORD_REQUIRED</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">session</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Session token for challenge response</div>
+</div>
+</div>
+</div></div>
+<div class="response-content"><div class="doc"><p>Bad request — invalid request payload (<code>InvalidRequest</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — invalid credentials (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — user not confirmed (<code>UserNotConfirmed</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — user does not exist (<code>UserNotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="post-authlogout">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge post">POST</span> <code>/auth/logout</code></div>
+  <p class="endpoint-summary">Logout user and invalidate tokens.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">204</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>No content — user logged out</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="post-authrefresh">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge post">POST</span> <code>/auth/refresh</code></div>
+  <p class="endpoint-summary">Refresh access token using refresh token.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">refreshToken</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">JWT refresh token</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">200</button>
+<button class="response-tab client" type="button">400</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>OK — token refreshed</p></div><h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">user</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">accessToken</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">JWT access token</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">refreshToken</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">JWT refresh token</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">expiresIn</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Access token expiry (<code>seconds</code>)</div>
+</div>
+</div>
+</div></div>
+<div class="response-content"><div class="doc"><p>Bad request — invalid request payload (<code>InvalidRequest</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — invalid or expired refresh token (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="post-authreset">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge post">POST</span> <code>/auth/reset</code></div>
+  <p class="endpoint-summary">Reset user password.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">user</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">session</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Session token</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">newPassword</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">New password</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">204</button>
+<button class="response-tab client" type="button">400</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab client" type="button">410</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>No content — password reset</p></div></div>
+<div class="response-content"><div class="doc"><p>Bad request — invalid request payload or verification code (<code>InvalidRequest</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — user with email does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Gone — verification code or session expired (<code>CodeExpired</code>, <code>SessionExpired</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+</div></section>
+
 <section class="api-group" id="product-api">
 <header class="group-header"><h2>Product API</h2></header>
 <div class="group-content">
@@ -2830,6 +3140,3571 @@ Only provided fields are changed.</p>
 <div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
 <div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
 <div class="response-content"><div class="doc"><p>Not found — product or image does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+</div></section>
+
+<section class="api-group" id="report-api">
+<header class="group-header"><h2>Report API</h2></header>
+<div class="group-content">
+<article class="endpoint" id="get-report">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge get">GET</span> <code>/report</code></div>
+  <p class="endpoint-summary">List reports authored by user (paginated).</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Query Parameters</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">limit</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Maximum reports per page. Default: <code>25</code></div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">nextToken</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Pagination cursor (<code>Base64</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">everyone</span>
+<span class="field-type"><code><code>boolean</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">List all reports (only for administrator role). Default: <code>false</code></div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">200</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>OK — reports listed</p></div><h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">total</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Total reports</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">nextToken</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Pagination cursor for next page (<code>Base64</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">reports</span>
+<span class="field-type"><code>array[<code>reportSummary</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report summaries</div>
+<details class="submodel">
+  <summary><code>reportSummary</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">author</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">title</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report title</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">date</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Creation timestamp (<code>UTC</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">reference</span>
+<span class="field-type"><code><code>productSummary</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Reference product summary</div>
+<details class="submodel">
+  <summary><code>productSummary</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>name</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product name fields (<code>brand</code>, <code>series</code>, <code>model</code>)</div>
+<details class="submodel">
+  <summary><code>name</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">brand</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Brand name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">series</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Series name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">model</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Model name</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">image</span>
+<span class="field-type"><code><code>image</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Primary product image</div>
+<details class="submodel">
+  <summary><code>image</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Image ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Presigned <code>URL</code> for normalized image (<code>PNG</code>)</div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+</div>
+</div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — user does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="post-report">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge post">POST</span> <code>/report</code></div>
+  <p class="endpoint-summary">Create report.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">title</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report title</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">reference</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product ID (<code>UUID</code>)</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">201</button>
+<button class="response-tab client" type="button">400</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>Created — report created</p></div><h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">author</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">title</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report title</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">date</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Creation timestamp (<code>UTC</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">reference</span>
+<span class="field-type"><code><code>product</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Reference product</div>
+<details class="submodel">
+  <summary><code>product</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>name</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product name fields (<code>brand</code>, <code>series</code>, <code>model</code>)</div>
+<details class="submodel">
+  <summary><code>name</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">brand</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Brand name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">series</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Series name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">model</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Model name</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">category</span>
+<span class="field-type"><code>map[<code>string</code>→<code>string</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product attribute map (<code>key</code>→<code>value</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">formats</span>
+<span class="field-type"><code>array[<code>format</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Available formats</div>
+<details class="submodel">
+  <summary><code>format</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Format ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">aspect</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Aspect ratio (<code>length</code>:<code>width</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">length</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Longest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">width</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Shortest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">thickness</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Thickness dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">vendors</span>
+<span class="field-type"><code>array[<code>vendor</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vendor listings for this format</div>
+<details class="submodel">
+  <summary><code>vendor</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">sku</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor <code>SKU</code></div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">store</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Listing name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">price</span>
+<span class="field-type"><code><code>currency</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Unit price</div>
+<details class="submodel">
+  <summary><code>currency</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency value (minor units)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency code (e.g. <code>USD</code>, <code>CAD</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">discontinued</span>
+<span class="field-type"><code><code>boolean</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Listing discontinued flag</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vendor product <code>URL</code></div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">images</span>
+<span class="field-type"><code>array[<code>image</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Normalized product images</div>
+<details class="submodel">
+  <summary><code>image</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Image ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Presigned <code>URL</code> for normalized image (<code>PNG</code>)</div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">favorites</span>
+<span class="field-type"><code>array[<code>product</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Favorited products</div>
+<details class="submodel">
+  <summary><code>product</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>name</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product name fields (<code>brand</code>, <code>series</code>, <code>model</code>)</div>
+<details class="submodel">
+  <summary><code>name</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">brand</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Brand name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">series</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Series name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">model</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Model name</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">category</span>
+<span class="field-type"><code>map[<code>string</code>→<code>string</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product attribute map (<code>key</code>→<code>value</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">formats</span>
+<span class="field-type"><code>array[<code>format</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Available formats</div>
+<details class="submodel">
+  <summary><code>format</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Format ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">aspect</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Aspect ratio (<code>length</code>:<code>width</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">length</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Longest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">width</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Shortest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">thickness</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Thickness dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">vendors</span>
+<span class="field-type"><code>array[<code>vendor</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vendor listings for this format</div>
+<details class="submodel">
+  <summary><code>vendor</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">sku</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor <code>SKU</code></div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">store</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Listing name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">price</span>
+<span class="field-type"><code><code>currency</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Unit price</div>
+<details class="submodel">
+  <summary><code>currency</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency value (minor units)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency code (e.g. <code>USD</code>, <code>CAD</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">discontinued</span>
+<span class="field-type"><code><code>boolean</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Listing discontinued flag</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vendor product <code>URL</code></div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">images</span>
+<span class="field-type"><code>array[<code>image</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Normalized product images</div>
+<details class="submodel">
+  <summary><code>image</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Image ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Presigned <code>URL</code> for normalized image (<code>PNG</code>)</div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+</div>
+</div></div>
+<div class="response-content"><div class="doc"><p>Bad request — invalid request payload (<code>InvalidRequest</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — referenced product does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="get-reportrid">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge get">GET</span> <code>/report/{rid}</code></div>
+  <p class="endpoint-summary">Retrieve report by ID.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Path Parameters</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">rid</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report ID (<code>UUID</code>)</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">200</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>OK - report retrieved</p></div><h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">author</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">title</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report title</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">date</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Creation timestamp (<code>UTC</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">reference</span>
+<span class="field-type"><code><code>product</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Reference product</div>
+<details class="submodel">
+  <summary><code>product</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>name</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product name fields (<code>brand</code>, <code>series</code>, <code>model</code>)</div>
+<details class="submodel">
+  <summary><code>name</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">brand</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Brand name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">series</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Series name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">model</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Model name</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">category</span>
+<span class="field-type"><code>map[<code>string</code>→<code>string</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product attribute map (<code>key</code>→<code>value</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">formats</span>
+<span class="field-type"><code>array[<code>format</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Available formats</div>
+<details class="submodel">
+  <summary><code>format</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Format ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">aspect</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Aspect ratio (<code>length</code>:<code>width</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">length</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Longest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">width</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Shortest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">thickness</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Thickness dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">vendors</span>
+<span class="field-type"><code>array[<code>vendor</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vendor listings for this format</div>
+<details class="submodel">
+  <summary><code>vendor</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">sku</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor <code>SKU</code></div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">store</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Listing name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">price</span>
+<span class="field-type"><code><code>currency</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Unit price</div>
+<details class="submodel">
+  <summary><code>currency</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency value (minor units)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency code (e.g. <code>USD</code>, <code>CAD</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">discontinued</span>
+<span class="field-type"><code><code>boolean</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Listing discontinued flag</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vendor product <code>URL</code></div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">images</span>
+<span class="field-type"><code>array[<code>image</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Normalized product images</div>
+<details class="submodel">
+  <summary><code>image</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Image ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Presigned <code>URL</code> for normalized image (<code>PNG</code>)</div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">favorites</span>
+<span class="field-type"><code>array[<code>product</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Favorited products</div>
+<details class="submodel">
+  <summary><code>product</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>name</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product name fields (<code>brand</code>, <code>series</code>, <code>model</code>)</div>
+<details class="submodel">
+  <summary><code>name</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">brand</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Brand name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">series</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Series name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">model</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Model name</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">category</span>
+<span class="field-type"><code>map[<code>string</code>→<code>string</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product attribute map (<code>key</code>→<code>value</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">formats</span>
+<span class="field-type"><code>array[<code>format</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Available formats</div>
+<details class="submodel">
+  <summary><code>format</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Format ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">aspect</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Aspect ratio (<code>length</code>:<code>width</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">length</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Longest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">width</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Shortest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">thickness</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Thickness dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">vendors</span>
+<span class="field-type"><code>array[<code>vendor</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vendor listings for this format</div>
+<details class="submodel">
+  <summary><code>vendor</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">sku</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor <code>SKU</code></div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">store</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Listing name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">price</span>
+<span class="field-type"><code><code>currency</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Unit price</div>
+<details class="submodel">
+  <summary><code>currency</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency value (minor units)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency code (e.g. <code>USD</code>, <code>CAD</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">discontinued</span>
+<span class="field-type"><code><code>boolean</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Listing discontinued flag</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vendor product <code>URL</code></div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">images</span>
+<span class="field-type"><code>array[<code>image</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Normalized product images</div>
+<details class="submodel">
+  <summary><code>image</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Image ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Presigned <code>URL</code> for normalized image (<code>PNG</code>)</div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+</div>
+</div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — report does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="patch-reportrid">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge patch">PATCH</span> <code>/report/{rid}</code></div>
+  <p class="endpoint-summary">Update report fields.
+Only provided fields are changed.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Path Parameters</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">rid</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report ID (<code>UUID</code>)</div>
+</div>
+</div>
+</div>
+<h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">title</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Report title</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">reference</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Product ID (<code>UUID</code>)</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">200</button>
+<button class="response-tab client" type="button">400</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>OK — report updated</p></div><h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">author</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">title</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report title</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">date</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Creation timestamp (<code>UTC</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">reference</span>
+<span class="field-type"><code><code>product</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Reference product</div>
+<details class="submodel">
+  <summary><code>product</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>name</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product name fields (<code>brand</code>, <code>series</code>, <code>model</code>)</div>
+<details class="submodel">
+  <summary><code>name</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">brand</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Brand name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">series</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Series name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">model</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Model name</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">category</span>
+<span class="field-type"><code>map[<code>string</code>→<code>string</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product attribute map (<code>key</code>→<code>value</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">formats</span>
+<span class="field-type"><code>array[<code>format</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Available formats</div>
+<details class="submodel">
+  <summary><code>format</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Format ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">aspect</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Aspect ratio (<code>length</code>:<code>width</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">length</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Longest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">width</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Shortest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">thickness</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Thickness dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">vendors</span>
+<span class="field-type"><code>array[<code>vendor</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vendor listings for this format</div>
+<details class="submodel">
+  <summary><code>vendor</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">sku</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor <code>SKU</code></div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">store</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Listing name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">price</span>
+<span class="field-type"><code><code>currency</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Unit price</div>
+<details class="submodel">
+  <summary><code>currency</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency value (minor units)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency code (e.g. <code>USD</code>, <code>CAD</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">discontinued</span>
+<span class="field-type"><code><code>boolean</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Listing discontinued flag</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vendor product <code>URL</code></div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">images</span>
+<span class="field-type"><code>array[<code>image</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Normalized product images</div>
+<details class="submodel">
+  <summary><code>image</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Image ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Presigned <code>URL</code> for normalized image (<code>PNG</code>)</div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">favorites</span>
+<span class="field-type"><code>array[<code>product</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Favorited products</div>
+<details class="submodel">
+  <summary><code>product</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>name</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product name fields (<code>brand</code>, <code>series</code>, <code>model</code>)</div>
+<details class="submodel">
+  <summary><code>name</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">brand</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Brand name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">series</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Series name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">model</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Model name</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">category</span>
+<span class="field-type"><code>map[<code>string</code>→<code>string</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product attribute map (<code>key</code>→<code>value</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">formats</span>
+<span class="field-type"><code>array[<code>format</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Available formats</div>
+<details class="submodel">
+  <summary><code>format</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Format ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">aspect</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Aspect ratio (<code>length</code>:<code>width</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">length</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Longest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">width</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Shortest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">thickness</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Thickness dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">vendors</span>
+<span class="field-type"><code>array[<code>vendor</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vendor listings for this format</div>
+<details class="submodel">
+  <summary><code>vendor</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">sku</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor <code>SKU</code></div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">store</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Vendor name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Listing name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">price</span>
+<span class="field-type"><code><code>currency</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Unit price</div>
+<details class="submodel">
+  <summary><code>currency</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">value</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency value (minor units)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency code (e.g. <code>USD</code>, <code>CAD</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">discontinued</span>
+<span class="field-type"><code><code>boolean</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Listing discontinued flag</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vendor product <code>URL</code></div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">images</span>
+<span class="field-type"><code>array[<code>image</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Normalized product images</div>
+<details class="submodel">
+  <summary><code>image</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Image ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Presigned <code>URL</code> for normalized image (<code>PNG</code>)</div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+</div>
+</div></div>
+<div class="response-content"><div class="doc"><p>Bad request — invalid request payload (<code>InvalidRequest</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — report does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="delete-reportrid">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge delete">DELETE</span> <code>/report/{rid}</code></div>
+  <p class="endpoint-summary">Delete report and associated data. Operation is irreversible.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Path Parameters</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">rid</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report ID (<code>UUID</code>)</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">204</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>No content — report deleted</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — report does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="put-reportridfavoritepid">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge put">PUT</span> <code>/report/{rid}/favorite/{pid}</code></div>
+  <p class="endpoint-summary">Add product to report favorites. Operation is idempotent.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Path Parameters</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">rid</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">pid</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product ID (<code>UUID</code>)</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">204</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>No content — product favorited</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — report or product does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="delete-reportridfavoritepid">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge delete">DELETE</span> <code>/report/{rid}/favorite/{pid}</code></div>
+  <p class="endpoint-summary">Remove product from report favorites. Operation is idempotent.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Path Parameters</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">rid</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Report ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">pid</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product ID (<code>UUID</code>)</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">204</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>No content — product unfavorited</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — report or product does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+</div></section>
+
+<section class="api-group" id="search-api">
+<header class="group-header"><h2>Search API</h2></header>
+<div class="group-content">
+<article class="endpoint" id="post-search">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge post">POST</span> <code>/search</code></div>
+  <p class="endpoint-summary">Search products (paginated).
+Only provided fields are filtered.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Query Parameters</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">limit</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Maximum results per page. Default: <code>25</code></div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">nextToken</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Pagination cursor (<code>Base64</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">partial</span>
+<span class="field-type"><code><code>boolean</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Include undefined fields. Default: <code>false</code></div>
+</div>
+</div>
+</div>
+<h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>name</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Fuzzy filters for product name</div>
+<details class="submodel">
+  <summary><code>name</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">brand</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Fuzzy filter for brand name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">series</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Fuzzy filter for series name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">model</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Fuzzy filter for model name</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">category</span>
+<span class="field-type"><code>map[<code>string</code>→array[<code>string</code>]]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Exact-match filters for product attributes</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">format</span>
+<span class="field-type"><code><code>format</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Exact-match and range filters for product formats</div>
+<details class="submodel">
+  <summary><code>format</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">aspect</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Exact-match filter for aspect ratio</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">length</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Range filter for longest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">min</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Lower inclusive bound of dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">max</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Upper inclusive bound of dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">width</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Range filter for shortest dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">min</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Lower inclusive bound of dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">max</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Upper inclusive bound of dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">thickness</span>
+<span class="field-type"><code><code>dimension</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Range filter for thickness dimension</div>
+<details class="submodel">
+  <summary><code>dimension</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">min</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Lower inclusive bound of dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">max</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Upper inclusive bound of dimension value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dimension unit (e.g. <code>mm</code>, <code>in</code>)</div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">vendor</span>
+<span class="field-type"><code><code>vendor</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Fuzzy and range filters for vendor listings</div>
+<details class="submodel">
+  <summary><code>vendor</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">sku</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Fuzzy filter for vendor <code>SKU</code></div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">store</span>
+<span class="field-type"><code>array[<code>string</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Exact-match filter for vendor name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Fuzzy filter for listing name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">price</span>
+<span class="field-type"><code><code>currency</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Range filter for unit price</div>
+<details class="submodel">
+  <summary><code>currency</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">min</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Lower inclusive bound of currency value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">max</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Upper inclusive bound of currency value</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">unit</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Currency code (e.g. <code>USD</code>, <code>CAD</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">discontinued</span>
+<span class="field-type"><code><code>boolean</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Filter for listing discontinued flag</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">colors</span>
+<span class="field-type"><code>array[<code>string</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vector-similarity filter using image colors (<code>HEX</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">references</span>
+<span class="field-type"><code>array[<code>string</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Vector-similarity filter using product IDs (<code>UUID</code>)</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">200</button>
+<button class="response-tab client" type="button">400</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>OK — database queried</p></div><h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">total</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Total matching products</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">nextToken</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Pagination cursor for next page (<code>Base64</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">results</span>
+<span class="field-type"><code>array[<code>productSummary</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Matching product summaries</div>
+<details class="submodel">
+  <summary><code>productSummary</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">name</span>
+<span class="field-type"><code><code>name</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Product name fields (<code>brand</code>, <code>series</code>, <code>model</code>)</div>
+<details class="submodel">
+  <summary><code>name</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">brand</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Brand name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">series</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Series name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">model</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Model name</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">image</span>
+<span class="field-type"><code><code>image</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Primary product image</div>
+<details class="submodel">
+  <summary><code>image</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Image ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">url</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Presigned <code>URL</code> for normalized image (<code>PNG</code>)</div>
+</div>
+</div>
+</details>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">match</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Similarity score from <code>0</code> to <code>100</code> percent</div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</div></div>
+<div class="response-content"><div class="doc"><p>Bad request — invalid filter payload (<code>InvalidRequest</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — referenced products do not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+</div></section>
+
+<section class="api-group" id="user-api">
+<header class="group-header"><h2>User API</h2></header>
+<div class="group-content">
+<article class="endpoint" id="get-user">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge get">GET</span> <code>/user</code></div>
+  <p class="endpoint-summary">List users (paginated).
+Only for administrator role.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Query Parameters</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">limit</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Maximum results per page. Default: <code>25</code></div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">nextToken</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Pagination cursor (<code>Base64</code>)</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">200</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>OK — users listed</p></div><h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">total</span>
+<span class="field-type"><code><code>integer</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Total registered users</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">nextToken</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Pagination cursor for next page (<code>Base64</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">users</span>
+<span class="field-type"><code>array[<code>profile</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Registered users</div>
+<details class="submodel">
+  <summary><code>profile</code> schema</summary>
+  <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">username</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Display name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">email</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Primary email</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">role</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Permission level</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">preferences</span>
+<span class="field-type"><code>map[<code>string</code>→<code>string</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dashboard settings</div>
+</div>
+</div>
+</details>
+</div>
+</div>
+</div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="post-user">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge post">POST</span> <code>/user</code></div>
+  <p class="endpoint-summary">Create a new user.
+Only for administrator role.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">username</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Display name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">email</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Primary email</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">role</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Permission level</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">preferences</span>
+<span class="field-type"><code>map[<code>string</code>→<code>string</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Dashboard settings</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">201</button>
+<button class="response-tab client" type="button">400</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">409</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>Created — user created successfully</p></div><h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">username</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Display name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">email</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Primary email</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">role</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Permission level</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">preferences</span>
+<span class="field-type"><code>map[<code>string</code>→<code>string</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dashboard settings</div>
+</div>
+</div>
+</div></div>
+<div class="response-content"><div class="doc"><p>Bad request — invalid request payload (<code>InvalidRequest</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Conflict — user with email already exists (<code>Conflict</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="get-useruid">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge get">GET</span> <code>/user/{uid}</code></div>
+  <p class="endpoint-summary">Retrieve user by ID.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Path Parameters</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">uid</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">200</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>OK — user retrieved</p></div><h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">username</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Display name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">email</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Primary email</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">role</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Permission level</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">preferences</span>
+<span class="field-type"><code>map[<code>string</code>→<code>string</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dashboard settings</div>
+</div>
+</div>
+</div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — user does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="patch-useruid">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge patch">PATCH</span> <code>/user/{uid}</code></div>
+  <p class="endpoint-summary">Update user details. Only provided fields are changed.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Path Parameters</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">uid</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+</div>
+</div>
+<h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">username</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Display name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">email</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Primary email</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">role</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Permission level (only for administrator role)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">preferences</span>
+<span class="field-type"><code>map[<code>string</code>→<code>string</code> | <code>null</code>]</code></span>
+<span class="field-req opt">optional</span>
+</div>
+<div class="field-desc">Dashboard settings</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">200</button>
+<button class="response-tab client" type="button">400</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab client" type="button">409</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>OK — user updated</p></div><h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">id</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">username</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Display name</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">email</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Primary email</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">role</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Permission level</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">preferences</span>
+<span class="field-type"><code>map[<code>string</code>→<code>string</code>]</code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Dashboard settings</div>
+</div>
+</div>
+</div></div>
+<div class="response-content"><div class="doc"><p>Bad request — invalid request payload (<code>InvalidRequest</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — user does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Conflict — email already in use by another user (<code>Conflict</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="delete-useruid">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge delete">DELETE</span> <code>/user/{uid}</code></div>
+  <p class="endpoint-summary">Delete a user account.
+Only for administrator role.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Path Parameters</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">uid</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">204</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>No content — user deleted</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — user does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
+</section>
+</div></article>
+<article class="endpoint" id="patch-useruidpassword">
+<header class="endpoint-header">
+  <div class="endpoint-title"><span class="badge patch">PATCH</span> <code>/user/{uid}/password</code></div>
+  <p class="endpoint-summary">Update user password.</p>
+</header>
+<div class="endpoint-body">
+<section class="endpoint-section request"><h3>Request</h3>
+
+<h4>Headers</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">Authorization</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Bearer <code>JWT</code> access token</div>
+</div>
+</div>
+</div>
+<h4>Path Parameters</h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">uid</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User ID (<code>UUID</code>)</div>
+</div>
+</div>
+</div>
+<h4>Body <code>(application/json)</code></h4>
+<div class="section-content">
+<div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">currentPassword</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">Current password</div>
+</div>
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">newPassword</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">New password (min 8 chars)</div>
+</div>
+</div>
+</div>
+</section>
+<section class="endpoint-section responses">
+<div class="response-tabs"><h3 style="margin:0;">Responses</h3>
+<button class="response-tab success" type="button">204</button>
+<button class="response-tab client" type="button">400</button>
+<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">403</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab server" type="button">500</button>
+</div>
+<div class="response-content"><div class="doc"><p>No content — password updated</p></div></div>
+<div class="response-content"><div class="doc"><p>Bad request — invalid request payload (<code>InvalidRequest</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Unauthorized — missing or invalid <code>Authorization</code> header (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Forbidden — insufficient permissions or incorrect current password (<code>Forbidden</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — user does not exist (<code>NotFound</code>)</p></div></div>
 <div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
 </section>
 </div></article>

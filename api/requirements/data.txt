@@ -1,6 +1,1 @@
-# Data Layer Dependencies (~20MB)
-# Used by reports, products, embeddings Lambda functions
-
-# DynamoDB operations are handled by boto3 (already in core layer)
-pandas>=2.1.0
-numpy>=1.24.0,<2.0.0
+numpy>=1.26.0

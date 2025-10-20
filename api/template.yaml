@@ -1,0 +1,133 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: K9 API — Serverless
+
+Globals:
+  Function:
+    Runtime: python3.11
+    Timeout: 30
+    MemorySize: 512
+    Tracing: Active
+    Environment:
+      Variables:
+        AWS_REGION: !Ref AWS::Region
+        PRODUCTS_TABLE: !Ref ProductsTable
+        USERS_TABLE: !Ref UsersTable
+        REPORTS_TABLE: !Ref ReportsTable
+        IMAGES_BUCKET: !Ref ImagesBucket
+        OPENSEARCH_INDEX: products
+        JWT_ISSUER: k9-api
+        JWT_AUDIENCE: k9-clients
+        ACCESS_TOKEN_TTL: 900
+        REFRESH_TOKEN_TTL: 1209600
+
+Parameters:
+  OpenSearchEndpoint:
+    Type: String
+    Default: ""
+
+Resources:
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+  Handler: app.lambda_handler
+      CodeUri: src/
+      Layers:
+        - !Ref CoreLayer
+        - !Ref DataLayer
+        - !Ref MLLayer
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ProductsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsersTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ReportsTable
+        - S3CrudPolicy:
+            BucketName: !Ref ImagesBucket
+      Events:
+        HttpApi:
+          Type: HttpApi
+          Properties:
+            Path: /{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          OPENSEARCH_ENDPOINT: !Ref OpenSearchEndpoint
+
+  ProductsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ReportsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: author
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: author-index
+          KeySchema:
+            - AttributeName: author
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  ImagesBucket:
+    Type: AWS::S3::Bucket
+
+  # Layers (optional; populated by scripts)
+  CoreLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: k9-core
+      ContentUri: layers/core/
+      CompatibleRuntimes: [python3.11]
+  DataLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: k9-data
+      ContentUri: layers/data/
+      CompatibleRuntimes: [python3.11]
+  MLLayer:
+    Type: AWS::Serverless::LayerVersion
+    Properties:
+      LayerName: k9-ml
+      ContentUri: layers/ml/
+      CompatibleRuntimes: [python3.11]
+
+Outputs:
+  ApiFunctionArn:
+    Value: !GetAtt ApiFunction.Arn
+  HttpApiUrl:
+    Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"

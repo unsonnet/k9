@@ -1,0 +1,60 @@
+# Python bytecode and build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+*.dist-info/
+build/
+dist/
+.eggs/
+pip-wheel-metadata/
+
+# Virtual environments and env files
+.venv/
+venv/
+.env
+.env.*
+.python-version
+
+# Tests and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Type checker and linters
+.mypy_cache/
+.ruff_cache/
+.pytype/
+.pyre/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Editors/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+*~
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# AWS SAM/Serverless
+.aws-sam/
+samconfig.toml
+
+# Local certs/keys
+*.pem
+*.key
+*.crt
+
+# Node (if present)
+node_modules/

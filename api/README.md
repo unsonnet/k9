@@ -247,10 +247,10 @@ sam local start-api --debug
 
 ## 📦 Dependencies
 
-See `requirements/` directory for layer-specific dependencies:
+See `requirements/` directory for layer-specific dependencies used by the build script:
 - `core.txt`: Essential Lambda dependencies (boto3, pydantic, python-jose)
-- `data.txt`: Data processing (pandas, numpy)
-- `ml.txt`: Machine learning and computer vision
+- `data.txt`: Data/math (e.g., numpy)
+- `ml.txt`: Heavy ML deps (optional; leave empty to skip)
 
 ## 🤝 Integration with React App
 
@@ -277,6 +277,27 @@ Update your React app's API base URL to the deployed API Gateway URL.
 - ✅ **Concurrent Access** - No file locking concerns
 
 ### **Cost Optimization:**
+---
+
+## Lambda App (flat src/)
+
+This repository now includes a fresh implementation aligned with `api.md`:
+
+- Entry point: `src/app.py` (exported as `app.lambda_handler`)
+- Handlers under `src/handlers/` implement Auth, Product, Report, Search, and User APIs.
+- Service adapters for DynamoDB/S3/OpenSearch live in `src/services/`.
+
+Environment variables required are listed in this file; at a minimum set:
+
+- `PRODUCTS_TABLE`, `USERS_TABLE`, `REPORTS_TABLE`, `IMAGES_BUCKET`
+- `JWT_SECRET`, `JWT_AUDIENCE`, `JWT_ISSUER`
+
+To run locally with SAM (optional):
+
+```python
+./scripts/dev.sh  # builds layers and starts sam local
+```
+
 - ✅ **Pay-Per-Request** - Only pay for actual usage
 - ✅ **No Idle Costs** - No server maintenance required
 - ✅ **Efficient Scaling** - Scales to zero when not in use

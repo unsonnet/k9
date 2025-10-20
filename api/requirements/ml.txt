@@ -1,8 +1,1 @@
-# ML Layer Dependencies (~200MB)
-# Used ONLY by embeddings Lambda function
-
-onnxruntime==1.16.3
-opencv-python-headless>=4.11.0.86
-hdbscan>=0.8.40
-faiss-cpu>=1.7.4
-scikit-learn>=1.3.0
+# heavy ML deps can be added later (onnxruntime, opencv-python-headless, etc.)

@@ -1,1 +1,1 @@
-"""Lambda function handlers for K9 API"""
+"""Request handlers for API routes."""
