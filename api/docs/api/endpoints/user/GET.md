@@ -1,6 +1,7 @@
-# GET `/report`
+# GET `/user`
 
-List reports authored by user (paginated).
+List users (paginated).
+Only for administrator role.
 
 ## Request
 
@@ -17,24 +18,23 @@ List reports authored by user (paginated).
 <!-- Schema Begin -->
 | Field | Type | Required | Description |
 |-------|------|-----------|--------------|
-| limit | `integer` | optional | Maximum reports per page. Default: `25` |
+| limit | `integer` | optional | Maximum results per page. Default: `25` |
 | nextToken | `string` | optional | Pagination cursor (`Base64`) |
-| everyone | `boolean` | optional | List all reports (only for administrator role). Default: `false` |
 <!-- Schema End -->
 
 ## Response 200
 
-OK — reports listed
+OK — users listed
 
 ### Body (`application/json`)
 
 <!-- Schema Begin -->
-<!-- import read.report as report -->
+<!-- import read.user as user -->
 | Field | Type | Required | Description |
 |-------|------|-----------|--------------|
-| total | `integer` | required | Total reports |
+| total | `integer` | required | Total registered users |
 | nextToken | `string` | optional | Pagination cursor for next page (`Base64`) |
-| reports | array[``report.reportSummary``] | required | Report summaries |
+| users | array[``user.profile``] | required | Registered users |
 <!-- Schema End -->
 
 ## Response 401
@@ -44,10 +44,6 @@ Unauthorized — missing or invalid `Authorization` header (`Unauthorized`)
 ## Response 403
 
 Forbidden — insufficient permissions (`Forbidden`)
-
-## Response 404
-
-Not found — user does not exist (`NotFound`)
 
 ## Response 500
 

@@ -75,7 +75,7 @@ def parse_schema_block(
     """Parse a ModelSchema block inline."""
     parser = Lark(schema_grammar, parser="lalr", regex=True)
     tree = parser.parse(src.strip())
-    return ModelSchemaTransformer(namespace).transform(tree)
+    return ModelSchemaTransformer(namespace, source_file=filename).transform(tree)
 
 
 # ───────────────────────────── Transformer ─────────────────────────────

@@ -20,9 +20,9 @@ Delete product and associated data. Operation is irreversible.
 | pid | `string` | required | Product ID (`UUID`) |
 <!-- Schema End -->
 
-## Response 200
+## Response 204
 
-OK — product deleted
+No content — product deleted
 
 ## Response 401
 

@@ -27,9 +27,9 @@ Upload product image with mask and homography for normalization.
 ``product.image``
 <!-- Schema End -->
 
-## Response 200
+## Response 201
 
-OK - image created
+Created — image created
 
 ### Body (`application/json`)
 

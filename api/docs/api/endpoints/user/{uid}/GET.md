@@ -1,6 +1,6 @@
-# DELETE `/report/{rid}/favorite/{pid}`
+# GET `/user/{uid}`
 
-Remove product from report favorites. Operation is idempotent.
+Retrieve user by ID.
 
 ## Request
 
@@ -17,13 +17,19 @@ Remove product from report favorites. Operation is idempotent.
 <!-- Schema Begin -->
 | Field | Type | Required | Description |
 |-------|------|-----------|--------------|
-| rid | `string` | required | Report ID (`UUID`) |
-| pid | `string` | required | Product ID (`UUID`) |
+| uid | `string` | required | User ID (`UUID`) |
 <!-- Schema End -->
 
-## Response 204
+## Response 200
 
-No content — product unfavorited
+OK — user retrieved
+
+### Body (`application/json`)
+
+<!-- Schema Begin -->
+<!-- import read.user as user -->
+``user.profile``
+<!-- Schema End -->
 
 ## Response 401
 
@@ -35,7 +41,7 @@ Forbidden — insufficient permissions (`Forbidden`)
 
 ## Response 404
 
-Not found — report or product does not exist (`NotFound`)
+Not found — user does not exist (`NotFound`)
 
 ## Response 500
 

@@ -1,6 +1,6 @@
-# DELETE `/report/{rid}/favorite/{pid}`
+# PATCH `/user/{uid}`
 
-Remove product from report favorites. Operation is idempotent.
+Update user details. Only provided fields are changed.
 
 ## Request
 
@@ -17,13 +17,30 @@ Remove product from report favorites. Operation is idempotent.
 <!-- Schema Begin -->
 | Field | Type | Required | Description |
 |-------|------|-----------|--------------|
-| rid | `string` | required | Report ID (`UUID`) |
-| pid | `string` | required | Product ID (`UUID`) |
+| uid | `string` | required | User ID (`UUID`) |
 <!-- Schema End -->
 
-## Response 204
+### Body (`application/json`)
 
-No content — product unfavorited
+<!-- Schema Begin -->
+<!-- import update.user as user -->
+``user.profile``
+<!-- Schema End -->
+
+## Response 200
+
+OK — user updated
+
+### Body (`application/json`)
+
+<!-- Schema Begin -->
+<!-- import read.user as user -->
+``user.profile``
+<!-- Schema End -->
+
+## Response 400
+
+Bad request — invalid request payload (`InvalidRequest`)
 
 ## Response 401
 
@@ -35,7 +52,11 @@ Forbidden — insufficient permissions (`Forbidden`)
 
 ## Response 404
 
-Not found — report or product does not exist (`NotFound`)
+Not found — user does not exist (`NotFound`)
+
+## Response 409
+
+Conflict — email already in use by another user (`Conflict`)
 
 ## Response 500
 

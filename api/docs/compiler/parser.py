@@ -64,6 +64,7 @@ from lark import Lark
 
 from .schema import grammar as schema_grammar, ModelSchemaTransformer, Namespace
 from .method import grammar as api_grammar, RestApiTransformer, Method
+from .errors import ParseError
 
 
 # ───────────────────────────── Helper Functions ─────────────────────────────
@@ -124,13 +125,14 @@ def parse_project(
                 text = _read_text(md_file)
                 parser = Lark(schema_grammar, parser="lalr", regex=True)
                 tree = parser.parse(text)
-                namespace = ModelSchemaTransformer(namespace=ns_label).transform(tree)
+                namespace = ModelSchemaTransformer(namespace=ns_label, source_file=str(md_file)).transform(tree)
                 namespaces.append(namespace)
             except Exception as e:
-                msg = f"{md_file}: {e}"
+                error_msg = f"Failed to parse model schema: {e}"
+                parse_error = ParseError(error_msg, str(md_file))
                 if strict:
-                    raise
-                errors.append(msg)
+                    raise parse_error
+                errors.append(str(parse_error))
 
     # ── Parse REST endpoint definitions ──────────────────────────────────
     if endpoints_dir.is_dir():
@@ -145,10 +147,11 @@ def parse_project(
                 ).transform(tree)
                 methods.append(method)
             except Exception as e:
-                msg = f"{md_file}: {e}"
+                error_msg = f"Failed to parse REST API endpoint: {e}"
+                parse_error = ParseError(error_msg, str(md_file))
                 if strict:
-                    raise
-                errors.append(msg)
+                    raise parse_error
+                errors.append(str(parse_error))
 
     return namespaces, methods, errors
 

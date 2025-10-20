@@ -19,9 +19,9 @@ Create product.
 ``product.product``
 <!-- Schema End -->
 
-## Response 200
+## Response 201
 
-OK - product created
+Created — product created
 
 ### Body (`application/json`)
 

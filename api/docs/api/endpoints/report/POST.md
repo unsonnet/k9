@@ -19,9 +19,9 @@ Create report.
 ``report.report``
 <!-- Schema End -->
 
-## Response 200
+## Response 201
 
-OK — report created
+Created — report created
 
 ### Body (`application/json`)
 

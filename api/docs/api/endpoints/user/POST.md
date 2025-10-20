@@ -1,6 +1,7 @@
-# DELETE `/report/{rid}/favorite/{pid}`
+# POST `/user`
 
-Remove product from report favorites. Operation is idempotent.
+Create a new user.
+Only for administrator role.
 
 ## Request
 
@@ -12,18 +13,27 @@ Remove product from report favorites. Operation is idempotent.
 | Authorization | `string` | required | Bearer `JWT` access token |
 <!-- Schema End -->
 
-### Path Parameters
+### Body (`application/json`)
 
 <!-- Schema Begin -->
-| Field | Type | Required | Description |
-|-------|------|-----------|--------------|
-| rid | `string` | required | Report ID (`UUID`) |
-| pid | `string` | required | Product ID (`UUID`) |
+<!-- import create.user as user -->
+``user.profile``
 <!-- Schema End -->
 
-## Response 204
+## Response 201
 
-No content — product unfavorited
+Created — user created successfully
+
+### Body (`application/json`)
+
+<!-- Schema Begin -->
+<!-- import read.user as user -->
+``user.profile``
+<!-- Schema End -->
+
+## Response 400
+
+Bad request — invalid request payload (`InvalidRequest`)
 
 ## Response 401
 
@@ -33,9 +43,9 @@ Unauthorized — missing or invalid `Authorization` header (`Unauthorized`)
 
 Forbidden — insufficient permissions (`Forbidden`)
 
-## Response 404
+## Response 409
 
-Not found — report or product does not exist (`NotFound`)
+Conflict — user with email already exists (`Conflict`)
 
 ## Response 500
 

@@ -28,9 +28,9 @@ Create product format vendor listing.
 ``product.vendor``
 <!-- Schema End -->
 
-## Response 200
+## Response 201
 
-OK - vendor created
+Created — vendor created
 
 ### Body (`application/json`)
 

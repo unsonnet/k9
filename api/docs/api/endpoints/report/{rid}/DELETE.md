@@ -20,9 +20,9 @@ Delete report and associated data. Operation is irreversible.
 | rid | `string` | required | Report ID (`UUID`) |
 <!-- Schema End -->
 
-## Response 200
+## Response 204
 
-OK — report deleted
+No content — report deleted
 
 ## Response 401
 

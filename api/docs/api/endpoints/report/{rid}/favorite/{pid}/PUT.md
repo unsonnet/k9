@@ -21,9 +21,9 @@ Add product to report favorites. Operation is idempotent.
 | pid | `string` | required | Product ID (`UUID`) |
 <!-- Schema End -->
 
-## Response 200
+## Response 204
 
-OK — product favorited
+No content — product favorited
 
 ## Response 401
 

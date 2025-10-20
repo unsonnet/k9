@@ -49,6 +49,7 @@ class Namespace:
     path: str
     imports: Dict[str, str] = field(default_factory=dict)
     models: List[Model] = field(default_factory=list)
+    source_file: Optional[str] = None  # Track source file for error reporting
 
 
 # ───────────────────────────── Helpers ─────────────────────────────
@@ -84,9 +85,9 @@ class ModelSchemaTransformer(Transformer):
     ns: Namespace
     current_label: Optional[str]
 
-    def __init__(self, namespace: str) -> None:
+    def __init__(self, namespace: str, source_file: Optional[str] = None) -> None:
         super().__init__()
-        self.ns = Namespace(namespace)
+        self.ns = Namespace(namespace, source_file=source_file)
         self.current_label = None
 
     def start(self, doc: Optional[Namespace] = None) -> Optional[Namespace]:
@@ -97,7 +98,7 @@ class ModelSchemaTransformer(Transformer):
 
     # ───────────── import / label / ref / table ─────────────
     def import_(self, src: Token, *rest: Token) -> None:
-        alias = rest[1] if len(rest) == 3 else None
+        alias = rest[0] if len(rest) == 1 else None
         name: str = src.value
         self.ns.imports[alias.value if alias else name.split(".")[-1]] = name
 

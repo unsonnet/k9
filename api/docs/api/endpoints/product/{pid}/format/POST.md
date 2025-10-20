@@ -27,9 +27,9 @@ Create product format.
 ``product.format``
 <!-- Schema End -->
 
-## Response 200
+## Response 201
 
-OK - format created
+Created — format created
 
 ### Body (`application/json`)
 

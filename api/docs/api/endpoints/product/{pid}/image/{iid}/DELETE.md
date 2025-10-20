@@ -21,9 +21,9 @@ Delete product image. Operation is irreversible.
 | iid | `string` | required | Image ID (`UUID`) |
 <!-- Schema End -->
 
-## Response 200
+## Response 204
 
-OK — image deleted
+No content — image deleted
 
 ## Response 401
 

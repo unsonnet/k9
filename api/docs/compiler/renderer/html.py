@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-compiler/html.py
-Swagger-style HTML compiler for fully linked REST API documentation.
+renderer/html.py
+Swagger-style HTML renderer for fully linked REST API documentation.
 
 Purpose
 -------
 Produces a rich, navigable HTML API reference with a modern visual layout and
 interactive schema blocks. Converts the same linked dataclasses used by the
-Markdown compiler into a visually elegant, self-contained document.
+Markdown renderer into a visually elegant, self-contained document.
 
 Input
 -----

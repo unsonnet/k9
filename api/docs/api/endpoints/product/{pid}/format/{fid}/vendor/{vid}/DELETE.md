@@ -22,9 +22,9 @@ Delete product format vendor listing. Operation is irreversible.
 | vid | `string` | required | Vendor ID (`UUID`) |
 <!-- Schema End -->
 
-## Response 200
+## Response 204
 
-OK — vendor deleted
+No content — vendor deleted
 
 ## Response 401
 

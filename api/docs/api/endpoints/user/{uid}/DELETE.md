@@ -1,6 +1,7 @@
-# DELETE `/report/{rid}/favorite/{pid}`
+# DELETE `/user/{uid}`
 
-Remove product from report favorites. Operation is idempotent.
+Delete a user account.
+Only for administrator role.
 
 ## Request
 
@@ -17,13 +18,12 @@ Remove product from report favorites. Operation is idempotent.
 <!-- Schema Begin -->
 | Field | Type | Required | Description |
 |-------|------|-----------|--------------|
-| rid | `string` | required | Report ID (`UUID`) |
-| pid | `string` | required | Product ID (`UUID`) |
+| uid | `string` | required | User ID (`UUID`) |
 <!-- Schema End -->
 
 ## Response 204
 
-No content — product unfavorited
+No content — user deleted
 
 ## Response 401
 
@@ -35,7 +35,7 @@ Forbidden — insufficient permissions (`Forbidden`)
 
 ## Response 404
 
-Not found — report or product does not exist (`NotFound`)
+Not found — user does not exist (`NotFound`)
 
 ## Response 500
 

@@ -54,6 +54,10 @@ from typing import Dict, List, Optional, Tuple
 
 from .schema import Field, Model, Namespace
 from .method import Payload, Response, Method, Docstring
+from .errors import (
+    ModelNotFoundError, NamespaceNotFoundError, CircularReferenceError,
+    FieldReferenceError
+)
 
 
 # ───────────────────────────── Utilities ─────────────────────────────
@@ -126,11 +130,19 @@ class Index:
         Examples:
             'a.b.C' → ('a.b', 'C')       (resolves import aliases)
             'C'     → (current_ns.path, 'C')
+            'alias.Model' → (resolved_alias, 'Model')  (where alias is an import)
         """
         parts = ref.split(".")
         if len(parts) == 1:
             return current_ns.path, parts[0]
 
+        # For references like "alias.Model", check if the first part is an import alias
+        if len(parts) == 2 and parts[0] in current_ns.imports:
+            alias, label = parts
+            resolved_ns = current_ns.imports[alias]
+            return resolved_ns, label
+
+        # For references like "a.b.C" or "alias.subpath.Model"
         ns_segs, label = parts[:-1], parts[-1]
         head = ns_segs[0] if ns_segs else None
 
@@ -142,14 +154,23 @@ class Index:
         return ns_path, label
 
     def get_model(self, ns_path: str, label: str) -> Model:
-        """Retrieve a Model by its (namespace, label) pair, or raise a detailed KeyError."""
+        """Retrieve a Model by its (namespace, label) pair, or raise a detailed error."""
         try:
             return self.model_by_key[(ns_path, label)]
         except KeyError:
+            # Get available models in the requested namespace
             avail = [m for (p, m) in self.model_by_key.keys() if p == ns_path]
-            raise KeyError(
-                f"Missing model: {ns_path}.{label}. Available: {', '.join(avail) or '(none)'}"
-            )
+            
+            # Check if namespace exists at all
+            if ns_path not in self.ns_by_path:
+                all_namespaces = list(self.ns_by_path.keys())
+                raise NamespaceNotFoundError(ns_path, all_namespaces)
+            
+            # Get all model names for better suggestions
+            all_models = [m for (p, m) in self.model_by_key.keys()]
+            
+            # Namespace exists but model doesn't
+            raise ModelNotFoundError(ns_path, label, avail, all_models=all_models)
 
 
 # ───────────────────────────── Dereferencing Core ─────────────────────────────
@@ -167,7 +188,8 @@ def _deep_copy_field_as_linked(f: Field, new_deps: List[Model]) -> Field:
 
 
 def _link_field_deps(
-    f: Field, current_ns: Namespace, index: Index, stack: List[Tuple[str, str]]
+    f: Field, current_ns: Namespace, index: Index, stack: List[Tuple[str, str]],
+    source_location: Optional[str] = None, model_name: Optional[str] = None
 ) -> Field:
     """Replace Field.deps (List[str]) → List[Model], recursively dereferencing each."""
     if not f.deps:
@@ -179,12 +201,24 @@ def _link_field_deps(
             linked_models.append(dep)
             continue
 
-        dep_ns_path, dep_label = index.resolve_ref(dep, current_ns)
-        dep_model = index.get_model(dep_ns_path, dep_label)
-        dep_ns = index.ns_by_path.get(dep_ns_path)
-        if not dep_ns:
-            raise KeyError(f"Missing namespace: {dep_ns_path}")
-        linked_models.append(deref_model(dep_model, dep_ns, index, stack))
+        try:
+            dep_ns_path, dep_label = index.resolve_ref(dep, current_ns)
+            dep_model = index.get_model(dep_ns_path, dep_label)
+            dep_ns = index.ns_by_path.get(dep_ns_path)
+            if not dep_ns:
+                raise NamespaceNotFoundError(dep_ns_path, list(index.ns_by_path.keys()))
+            linked_models.append(deref_model(dep_model, dep_ns, index, stack, source_location))
+        except (ModelNotFoundError, NamespaceNotFoundError) as e:
+            # Add context about which field caused the error
+            location = source_location or f"namespace {current_ns.path}"
+            
+            raise FieldReferenceError(
+                field_name=f.name,
+                field_type=dep,
+                model_name=model_name or "(unknown model)",
+                namespace=current_ns.path,
+                file_path=location if source_location else None
+            ) from e
 
     return replace(f, deps=linked_models)
 
@@ -194,6 +228,7 @@ def deref_model(
     current_ns: Namespace,
     index: Index,
     stack: Optional[List[Tuple[str, str]]] = None,
+    source_location: Optional[str] = None,
 ) -> Model:
     """
     Return a fully dereferenced copy of a Model.
@@ -207,22 +242,40 @@ def deref_model(
 
     key = (current_ns.path, src_model.label)
     if key in stack:
-        chain = " → ".join(f"{a}.{b}" for a, b in stack + [key])
-        raise ValueError(f"Cycle detected while dereferencing model: {chain}")
+        chain = [f"{a}.{b}" for a, b in stack + [key]]
+        raise CircularReferenceError(chain)
     stack.append(key)
 
     # Reference model: copy target and deref its fields
     if src_model.ref:
-        tgt_ns_path, tgt_label = index.resolve_ref(src_model.ref, current_ns)
-        target_model = index.get_model(tgt_ns_path, tgt_label)
-        target_ns = index.ns_by_path.get(tgt_ns_path)
-        if not target_ns:
-            raise KeyError(f"Missing namespace: {tgt_ns_path}")
+        try:
+            tgt_ns_path, tgt_label = index.resolve_ref(src_model.ref, current_ns)
+            target_model = index.get_model(tgt_ns_path, tgt_label)
+            target_ns = index.ns_by_path.get(tgt_ns_path)
+            if not target_ns:
+                raise NamespaceNotFoundError(tgt_ns_path, list(index.ns_by_path.keys()))
+        except (ModelNotFoundError, NamespaceNotFoundError) as e:
+            # Add context about which model reference caused the error
+            location = source_location or f"namespace {current_ns.path}"
+            reference_location = f"{location} -> model '{src_model.label}' -> reference '{src_model.ref}'"
+            
+            # Create a new exception with the proper location context
+            if isinstance(e, ModelNotFoundError):
+                raise ModelNotFoundError(
+                    e.namespace, e.model_name, e.available_models,
+                    reference_location=reference_location,
+                    all_models=getattr(e, 'all_models', None)
+                ) from e
+            else:  # NamespaceNotFoundError
+                raise NamespaceNotFoundError(
+                    e.namespace_path, e.available_namespaces,
+                    reference_location=reference_location
+                ) from e
 
-        resolved = deref_model(target_model, target_ns, index, stack)
+        resolved = deref_model(target_model, target_ns, index, stack, source_location)
         fields = [
             _link_field_deps(
-                _deep_copy_field_as_linked(f, f.deps), target_ns, index, stack
+                _deep_copy_field_as_linked(f, f.deps), target_ns, index, stack, source_location, resolved.label
             )
             for f in resolved.fields
         ]
@@ -233,7 +286,7 @@ def deref_model(
     fields = []
     for f in src_model.fields:
         nf = _deep_copy_field_as_linked(f, f.deps)
-        fields.append(_link_field_deps(nf, current_ns, index, stack))
+        fields.append(_link_field_deps(nf, current_ns, index, stack, source_location, src_model.label))
 
     stack.pop()
     return Model(label=src_model.label, fields=fields, ref=None)
@@ -241,10 +294,12 @@ def deref_model(
 
 def deref_namespace(ns: Namespace, index: Index) -> Namespace:
     """Return a new Namespace with imports cleared and all Models dereferenced."""
+    source_location = ns.source_file or f"namespace {ns.path}"
     return Namespace(
         path=ns.path,
         imports={},
-        models=[deref_model(m, ns, index) for m in ns.models],
+        models=[deref_model(m, ns, index, source_location=source_location) for m in ns.models],
+        source_file=ns.source_file,
     )
 
 
@@ -265,7 +320,9 @@ def deref_docstring(doc: Optional[Docstring], index: Index) -> Optional[Docstrin
     new_doc: Docstring = []
     for block in doc:
         if isinstance(block, Namespace):
-            new_doc.append(deref_namespace(block, index))
+            source_location = block.source_file or f"embedded namespace {block.path}"
+            deref_ns = deref_namespace(block, index)
+            new_doc.append(deref_ns)
         else:
             new_doc.append(block)
     return new_doc

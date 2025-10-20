@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-compiler/markdown.py
-Markdown compiler with continuous quote bars, deduped submodels,
+renderer/markdown.py
+Markdown renderer with continuous quote bars, deduped submodels,
 inner TOCs per API section, and back-links for navigation.
 """
 

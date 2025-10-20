@@ -21,9 +21,9 @@ Delete product format. Operation is irreversible.
 | fid | `string` | required | Format ID (`UUID`) |
 <!-- Schema End -->
 
-## Response 200
+## Response 204
 
-OK — format deleted
+No content — format deleted
 
 ## Response 401
 
