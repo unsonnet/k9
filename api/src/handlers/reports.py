@@ -22,7 +22,7 @@ from src.shared.utils import (
     AWSConfig,
 )
 from src.shared.auth import require_auth
-from src.shared.models.database import Report, Product, Image
+from src.shared.models.database import DBReport, DBProduct, DBImage
 from src.shared.models.response import ReportList
 from src.shared.models import request
 
@@ -79,9 +79,9 @@ def create_report(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         report = parse_json_body(event)
         reference = report.pop("reference")
 
-        images = [Image(**img) for img in reference.pop("images")]
-        reference = Product(**reference, images=[img.id for img in images])
-        report = Report(**report, reference=reference.id)
+        images = [DBImage(**img) for img in reference.pop("images")]
+        reference = DBProduct(**reference, images=[img.id for img in images])
+        report = DBReport(**report, reference=reference.id)
 
         if not ImageRepository.create_batch(images, reference.id):
             return error_response("Failed to upload images", 500)
@@ -189,7 +189,7 @@ def update_report(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return error_response("Failed to update report", 500)
 
         # Convert to API format
-        report = Report(
+        report = DBReport(
             id=db_report.id,
             title=db_report.title,
             author=db_report.author,

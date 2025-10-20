@@ -4,21 +4,21 @@ from src.shared.models import database as db
 from .base import BaseRepository, DatabaseManager
 
 
-class Image(BaseRepository[db.Image]):
+class Image(BaseRepository[db.DBImage]):
     """Repository for image operations using DynamoDB"""
 
     name = "Image"
-    schema = db.Image
+    schema = db.DBImage
     get_table = DatabaseManager.get_images_table
     modifiable = ["mask", "grid"]
     partition_key = "product"  # Images are grouped by their product
 
 
-class Product(BaseRepository[db.Product]):
+class Product(BaseRepository[db.DBProduct]):
     """Repository for product operations using DynamoDB"""
 
     name = "Product"
-    schema = db.Product
+    schema = db.DBProduct
     get_table = DatabaseManager.get_products_table
     modifiable = [
         "brand",
@@ -32,11 +32,11 @@ class Product(BaseRepository[db.Product]):
     partition_key = None
 
 
-class Report(BaseRepository[db.Report]):
+class Report(BaseRepository[db.DBReport]):
     """Repository for report operations using DynamoDB"""
 
     name = "Report"
-    schema = db.Report
+    schema = db.DBReport
     get_table = DatabaseManager.get_reports_table
     modifiable = ["title", "reference", "favorites"]
     partition_key = "author"  # Reports are grouped by their author
@@ -48,11 +48,11 @@ class Report(BaseRepository[db.Report]):
         return cls.update(report)
 
 
-class User(BaseRepository[db.User]):
+class User(BaseRepository[db.DBUser]):
     """Repository for user operations using DynamoDB"""
 
     name = "User"
-    schema = db.User
+    schema = db.DBUser
     get_table = DatabaseManager.get_users_table
     modifiable = ["name", "email", "avatar", "preferences"]
     partition_key = None

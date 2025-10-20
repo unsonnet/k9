@@ -13,8 +13,8 @@ class Image(BaseSchema):
         position: Dict[str, float]  # { x: number; y: number; z: number }
         rotation: Dict[str, float]  # { x: number; y: number; z: number; w: number }
 
-        def to_db(self) -> database.Image.Affine:
-            return database.Image.Affine(
+        def to_db(self) -> database.DBImage.Affine:
+            return database.DBImage.Affine(
                 shape=self.shape,
                 position=self.position,
                 rotation=self.rotation,
@@ -24,8 +24,8 @@ class Image(BaseSchema):
     mask: Optional[str] = None
     grid: Optional[Affine] = None
 
-    def to_db(self, product: str) -> database.Image:
-        return database.Image(
+    def to_db(self, product: str) -> database.DBImage:
+        return database.DBImage(
             image=self.image,
             mask=self.mask,
             grid=self.grid.to_db() if self.grid else None,
@@ -44,8 +44,8 @@ class Product(BaseSchema):
         finish: Optional[str] = None
         edge: Optional[str] = None
 
-        def to_db(self) -> database.Product.Category:
-            return database.Product.Category(
+        def to_db(self) -> database.DBProduct.Category:
+            return database.DBProduct.Category(
                 type=self.type,
                 material=self.material,
                 look=self.look,
@@ -63,8 +63,8 @@ class Product(BaseSchema):
             discontinued: Optional[bool] = None
             url: str
 
-            def to_db(self) -> database.Product.Format.Vendor:
-                return database.Product.Format.Vendor(
+            def to_db(self) -> database.DBProduct.Format.Vendor:
+                return database.DBProduct.Format.Vendor(
                     sku=self.sku,
                     store=self.store,
                     name=self.name,
@@ -78,8 +78,8 @@ class Product(BaseSchema):
         thickness: Optional[Quantity] = None
         vendors: Optional[List[Vendor]] = Field(None, min_length=1)
 
-        def to_db(self) -> database.Product.Format:
-            return database.Product.Format(
+        def to_db(self) -> database.DBProduct.Format:
+            return database.DBProduct.Format(
                 length=self.length,
                 width=self.width,
                 thickness=self.thickness,
@@ -97,9 +97,9 @@ class Product(BaseSchema):
     category: Optional[Category] = None
     formats: Optional[List[Format]] = Field(None, min_length=1)
 
-    def to_db(self) -> Tuple[database.Product, List[database.Image]]:
+    def to_db(self) -> Tuple[database.DBProduct, List[database.DBImage]]:
         images = [img.to_db(product="") for img in self.images]
-        product = database.Product(
+        product = database.DBProduct(
             brand=self.brand,
             series=self.series,
             model=self.model,
@@ -107,12 +107,12 @@ class Product(BaseSchema):
             category=(
                 self.category.to_db()
                 if self.category is not None
-                else database.Product.Category()
+                else database.DBProduct.Category()
             ),
             formats=(
                 [fmt.to_db() for fmt in self.formats]
                 if self.formats is not None
-                else [database.Product.Format()]
+                else [database.DBProduct.Format()]
             ),
         )
         for img in images:
@@ -130,11 +130,11 @@ class Report(BaseSchema):
 
     def to_db(
         self, author: str
-    ) -> Tuple[database.Report, database.Product, List[database.Image]]:
+    ) -> Tuple[database.DBReport, database.DBProduct, List[database.DBImage]]:
         reference, images = self.reference.to_db()
 
         return (
-            database.Report(
+            database.DBReport(
                 title=self.title,
                 author=author,
                 reference=reference.id,
@@ -153,8 +153,8 @@ class User(BaseSchema):
     email: Optional[str] = None
     name: str
 
-    def to_db(self) -> database.User:
-        return database.User(
+    def to_db(self) -> database.DBUser:
+        return database.DBUser(
             id=self.id,  # Override the default factory with the provided id
             name=self.name,
             email=self.email,
@@ -173,7 +173,7 @@ class ReportList(BaseSchema):
     next_cursor: Optional[Dict[str, Any]] = None
     has_more: bool
 
-    def to_db(self, author: str) -> List[database.Report]:
+    def to_db(self, author: str) -> List[database.DBReport]:
         """Convert list of request reports to database reports"""
         # Note: This assumes reference IDs are available or need to be generated
         # In practice, you might need additional logic to handle the Product references
