@@ -25,6 +25,22 @@ Parameters:
   OpenSearchEndpoint:
     Type: String
     Default: ""
+  UseArnLayers:
+    Type: String
+    Default: "false"
+    AllowedValues: ["true", "false"]
+  CoreLayerArn:
+    Type: String
+    Default: ""
+  DataLayerArn:
+    Type: String
+    Default: ""
+  MLLayerArn:
+    Type: String
+    Default: ""
+
+Conditions:
+  UseArnLayersCond: !Equals [!Ref UseArnLayers, "true"]
 
 Resources:
   ApiFunction:
@@ -33,9 +49,9 @@ Resources:
       Handler: app.lambda_handler
       CodeUri: src/
       Layers:
-        - !Ref CoreLayer
-        - !Ref DataLayer
-        - !Ref MLLayer
+        - !If [UseArnLayersCond, !Ref CoreLayerArn, !Ref CoreLayer]
+        - !If [UseArnLayersCond, !Ref DataLayerArn, !Ref DataLayer]
+        - !If [UseArnLayersCond, !Ref MLLayerArn, !Ref MLLayer]
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ProductsTable
@@ -106,7 +122,7 @@ Resources:
   ImagesBucket:
     Type: AWS::S3::Bucket
 
-  # Layers
+  # Layers (local fallback)
   CoreLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -130,6 +146,21 @@ Resources:
 
 Outputs:
   ApiFunctionArn:
+    Description: ARN of the main Lambda function
     Value: !GetAtt ApiFunction.Arn
+
   HttpApiUrl:
+    Description: Base URL for the deployed HTTP API
     Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+
+  CoreLayerVersion:
+    Condition: !Not [UseArnLayersCond]
+    Value: !Ref CoreLayer
+
+  DataLayerVersion:
+    Condition: !Not [UseArnLayersCond]
+    Value: !Ref DataLayer
+
+  MLLayerVersion:
+    Condition: !Not [UseArnLayersCond]
+    Value: !Ref MLLayer

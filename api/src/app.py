@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
-import re
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict
 
 from handlers.auth import handle_auth
 from handlers.product import handle_product
@@ -31,7 +29,7 @@ def _route(event: Dict[str, Any]) -> Dict[str, Any]:
         return handle_search(event)
     if path.startswith("/user"):
         return handle_user(event)
-    return response(404, {"error": {"code": "NotFound", "message": "Unknown route"}})
+    return response(404, {"code": "NotFound", "message": "Unknown route"})
 
 
 def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -40,4 +38,4 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     except ApiError as e:
         return e.to_response()
     except Exception as e:  # noqa: BLE001
-        return response(500, {"error": {"code": "InternalServerError", "message": str(e)}})
+        return response(500, {"code": "InternalServerError", "message": str(e)})

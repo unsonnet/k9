@@ -5,8 +5,7 @@ description = "K9 API Backend"
 authors = [{ name = "K9 Team" }]
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
-dependencies = [
-]
+dependencies = []
 
 [build-system]
 requires = ["hatchling"]

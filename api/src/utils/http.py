@@ -13,7 +13,7 @@ class ApiError(Exception):
         self.message = message or self.code
 
     def to_response(self) -> Dict[str, Any]:
-        return response(self.status_code, {"error": {"code": self.code, "message": self.message}})
+        return response(self.status_code, {"code": self.code, "message": self.message})
 
 
 class InvalidRequest(ApiError):
