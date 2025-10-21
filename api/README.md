@@ -42,7 +42,7 @@ Key files:
 - Docker (for `sam local`, to emulate Lambda)
 - AWS CLI v2 (configured credentials with permissions for CloudFormation, Lambda, API Gateway, DynamoDB, S3)
 - AWS SAM CLI (build, local, deploy)
-- Optional: `uv` for fast Python dependency installs (falls back to `pip`)
+- Recommended: `uv` for fast Python dependency management
 
 ## Local development
 
@@ -81,18 +81,15 @@ Environment variables used at runtime (defaults in `src/config.py`):
 
 ## Running tests
 
-Create a virtual environment and install dependencies for local testing. With `uv`:
+Using `uv` (no activation required):
 
 ```bash
-# From repo root
-uv venv -p 3.11
-source .venv/bin/activate
-uv pip install -e .
-uv pip install -e ".[dev]" || true
-# If your uv doesn’t support dependency groups, install test deps explicitly:
-uv pip install pytest pytest-cov pytest-mock mypy ruff black isort boto3-stubs[essential]
+# Ensure Python 3.11 and sync runtime + dev dependencies
+uv venv -p 3.11         # optional; uv will create .venv on first sync
+uv sync --dev           # installs [project] + [dependency-groups.dev]
 
-pytest -q
+# Run tests through the managed environment
+uv run pytest -q
 ```
 
 With pip only:

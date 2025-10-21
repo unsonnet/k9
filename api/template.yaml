@@ -30,7 +30,7 @@ Resources:
   ApiFunction:
     Type: AWS::Serverless::Function
     Properties:
-  Handler: app.lambda_handler
+      Handler: app.lambda_handler
       CodeUri: src/
       Layers:
         - !Ref CoreLayer
@@ -106,19 +106,21 @@ Resources:
   ImagesBucket:
     Type: AWS::S3::Bucket
 
-  # Layers (optional; populated by scripts)
+  # Layers
   CoreLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: k9-core
       ContentUri: layers/core/
       CompatibleRuntimes: [python3.11]
+
   DataLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: k9-data
       ContentUri: layers/data/
       CompatibleRuntimes: [python3.11]
+
   MLLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:

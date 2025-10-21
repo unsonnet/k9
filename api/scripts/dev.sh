@@ -19,8 +19,14 @@ export AWS_DEFAULT_REGION="${AWS_DEFAULT_REGION:-us-east-1}"
 export PYTHONPATH="${ROOT_DIR}/src:${PYTHONPATH:-}"
 
 if [[ $BUILD -eq 1 ]]; then
+  if command -v uv >/dev/null 2>&1; then
+    echo "[dev] Syncing project environment with uv (dev deps)"
+    uv sync --dev
+  fi
+  echo "[dev] Rebuilding layers"
   "${ROOT_DIR}/scripts/build.sh"
-  sam build --template-file "${TEMPLATE}"
+  echo "[dev] SAM build"
+  sam build --template-file "${TEMPLATE}" --use-container
 fi
 
 sam local start-api \

@@ -18,6 +18,7 @@ venv/
 .env
 .env.*
 .python-version
+layers/
 
 # Tests and coverage
 .pytest_cache/

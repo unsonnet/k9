@@ -367,17 +367,18 @@ wheels = [
 name = "k9-api"
 version = "0.1.0"
 source = { editable = "." }
-dependencies = [
+
+[package.dev-dependencies]
+core = [
     { name = "boto3" },
-    { name = "numpy" },
-    { name = "opensearch-py" },
-    { name = "pillow" },
     { name = "pydantic" },
     { name = "python-jose", extra = ["cryptography"] },
     { name = "requests-toolbelt" },
 ]
-
-[package.dev-dependencies]
+data = [
+    { name = "numpy" },
+    { name = "pillow" },
+]
 dev = [
     { name = "black" },
     { name = "boto3-stubs", extra = ["cognito-idp", "dynamodb", "essential", "opensearchserverless", "s3"] },
@@ -391,19 +392,23 @@ dev = [
     { name = "ruff" },
     { name = "types-requests" },
 ]
+ml = [
+    { name = "opensearch-py" },
+]
 
 [package.metadata]
-requires-dist = [
+
+[package.metadata.requires-dev]
+core = [
     { name = "boto3", specifier = ">=1.40.55" },
-    { name = "numpy", specifier = ">=2.3.4" },
-    { name = "opensearch-py", specifier = ">=3.0.0" },
-    { name = "pillow", specifier = ">=12.0.0" },
     { name = "pydantic", specifier = ">=2.12.3" },
     { name = "python-jose", extras = ["cryptography"], specifier = ">=3.5.0" },
     { name = "requests-toolbelt", specifier = ">=1.0.0" },
 ]
-
-[package.metadata.requires-dev]
+data = [
+    { name = "numpy", specifier = ">=2.3.4" },
+    { name = "pillow", specifier = ">=12.0.0" },
+]
 dev = [
     { name = "black", specifier = ">=25.9.0" },
     { name = "boto3-stubs", extras = ["cognito-idp", "dynamodb", "essential", "opensearchserverless", "s3"], specifier = ">=1.40.55" },
@@ -417,6 +422,7 @@ dev = [
     { name = "ruff", specifier = ">=0.14.1" },
     { name = "types-requests", specifier = ">=2.32.4.20250913" },
 ]
+ml = [{ name = "opensearch-py", specifier = ">=3.0.0" }]
 
 [[package]]
 name = "lark"
