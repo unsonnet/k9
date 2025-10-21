@@ -1,303 +1,192 @@
-# K9 API Backend
+# K9 API — Serverless Backend
 
-A serverless API backend for the K9 application using AWS Lambda, API Gateway, and DynamoDB with multi-layer architecture for optimal performance.
+K9 API is a Python serverless backend that exposes REST endpoints for auth, users, products, reports, and search. It runs on AWS Lambda behind an API Gateway HTTP API, with DynamoDB and S3 as data stores and optional OpenSearch for search queries.
 
-## 🏗️ Architecture
+Docs: see `api.md` (full reference) or open `docs/api.html`.
 
-### Multi-Layer Lambda Design
-- **Core Layer** (~5MB): Essential dependencies (boto3, pydantic, python-jose)
-- **Data Layer** (~20MB): Data processing (pandas, numpy)
-- **ML Layer** (~200MB): Heavy ML dependencies (onnxruntime, opencv, hdbscan)
+## What’s inside
 
-### Tech Stack
-- **Runtime**: Python 3.9 with uv package management
-- **Database**: AWS DynamoDB (managed NoSQL database)
-- **Authentication**: AWS Cognito JWT tokens
-- **Storage**: AWS S3 for file uploads
-- **Deployment**: AWS SAM (Serverless Application Model)
+- Runtime: Python 3.11 on AWS Lambda (AWS SAM)
+- API Gateway HTTP API → single Lambda handler (`src/app.py`)
+- Data:
+  - DynamoDB tables: products, users, reports (with GSI on `author`)
+  - S3 bucket for normalized product images
+  - Optional OpenSearch endpoint for search
+- Auth: local JWT (HS256) by default; Cognito (RS256) optional
+- Packaging: Lambda Layers for dependencies (requirements in `requirements/*.txt`)
+- Tests: pytest in `tests/`
 
-## 🚀 Quick Start
+Key files:
+- `template.yaml` — AWS SAM template (all AWS resources + Lambda env)
+- `src/app.py` — request router (auth/product/report/search/user)
+- `src/config.py` — configuration via environment variables
+- `scripts/build.sh` — builds Lambda layers from `requirements/`
+- `scripts/dev.sh` — builds and runs the API locally via `sam local start-api`
+- `scripts/deploy.sh` — builds and deploys to AWS via `sam deploy`
 
-### Prerequisites
+## Repository layout
+
+- `src/` — app source
+  - `handlers/` — per-domain request routing
+  - `services/` — data access and business logic
+  - `models/` — API and domain models
+  - `utils/` — helpers (HTTP responses, auth utils, etc.)
+- `docs/` — generated endpoint docs (see `api.html` and Markdown under `docs/api/`)
+- `requirements/` — layer requirements (`core.txt`, `data.txt`, `ml.txt`)
+- `tests/` — unit tests
+
+## Prerequisites
+
+- Linux/macOS with bash
+- Python 3.11 (required for Lambda layers and local tooling)
+- Docker (for `sam local`, to emulate Lambda)
+- AWS CLI v2 (configured credentials with permissions for CloudFormation, Lambda, API Gateway, DynamoDB, S3)
+- AWS SAM CLI (build, local, deploy)
+- Optional: `uv` for fast Python dependency installs (falls back to `pip`)
+
+## Local development
+
+You can run the API locally with AWS SAM. The script will build layers and start a local HTTP server.
+
+1) Build and start the local API (port 3001):
+
 ```bash
-# Install uv (modern Python package manager)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Install AWS SAM CLI
-pip install aws-sam-cli
-
-# Configure AWS credentials
-aws configure
-```
-
-### Development Setup
-
-1. **Build the project**:
-```bash
-chmod +x scripts/build.sh
-./scripts/build.sh
-```
-
-2. **Start local development server**:
-```bash
-chmod +x scripts/dev.sh
 ./scripts/dev.sh
 ```
 
-The API will be available at `http://localhost:3001`
-
-### Deploy to AWS
-
-```bash
-chmod +x scripts/deploy.sh
-./scripts/deploy.sh \
-  --environment dev \
-  --user-pool-id us-east-1_XXXXXXXXX
-```
-
-## 📁 Project Structure
-
-```
-api/
-├── src/
-│   ├── shared/           # Shared utilities and models
-│   │   ├── models.py     # Pydantic models matching React types
-│   │   ├── utils.py      # Lambda utilities and helpers
-│   │   ├── auth.py       # JWT authentication
-│   │   └── database.py   # DynamoDB repository pattern
-│   └── handlers/         # Lambda function handlers
-│       ├── user.py       # User profile management
-│       ├── reports.py    # Report CRUD operations
-│       └── embeddings.py # ML embedding operations
-├── infrastructure/
-│   └── template.yaml     # SAM CloudFormation template
-├── requirements/         # Dependency files by layer
-│   ├── core.txt         # Core dependencies
-│   ├── data.txt         # Data processing dependencies
-│   └── ml.txt           # ML dependencies
-└── scripts/             # Build and deployment scripts
-    ├── build.sh         # Multi-layer build script
-    ├── deploy.sh        # Deployment automation
-    └── dev.sh           # Local development server
-```
-
-## 🔗 API Endpoints
-
-### User Management
-- `GET /user/profile` - Get user profile
-- `PUT /user/profile` - Update user profile  
-- `POST /user/upload-avatar` - Upload profile picture
-
-### Reports Management
-- `GET /reports` - List user reports with pagination
-- `POST /reports` - Create new report
-- `GET /reports/{reportId}` - Get specific report
-- `PUT /reports/{reportId}` - Update report
-- `DELETE /reports/{reportId}` - Delete report
-
-### Search & Favorites
-- `POST /reports/search-products` - Search products with embeddings
-- `GET /reports/{reportId}/favorites` - Get report favorites
-- `POST /reports/{reportId}/favorites/sync` - Sync favorites
-
-### Embeddings (Heavy ML Operations)
-- `POST /embeddings/compute` - Compute product embeddings
-- `POST /embeddings/similarity` - Calculate similarity matrix
-
-## 🔧 Configuration
-
-### Environment Variables
-- `ENVIRONMENT` - Deployment environment (dev/staging/prod)
-- `COGNITO_USER_POOL_ID` - AWS Cognito User Pool ID
-- `SIMILARITY_BUCKET` - S3 bucket for similarity matrices
-- `DYNAMODB_USERS_TABLE` - DynamoDB table for user data
-- `DYNAMODB_REPORTS_TABLE` - DynamoDB table for reports
-- `DYNAMODB_EMBEDDINGS_TABLE` - DynamoDB table for embeddings
-
-### Lambda Layers
-The multi-layer architecture optimizes cold start times:
-
-1. **Core Layer**: Always loaded, contains essential dependencies
-2. **Data Layer**: Loaded for data processing operations
-3. **ML Layer**: Only loaded for embedding computations
-
-## 🧪 Development Commands
+- Visit http://127.0.0.1:3001 to call endpoints (see routes in `api.md`).
+- To change the port: `./scripts/dev.sh -p 8080`
+- By default, `OpenSearchEndpoint` parameter is empty. If you have an OpenSearch endpoint for local testing, start SAM with parameter overrides:
 
 ```bash
-# Build all layers
-./scripts/build.sh
-
-# Start local dev server
-./scripts/dev.sh
-
-# Start with debug mode
-./scripts/dev.sh --debug
-
-# Deploy to specific environment
-./scripts/deploy.sh --environment staging --user-pool-id <pool-id> --bucket-name <bucket>
-
-# Skip build and start immediately
-./scripts/dev.sh --no-build
+# Optional: run SAM directly with parameters
+sam build --template-file template.yaml
+sam local start-api \
+  --template-file template.yaml \
+  --parameter-overrides OpenSearchEndpoint="https://your-opensearch.example.com"
 ```
 
-## 🔐 Authentication
+Environment variables used at runtime (defaults in `src/config.py`):
+- `AWS_REGION` / `AWS_DEFAULT_REGION` (default `us-east-1`)
+- `PRODUCTS_TABLE` (default `k9_products`)
+- `USERS_TABLE` (default `k9_users`)
+- `REPORTS_TABLE` (default `k9_reports`)
+- `IMAGES_BUCKET` (default `k9-images`)
+- `OPENSEARCH_ENDPOINT` (empty by default; set to enable search)
+- `OPENSEARCH_INDEX` (default `products`)
+- `AUTH_MODE` (`local` | `cognito`, default `local`)
+- `JWT_SECRET` (default "change-me-in-prod" — you MUST override in non-dev)
+- `JWT_ISSUER`, `JWT_AUDIENCE`, `ACCESS_TOKEN_TTL`, `REFRESH_TOKEN_TTL`
+- If using Cognito: `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`
 
-The API uses AWS Cognito JWT tokens:
+## Running tests
 
-1. Frontend obtains JWT from Cognito
-2. Include `Authorization: Bearer <token>` in requests
-3. Lambda handlers validate tokens automatically
+Create a virtual environment and install dependencies for local testing. With `uv`:
 
-## 💾 Database Schema
-
-### DynamoDB Tables
-
-#### Users Table (k9-users-{environment})
-```json
-{
-  "user_id": "string (partition key)",
-  "name": "string",
-  "email": "string",
-  "avatar_url": "string",
-  "preferences": "object",
-  "created_at": "timestamp",
-  "updated_at": "timestamp"
-}
-```
-
-#### Reports Table (k9-reports-{environment})
-```json
-{
-  "id": "string (partition key)",
-  "user_id": "string (GSI partition key)",
-  "title": "string",
-  "author": "string",
-  "date": "string",
-  "reference": "object",
-  "favorites": "array",
-  "created_at": "timestamp (GSI sort key)",
-  "updated_at": "timestamp"
-}
-```
-
-#### Embeddings Table (k9-embeddings-{environment})
-```json
-{
-  "product_id": "string (partition key)",
-  "embedding_vector": "array",
-  "model_version": "string (GSI partition key)",
-  "vector_dimension": "number",
-  "created_at": "timestamp"
-}
-```
-
-## 🚀 Deployment Environments
-
-### Development
 ```bash
-./scripts/deploy.sh --environment dev --user-pool-id <dev-pool>
+# From repo root
+uv venv -p 3.11
+source .venv/bin/activate
+uv pip install -e .
+uv pip install -e ".[dev]" || true
+# If your uv doesn’t support dependency groups, install test deps explicitly:
+uv pip install pytest pytest-cov pytest-mock mypy ruff black isort boto3-stubs[essential]
+
+pytest -q
 ```
 
-### Staging  
+With pip only:
+
 ```bash
-./scripts/deploy.sh --environment staging --user-pool-id <staging-pool>
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+# Dev/test tools (approximate)
+pip install pytest pytest-cov pytest-mock mypy ruff black isort boto3-stubs[essential]
+pytest -q
 ```
 
-### Production
+Note: Runtime dependencies are packaged in Lambda Layers for AWS, but you still need local installs to run unit tests.
+
+## Deploying to AWS
+
+The easiest path is the provided deploy script (builds layers, runs `sam build`, then `sam deploy`).
+
+1) Ensure AWS credentials are configured and you have the SAM CLI.
+2) Optionally create or choose an OpenSearch endpoint (if you plan to use search).
+3) Deploy:
+
 ```bash
-./scripts/deploy.sh --environment prod --user-pool-id <prod-pool>
+# Basic deploy to us-east-1 with a dev stack name
+./scripts/deploy.sh -e dev -r us-east-1 -s k9-api \
+  --opensearch-endpoint "https://your-opensearch.example.com"   # optional
 ```
 
-## 🔍 Monitoring
+The script will:
+- Build Lambda Layers from `requirements/`
+- `sam build` the application
+- `sam deploy` the CloudFormation stack `<stack>-<environment>` (e.g., `k9-api-dev`)
 
-- **CloudWatch Logs**: Automatic logging for all Lambda functions
-- **DynamoDB Metrics**: Read/write capacity, throttling, and error monitoring
-- **X-Ray Tracing**: Distributed tracing enabled
-- **CloudWatch Metrics**: Performance and error metrics
+Outputs include:
+- `HttpApiUrl` — your API base URL
+- `ApiFunctionArn` — the Lambda function ARN
 
-## 🛠️ Troubleshooting
+Retrieve the URL:
 
-### Common Issues
-
-1. **DynamoDB Throttling**: Monitor read/write capacity usage
-2. **Permission Errors**: Ensure Lambda functions have DynamoDB access
-3. **Cold Start Times**: Heavy ML layer only loads for embedding operations
-4. **Memory Limits**: Adjust Lambda memory based on layer usage
-
-### Debug Mode
 ```bash
-./scripts/dev.sh --debug --debug-port 5678
+aws cloudformation describe-stacks \
+  --stack-name k9-api-dev \
+  --query "Stacks[0].Outputs[?OutputKey=='HttpApiUrl'].OutputValue" \
+  --output text
 ```
 
-### DynamoDB Local Development
-For local development, consider using DynamoDB Local:
+### Important production settings
+
+- JWT secret: Set a strong secret; don’t use the default.
+
 ```bash
-# Install DynamoDB Local (optional)
-docker run -p 8000:8000 amazon/dynamodb-local
+# Example: set env vars after first deploy
+aws lambda update-function-configuration \
+  --function-name $(aws cloudformation describe-stack-resources \
+    --stack-name k9-api-dev \
+    --query "StackResources[?LogicalResourceId=='ApiFunction'].PhysicalResourceId" \
+    --output text) \
+  --environment "Variables={JWT_SECRET=$(openssl rand -hex 32),AUTH_MODE=local}"
 ```
 
-### Logs
+- Cognito mode (optional): set `AUTH_MODE=cognito` and provide `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`.
+- OpenSearch endpoint: pass at deploy time via `--parameter-overrides OpenSearchEndpoint=...` (the script’s `--opensearch-endpoint` flag) or update the function env later.
+- Least-privilege: the template grants CRUD on DynamoDB tables and S3 bucket created by the stack. Review and tighten policies for your org.
+
+### Clean up
+
+Delete the stack to remove all resources:
+
 ```bash
-# View CloudWatch logs
-sam logs --stack-name k9-api-dev --tail
-
-# Local development logs
-sam local start-api --debug
+aws cloudformation delete-stack --stack-name k9-api-dev
 ```
 
-## 📦 Dependencies
+## Calling the API
 
-See `requirements/` directory for layer-specific dependencies used by the build script:
-- `core.txt`: Essential Lambda dependencies (boto3, pydantic, python-jose)
-- `data.txt`: Data/math (e.g., numpy)
-- `ml.txt`: Heavy ML deps (optional; leave empty to skip)
+After deploy, try a health check by hitting an unknown route (should be 404 JSON):
 
-## 🤝 Integration with React App
-
-The API exactly matches the React app's expectations:
-
-1. **Models**: Pydantic models match TypeScript types in `src/types/report.ts`
-2. **Endpoints**: API routes match `src/lib/api/` service classes
-3. **Responses**: JSON responses match frontend interface contracts
-
-Update your React app's API base URL to the deployed API Gateway URL.
-
-## 🚀 Benefits of DynamoDB Architecture
-
-### **Reliability & Safety:**
-- ✅ **Zero Data Loss** - No dependency on Lambda container lifecycle
-- ✅ **Automatic Backups** - Point-in-time recovery included
-- ✅ **Multi-AZ Replication** - Built-in high availability
-- ✅ **Managed Service** - AWS handles scaling and maintenance
-
-### **Performance:**
-- ✅ **Single-Digit Latency** - Consistent 2-5ms operations
-- ✅ **Auto-Scaling** - Handles traffic spikes automatically
-- ✅ **No Cold Start Issues** - Direct database access
-- ✅ **Concurrent Access** - No file locking concerns
-
-### **Cost Optimization:**
----
-
-## Lambda App (flat src/)
-
-This repository now includes a fresh implementation aligned with `api.md`:
-
-- Entry point: `src/app.py` (exported as `app.lambda_handler`)
-- Handlers under `src/handlers/` implement Auth, Product, Report, Search, and User APIs.
-- Service adapters for DynamoDB/S3/OpenSearch live in `src/services/`.
-
-Environment variables required are listed in this file; at a minimum set:
-
-- `PRODUCTS_TABLE`, `USERS_TABLE`, `REPORTS_TABLE`, `IMAGES_BUCKET`
-- `JWT_SECRET`, `JWT_AUDIENCE`, `JWT_ISSUER`
-
-To run locally with SAM (optional):
-
-```python
-./scripts/dev.sh  # builds layers and starts sam local
+```bash
+curl -i "$(aws cloudformation describe-stacks \
+  --stack-name k9-api-dev \
+  --query "Stacks[0].Outputs[?OutputKey=='HttpApiUrl'].OutputValue" \
+  --output text)/does-not-exist"
 ```
 
-- ✅ **Pay-Per-Request** - Only pay for actual usage
-- ✅ **No Idle Costs** - No server maintenance required
-- ✅ **Efficient Scaling** - Scales to zero when not in use
+See `api.md` for detailed request/response schemas. Auth endpoints issue JWTs; include `Authorization: Bearer <token>` for protected routes.
+
+## Troubleshooting
+
+- SAM local requires Docker. If `sam local start-api` hangs or errors, ensure Docker is running.
+- Region mismatches: the app uses `AWS_REGION`/`AWS_DEFAULT_REGION`. Keep your AWS CLI/SAM region consistent with template deploys.
+- OpenSearch disabled: if `OPENSEARCH_ENDPOINT` is empty, search routes may be limited or return graceful errors depending on configuration.
+- Large dependencies: layers are split across `core`, `data`, `ml`. Ensure Python 3.11 is available for building.
+- Permissions: make sure your IAM user/role can create CloudFormation stacks, Lambda, API Gateway, DynamoDB, S3 (and OpenSearch if used).
+
+## License
+
+Copyright © K9 Team. All rights reserved.

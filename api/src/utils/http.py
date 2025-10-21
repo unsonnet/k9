@@ -36,6 +36,11 @@ class NotFound(ApiError):
     code = "NotFound"
 
 
+class Gone(ApiError):
+    status_code = 410
+    code = "Gone"
+
+
 def response(status: int, body: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     hdrs = {"Content-Type": "application/json"}
     if headers:

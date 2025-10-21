@@ -31,6 +31,10 @@ class Settings:
     auth_mode: str = os.getenv("AUTH_MODE", "local")  # "local" | "cognito"
     cognito_user_pool_id: Optional[str] = os.getenv("COGNITO_USER_POOL_ID")
     cognito_client_id: Optional[str] = os.getenv("COGNITO_CLIENT_ID")
+    cognito_client_secret: Optional[str] = os.getenv("COGNITO_CLIENT_SECRET")
+
+    # Email
+    email_sender: Optional[str] = os.getenv("EMAIL_SENDER")
 
     # Roles
     admin_role: str = os.getenv("ADMIN_ROLE", "admin")

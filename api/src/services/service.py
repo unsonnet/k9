@@ -27,42 +27,11 @@ from models.api import (
 )
 from models.common import Image, Name, Product
 from utils.auth import create_token
-from utils.http import Forbidden, InvalidRequest, NotFound, Unauthorized
+from utils.http import Forbidden, InvalidRequest, NotFound, Unauthorized, Gone
 from services.container import container
 from services.ports import ImagesStoragePort, ProductsRepositoryPort, ReportsRepositoryPort, UsersRepositoryPort
 
-
-class AuthService:
-    def __init__(self) -> None:
-        pass
-
-    def login(self, email: str, password: str) -> TokenResponse:
-        # Placeholder: in production integrate with Cognito or IdP
-        # For now, accept any non-empty credentials and generate tokens for a dummy user ID
-        if not email or not password:
-            raise Unauthorized("Invalid credentials")
-        user_id = uuid.uuid5(uuid.NAMESPACE_URL, f"user:{email}")
-        access = create_token(str(user_id), settings().access_token_ttl, token_type="access")
-        refresh = create_token(str(user_id), settings().refresh_token_ttl, token_type="refresh")
-        return TokenResponse(user=user_id, accessToken=access, refreshToken=refresh, expiresIn=settings().access_token_ttl)
-
-    def refresh(self, refresh_token: str) -> TokenResponse:
-        from utils.auth import verify_token
-
-        claims = verify_token(refresh_token, expected_typ="refresh")
-        sub = claims["sub"]
-        access = create_token(sub, settings().access_token_ttl, token_type="access")
-        new_refresh = create_token(sub, settings().refresh_token_ttl, token_type="refresh")
-        return TokenResponse(user=uuid.UUID(sub), accessToken=access, refreshToken=new_refresh, expiresIn=settings().access_token_ttl)
-
-    def forgot(self, email: str) -> None:
-        # No-op: would send email with reset link
-        if not email:
-            raise InvalidRequest("Email required")
-
-    def reset(self, user: str, session: str, new_password: str) -> None:
-        if not (user and session and new_password):
-            raise InvalidRequest("Missing fields")
+from .auth import AuthService
 
 
 class UsersService:

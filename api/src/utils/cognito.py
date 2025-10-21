@@ -7,6 +7,9 @@ from typing import Any, Dict, Optional
 
 import requests
 from jose import jwt
+import hmac
+import hashlib
+import base64
 
 from config import settings
 from utils.http import Unauthorized
@@ -69,3 +72,9 @@ def verify_cognito_jwt(token: str, token_use: str = "access") -> Dict[str, Any]:
         raise Unauthorized("Token expired")
 
     return claims
+
+
+def compute_secret_hash(username: str, client_id: str, client_secret: str) -> str:
+    message = username + client_id
+    digest = hmac.new(client_secret.encode("utf-8"), message.encode("utf-8"), hashlib.sha256).digest()
+    return base64.b64encode(digest).decode()

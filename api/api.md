@@ -101,7 +101,7 @@
 
 > | Field | Type | Required | Description |
 > |:------|:-----|:--------:|:------------|
-> | **email** | `string` | ✅ | User email |
+> | **username** | `string` | ✅ | User name |
 
 <a id="post-authforgot-response-204"></a>
 ### Response 204
@@ -133,7 +133,7 @@
 ## POST /auth/login
 
 
-> Authenticate user with email and password.
+> Authenticate user with username and password.
 
 <a id="post-authlogin-request"></a>
 ### Request
@@ -147,7 +147,7 @@
 
 > | Field | Type | Required | Description |
 > |:------|:-----|:--------:|:------------|
-> | **email** | `string` | ✅ | User email |
+> | **username** | `string` | ✅ | User name |
 > | **password** | `string` | ✅ | User password |
 
 <a id="post-authlogin-response-200"></a>
@@ -267,6 +267,7 @@
 
 > | Field | Type | Required | Description |
 > |:------|:-----|:--------:|:------------|
+> | **username** | `string` | ✅ | User name |
 > | **refreshToken** | `string` | ✅ | JWT refresh token |
 
 <a id="post-authrefresh-response-200"></a>
@@ -326,7 +327,7 @@
 
 > | Field | Type | Required | Description |
 > |:------|:-----|:--------:|:------------|
-> | **user** | `string` | ✅ | User ID (`UUID`) |
+> | **username** | `string` | ✅ | User name |
 > | **session** | `string` | ✅ | Session token |
 > | **newPassword** | `string` | ✅ | New password |
 

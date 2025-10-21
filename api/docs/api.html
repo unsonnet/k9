@@ -153,11 +153,11 @@ border:1px solid var(--border);color:var(--ink);}
 <div class="schema-block">
 <div class="field-block">
 <div class="field-line">
-<span class="field-name">email</span>
+<span class="field-name">username</span>
 <span class="field-type"><code><code>string</code></code></span>
 <span class="field-req req">required</span>
 </div>
-<div class="field-desc">User email</div>
+<div class="field-desc">User name</div>
 </div>
 </div>
 </div>
@@ -178,7 +178,7 @@ border:1px solid var(--border);color:var(--ink);}
 <article class="endpoint" id="post-authlogin">
 <header class="endpoint-header">
   <div class="endpoint-title"><span class="badge post">POST</span> <code>/auth/login</code></div>
-  <p class="endpoint-summary">Authenticate user with email and password.</p>
+  <p class="endpoint-summary">Authenticate user with username and password.</p>
 </header>
 <div class="endpoint-body">
 <section class="endpoint-section request"><h3>Request</h3>
@@ -188,11 +188,11 @@ border:1px solid var(--border);color:var(--ink);}
 <div class="schema-block">
 <div class="field-block">
 <div class="field-line">
-<span class="field-name">email</span>
+<span class="field-name">username</span>
 <span class="field-type"><code><code>string</code></code></span>
 <span class="field-req req">required</span>
 </div>
-<div class="field-desc">User email</div>
+<div class="field-desc">User name</div>
 </div>
 <div class="field-block">
 <div class="field-line">
@@ -257,11 +257,11 @@ border:1px solid var(--border);color:var(--ink);}
 <div class="schema-block">
 <div class="field-block">
 <div class="field-line">
-<span class="field-name">user</span>
+<span class="field-name">username</span>
 <span class="field-type"><code><code>string</code></code></span>
 <span class="field-req req">required</span>
 </div>
-<div class="field-desc">User ID (<code>UUID</code>)</div>
+<div class="field-desc">User name</div>
 </div>
 <div class="field-block">
 <div class="field-line">
@@ -332,6 +332,14 @@ border:1px solid var(--border);color:var(--ink);}
 <h4>Body <code>(application/json)</code></h4>
 <div class="section-content">
 <div class="schema-block">
+<div class="field-block">
+<div class="field-line">
+<span class="field-name">username</span>
+<span class="field-type"><code><code>string</code></code></span>
+<span class="field-req req">required</span>
+</div>
+<div class="field-desc">User name</div>
+</div>
 <div class="field-block">
 <div class="field-line">
 <span class="field-name">refreshToken</span>
@@ -405,11 +413,11 @@ border:1px solid var(--border);color:var(--ink);}
 <div class="schema-block">
 <div class="field-block">
 <div class="field-line">
-<span class="field-name">user</span>
+<span class="field-name">username</span>
 <span class="field-type"><code><code>string</code></code></span>
 <span class="field-req req">required</span>
 </div>
-<div class="field-desc">User ID (<code>UUID</code>)</div>
+<div class="field-desc">User name</div>
 </div>
 <div class="field-block">
 <div class="field-line">

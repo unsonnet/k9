@@ -22,7 +22,7 @@ from models.common import (
 
 # Auth
 class LoginRequest(BaseModel):
-    email: str
+    username: str
     password: str
 
 
@@ -34,15 +34,16 @@ class TokenResponse(BaseModel):
 
 
 class RefreshRequest(BaseModel):
+    username: str
     refreshToken: str
 
 
 class ForgotRequest(BaseModel):
-    email: str
+    username: str
 
 
 class ResetRequest(BaseModel):
-    user: UUID
+    username: str
     session: str
     newPassword: str
 

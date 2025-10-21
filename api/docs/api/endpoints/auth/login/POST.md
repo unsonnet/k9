@@ -1,6 +1,6 @@
 # POST `/auth/login`
 
-Authenticate user with email and password.
+Authenticate user with username and password.
 
 ## Request
 
