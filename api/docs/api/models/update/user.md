@@ -3,7 +3,6 @@
 | Field | Type | Required | Description |
 |-------|------|-----------|--------------|
 | username | `string` | optional | Display name |
-| email | `string` | optional | Primary email |
 | role | `string` | optional | Permission level (only for administrator role) |
 | preferences | map[`string`→`string` \| `null`] | optional | Dashboard settings |
 

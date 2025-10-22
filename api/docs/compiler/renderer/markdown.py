@@ -2,14 +2,15 @@
 # -*- coding: utf-8 -*-
 """
 renderer/markdown.py
-Markdown renderer with continuous quote bars, deduped submodels,
-inner TOCs per API section, and back-links for navigation.
+Parses the same linked Method → Payload → Response hierarchy as html.py,
+but renders Markdown with consistent quote-level indentation and nested
+schema tables for requests and responses alike.
 """
 
 from __future__ import annotations
-from typing import List, Optional, Set, Dict
+from typing import List, Optional, Dict, Set
 from ..method import Method, Payload, Response, Docstring
-from ..schema import Namespace, Model
+from ..schema import Namespace, Model, Field
 
 
 # ───────────────────────────── Entry ─────────────────────────────
@@ -18,9 +19,7 @@ from ..schema import Namespace, Model
 def generate_api_markdown(methods: List[Method]) -> str:
     grouped = _group_methods_by_api(methods)
     toc = _build_global_toc(grouped)
-    body = "\n\n".join(
-        _render_api_section(group, paths) for group, paths in grouped.items()
-    )
+    body = "\n\n".join(_render_api_group(group, paths) for group, paths in grouped.items())
     return f"# API Reference\n\n{toc}\n\n{body}\n"
 
 
@@ -47,15 +46,12 @@ def _group_methods_by_api(methods: List[Method]) -> Dict[str, Dict[str, List[Met
 
     def seg_sort_tuple(seg: str) -> tuple:
         s = seg.strip()
-        if is_param(s):
-            return (0, s.strip("{}").lower())  # params first
-        return (1, s.lower())  # then static, lexicographic
+        return (0, s.strip("{}").lower()) if is_param(s) else (1, s.lower())
 
     def path_sort_key(p: str) -> tuple:
         parts = [s for s in p.strip("/").split("/") if s]
         tail = parts[1:] if parts else []
-        key_seq = tuple(seg_sort_tuple(seg) for seg in tail)
-        return key_seq
+        return tuple(seg_sort_tuple(seg) for seg in tail)
 
     return {
         group: dict(sorted(paths.items(), key=lambda kv: path_sort_key(kv[0])))
@@ -63,7 +59,7 @@ def _group_methods_by_api(methods: List[Method]) -> Dict[str, Dict[str, List[Met
     }
 
 
-# ───────────────────────────── TOC Builders ─────────────────────────────
+# ───────────────────────────── TOCs ─────────────────────────────
 
 
 def _build_global_toc(grouped: Dict[str, Dict[str, List[Method]]]) -> str:
@@ -80,17 +76,11 @@ def _build_global_toc(grouped: Dict[str, Dict[str, List[Method]]]) -> str:
 
 
 def _build_inner_toc(group: str, paths: Dict[str, List[Method]]) -> str:
-    """Build inner TOC for a single API section (matches flattened hierarchy)."""
     lines: List[str] = ["### Table of Contents", ""]
     for path, methods in paths.items():
         for m in methods:
-            lines.append(
-                f"- [{m.verb.upper()} {path}](#{_anchor(f'{m.verb.upper()} {path}')})"
-            )
-            lines.append(
-                f"  - [Request](#{_anchor(f'{m.verb.upper()} {path} request')})"
-            )
-            # dynamically list response anchors if available
+            lines.append(f"- [{m.verb.upper()} {path}](#{_anchor(f'{m.verb.upper()} {path}')})")
+            lines.append(f"  - [Request](#{_anchor(f'{m.verb.upper()} {path} request')})")
             if m.responses:
                 for r in _sorted_responses(m.responses):
                     lines.append(
@@ -101,40 +91,28 @@ def _build_inner_toc(group: str, paths: Dict[str, List[Method]]) -> str:
     return "\n".join(lines)
 
 
-# ───────────────────────────── Section Rendering ─────────────────────────────
+# ───────────────────────────── Rendering ─────────────────────────────
 
 
-def _render_api_section(group: str, paths: Dict[str, List[Method]]) -> str:
+def _render_api_group(group: str, paths: Dict[str, List[Method]]) -> str:
     lines = [f"# {group}\n", _build_inner_toc(group, paths), ""]
     for path, methods in paths.items():
         for m in methods:
-            lines.append(_render_method(m, group))
+            lines.append(_render_endpoint(m, group))
     return "\n\n".join(lines).strip()
 
 
-def _render_method(m: Method, group: str) -> str:
+def _render_endpoint(m: Method, group: str) -> str:
     out = [f"## {m.verb.upper()} {m.path}\n"]
-    desc = _join_docstrings(m.doc)
-    if desc:
-        out.append(_indent_block(desc, 1))
+    if m.doc:
+        out.append(_render_docstring(m.doc, 1))
 
-    # Inject invisible anchor for "Request"
-    anchor_req = _anchor(f"{m.verb.upper()} {m.path} request")
-    out.append(f'<a id="{anchor_req}"></a>\n### Request\n')
+    out.append(f'<a id="{_anchor(f"{m.verb.upper()} {m.path} request")}"></a>\n### Request\n')
+    out.append(_render_payload_section(m.request, "Request"))
 
-    if m.request:
-        req = _render_payload("Request", m.request)
-        if req.startswith("### Request"):
-            req = req.split("\n", 1)[1]
-        out.append(req)
-    else:
-        out.append("_No request content._")
-
-    # Responses (flattened)
     if m.responses:
-        visited: Set[str] = set()
         for r in _sorted_responses(m.responses):
-            out.append(_render_response_block(r, visited, m))
+            out.append(_render_response_section(m, r))
     else:
         out.append("_No responses defined._")
 
@@ -142,99 +120,86 @@ def _render_method(m: Method, group: str) -> str:
     return "\n\n".join(out).strip()
 
 
-# ───────────────────────────── Request / Response ─────────────────────────────
+def _render_payload_section(p: Optional[Payload], title: str) -> str:
+    if not p:
+        return "_No payload defined._"
 
-
-def _render_payload(title: str, p: Payload) -> str:
     lines: List[str] = []
-    desc = _join_docstrings(p.doc)
-    if desc:
-        lines.append(_indent_block(desc, 1))
+    if p.doc:
+        lines.append(_render_docstring(p.doc, 1))
 
-    for label, nslist in [
-        ("Headers", _extract_namespaces(p.headers)),
-        ("Path Parameters", _extract_namespaces(p.path)),
-        ("Query Parameters", _extract_namespaces(p.query)),
-        ("Body", _extract_namespaces(p.body)),
+    for label, doc in [
+        ("Headers", p.headers),
+        ("Path Parameters", p.path),
+        ("Query Parameters", p.query),
+        ("Body", p.body),
     ]:
-        if nslist:
-            lines.append(f"#### {label}\n")
+        if doc:
+            lines.append(f"#### {label}")
             if label == "Body" and p.ctype:
                 lines.append(f"##### Content-Type: `{p.ctype}`\n")
-            visited: Set[str] = set()
-            for ns in nslist:
-                for model in ns.models:
-                    if model.label == "<main>":
-                        lines.append(_render_model_with_submodels(model, 1, visited))
+            lines.append(_render_docstring(doc, 1))
     return "\n\n".join(lines).strip()
 
 
-def _render_response_block(r: Response, visited: Set[str], m: Method) -> str:
-    anchor_resp = _anchor(f"{m.verb.upper()} {m.path} response {r.code}")
-    parts = [f'<a id="{anchor_resp}"></a>\n### Response {r.code}\n']
-    desc = _join_docstrings(r.payload.doc)
-    if desc:
-        parts.append(_indent_block(desc, 1))
-    sect = _render_payload_sections(r.payload, visited)
-    if sect:
-        parts.append(sect)
-    return "\n\n".join(parts).strip()
-
-
-def _render_payload_sections(p: Payload, visited: Set[str]) -> str:
-    lines: List[str] = []
-    for label, nslist in [
-        ("Headers", _extract_namespaces(p.headers)),
-        ("Path Parameters", _extract_namespaces(p.path)),
-        ("Query Parameters", _extract_namespaces(p.query)),
-        ("Body", _extract_namespaces(p.body)),
-    ]:
-        if nslist:
-            lines.append(f"#### {label}\n")
-            if label == "Body" and p.ctype:
-                lines.append(f"##### Content-Type: `{p.ctype}`\n")
-            for ns in nslist:
-                for model in ns.models:
-                    if model.label == "<main>":
-                        lines.append(_render_model_with_submodels(model, 1, visited))
+def _render_response_section(m: Method, r: Response) -> str:
+    aid = _anchor(f"{m.verb.upper()} {m.path} response {r.code}")
+    lines = [f'<a id="{aid}"></a>\n### Response {r.code}\n']
+    if r.payload:
+        if r.payload.doc:
+            lines.append(_render_docstring(r.payload.doc, 1))
+        for label, doc in [
+            ("Headers", r.payload.headers),
+            ("Path Parameters", r.payload.path),
+            ("Query Parameters", r.payload.query),
+            ("Body", r.payload.body),
+        ]:
+            if doc:
+                lines.append(f"#### {label}")
+                if label == "Body" and r.payload.ctype:
+                    lines.append(f"##### Content-Type: `{r.payload.ctype}`\n")
+                lines.append(_render_docstring(doc, 1))
     return "\n\n".join(lines).strip()
 
 
-# ───────────────────────────── Schema Rendering ─────────────────────────────
+# ───────────────────────────── Docstring + Schema Rendering ─────────────────────────────
 
 
-def _render_model_with_submodels(model: Model, level: int, visited: Set[str]) -> str:
+def _render_docstring(doc: Optional[Docstring], level: int = 1, visited: Optional[Set[str]] = None) -> str:
+    if not doc:
+        return ""
+    visited = visited or set()
+    out: List[str] = []
+
+    text_blocks = [b.strip() for b in doc if isinstance(b, str) and b.strip()]
+    if text_blocks:
+        for tb in text_blocks:
+            out.append(_indent_block(tb, level))
+
+    for block in doc:
+        if isinstance(block, Namespace):
+            for model in block.models:
+                if model.label == "<main>":
+                    out.append(_render_model_block(model, level, visited))
+    return "\n\n".join(out).strip()
+
+
+def _render_model_block(model: Model, level: int, visited: Set[str]) -> str:
     if model.label in visited:
         return ""
     visited.add(model.label)
-
     prefix = "> " * level
-    lines: List[str] = []
-
-    if model.label != "<main>":
-        lines.append(f"{prefix}##### `{model.label}` schema")
-        lines.append(f"{prefix}")
-    lines.append(_indent_block(_render_model_table(model), level))
-
-    for f in model.fields:
-        for dep in f.deps or []:
-            if isinstance(dep, Model) and dep.label and dep.label not in visited:
-                lines.append(f"{prefix}")
-                lines.append(_render_model_with_submodels(dep, level + 1, visited))
-                lines.append(f"{prefix}")
-    return "\n".join(lines).strip()
-
-
-def _render_model_table(model: Model) -> str:
-    lines = [
-        "| Field | Type | Required | Description |",
-        "|:------|:-----|:--------:|:------------|",
-    ]
+    lines = [f"{prefix}| Field | Type | Required | Description |",
+             f"{prefix}|:------|:-----|:--------:|:------------|"]
     for f in model.fields:
         req = "✅" if f.required else "—"
-        lines.append(
-            f"| **{f.name}** | {_esc(f.type)} | {req} | {f.description or ''} |"
-        )
+        lines.append(f"{prefix}| **{f.name}** | {_esc(f.type)} | {req} | {f.description or ''} |")
+    for f in model.fields:
+        for dep in f.deps or []:
+            if isinstance(dep, Model) and dep.label not in visited:
+                lines.append("")
+                lines.append(f"{prefix}> **{dep.label} schema**")
+                lines.append(_render_model_block(dep, level + 1, visited))
     return "\n".join(lines)
 
 
@@ -245,41 +210,20 @@ def _esc(text: str) -> str:
     return text.replace("|", "\\|")
 
 
-def _extract_namespaces(doc: Optional[Docstring]) -> List[Namespace]:
-    return [b for b in doc if isinstance(b, Namespace)] if doc else []
-
-
-def _join_docstrings(doc: Optional[Docstring]) -> str:
-    if not doc:
-        return ""
-    chunks = [b.strip() for b in doc if isinstance(b, str) and b.strip()]
-    return "\n\n".join(chunks)
-
-
-def _indent_block(text: str, level: int = 1) -> str:
-    prefix = "> " * level
-    lines = text.splitlines() or [text]
-    return "\n".join(prefix + (ln if ln.strip() else "") for ln in lines)
-
-
 def _sorted_responses(responses: List[Response]) -> List[Response]:
     return sorted(responses, key=lambda r: r.code)
 
 
+def _indent_block(text: str, level: int = 1) -> str:
+    prefix = "> " * level
+    return "\n".join(prefix + line for line in text.splitlines())
+
+
 def _anchor(text: str) -> str:
     import re
-
     slug = (
         text.lower()
-        .replace("`", "")
-        .replace("/", "")
-        .replace("(", "")
-        .replace(")", "")
-        .replace("{", "")
-        .replace("}", "")
-        .replace(",", "")
-        .replace(".", "")
-        .replace("→", "")
+        .translate(str.maketrans("", "", "`/(){}.,→"))
         .strip()
     )
     return re.sub(r"\s+", "-", slug)

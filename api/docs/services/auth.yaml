@@ -1,0 +1,145 @@
+openapi: 3.1.0
+info:
+  title: Auth API
+  version: 1.0.0
+  description: API for authentication and password management.
+
+servers:
+  - url: /api
+
+paths:
+  /auth/forgot:
+    post:
+      summary: Request password reset
+      description: Request password reset for user account.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username]
+              properties:
+                username:
+                  type: string
+                  description: User name
+      responses:
+        '204': { description: No content — password reset link sent to admin }
+        '400': { description: Bad request — invalid request payload }
+        '404': { description: Not found — user does not exist }
+        '500': { description: Internal server error }
+
+  /auth/login:
+    post:
+      summary: User login
+      description: Authenticate user with username and password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username: { type: string, description: User name }
+                password: { type: string, description: User password }
+      responses:
+        '200':
+          description: OK — user logged in
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user, accessToken, refreshToken, expiresIn]
+                properties:
+                  user: { type: string, format: uuid }
+                  accessToken: { type: string }
+                  refreshToken: { type: string }
+                  expiresIn: { type: integer }
+        '202':
+          description: Accepted — new password required
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [username, challenge, session]
+                properties:
+                  username: { type: string }
+                  challenge: { type: string, enum: [NEW_PASSWORD_REQUIRED] }
+                  session: { type: string }
+        '400': { description: Invalid request payload }
+        '401': { description: Unauthorized — invalid credentials }
+        '404': { description: Not found — user does not exist }
+        '500': { description: Internal server error }
+
+  /auth/logout:
+    post:
+      summary: Logout user
+      description: Logout user and invalidate tokens.
+      security:
+        - bearerAuth: []
+      responses:
+        '204': { description: No content — user logged out }
+        '401': { description: Unauthorized — missing or invalid Authorization header }
+        '500': { description: Internal server error }
+
+  /auth/refresh:
+    post:
+      summary: Refresh token
+      description: Refresh access token using refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, refreshToken]
+              properties:
+                username: { type: string }
+                refreshToken: { type: string }
+      responses:
+        '200':
+          description: OK — token refreshed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user, accessToken, refreshToken, expiresIn]
+                properties:
+                  user: { type: string, format: uuid }
+                  accessToken: { type: string }
+                  refreshToken: { type: string }
+                  expiresIn: { type: integer }
+        '400': { description: Invalid request payload }
+        '404': { description: Not found — user does not exist }
+        '410': { description: Gone — expired refresh token }
+        '500': { description: Internal server error }
+
+  /auth/reset:
+    post:
+      summary: Reset password
+      description: Reset user password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, session, newPassword]
+              properties:
+                username: { type: string }
+                session: { type: string }
+                newPassword: { type: string }
+      responses:
+        '204': { description: No content — password reset }
+        '400': { description: Invalid request payload }
+        '404': { description: Not found — user does not exist }
+        '410': { description: Gone — expired verification code or session token }
+        '500': { description: Internal server error }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

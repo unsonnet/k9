@@ -1,0 +1,275 @@
+openapi: 3.1.0
+info:
+  title: Report API
+  version: 1.0.0
+  description: API for creating, retrieving, updating, deleting, and managing reports.
+
+servers:
+  - url: /api
+
+paths:
+  /report:
+    get:
+      summary: List reports
+      description: List reports authored by user (paginated).
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: nextToken
+          in: query
+          schema: { type: string }
+        - name: everyone
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: OK — reports listed
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [total, reports]
+                properties:
+                  total: { type: integer }
+                  nextToken: { type: string }
+                  reports:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ReportSummary'
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: Not found — user does not exist }
+        '500': { description: Internal server error }
+
+    post:
+      summary: Create report
+      description: Create a new report.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, reference]
+              properties:
+                title: { type: string }
+                reference: { type: string, format: uuid }
+      responses:
+        '201':
+          description: Created — report created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400': { description: Invalid request payload }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: Not found — referenced product does not exist }
+        '500': { description: Internal server error }
+
+  /report/{rid}:
+    get:
+      summary: Retrieve report
+      description: Retrieve report by ID.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: rid, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200':
+          description: OK — report retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: Not found — report does not exist }
+        '500': { description: Internal server error }
+
+    patch:
+      summary: Update report
+      description: Update report fields. Only provided fields are changed.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: rid, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                reference: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK — report updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+        '400': { description: Invalid request payload }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: Not found — report does not exist }
+        '500': { description: Internal server error }
+
+    delete:
+      summary: Delete report
+      description: Delete report and associated data. Operation is irreversible.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: rid, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: No content — report deleted }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: Not found — report does not exist }
+        '500': { description: Internal server error }
+
+  /report/{rid}/favorite/{pid}:
+    put:
+      summary: Favorite product
+      description: Add product to report favorites. Operation is idempotent.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: rid, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: pid, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: No content — product favorited }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: Not found — report or product does not exist }
+        '500': { description: Internal server error }
+
+    delete:
+      summary: Unfavorite product
+      description: Remove product from report favorites. Operation is idempotent.
+      security:
+        - bearerAuth: []
+      parameters:
+        - { name: rid, in: path, required: true, schema: { type: string, format: uuid } }
+        - { name: pid, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: No content — product unfavorited }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: Not found — report or product does not exist }
+        '500': { description: Internal server error }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Report:
+      type: object
+      required: [id, author, title, date, reference]
+      properties:
+        id: { type: string, format: uuid }
+        author: { type: string, format: uuid }
+        title: { type: string }
+        date: { type: string, format: date-time }
+        reference: { $ref: '#/components/schemas/Product' }
+        favorites:
+          type: array
+          items: { $ref: '#/components/schemas/Product' }
+
+    ReportSummary:
+      type: object
+      required: [id, author, title, date, reference]
+      properties:
+        id: { type: string, format: uuid }
+        author: { type: string, format: uuid }
+        title: { type: string }
+        date: { type: string, format: date-time }
+        reference: { $ref: '#/components/schemas/ProductSummary' }
+
+    Product:
+      type: object
+      required: [id, name, category, formats, images]
+      properties:
+        id: { type: string, format: uuid }
+        name: { $ref: '#/components/schemas/Name' }
+        category:
+          type: object
+          additionalProperties: { type: string }
+        formats:
+          type: array
+          items: { $ref: '#/components/schemas/Format' }
+        images:
+          type: array
+          items: { $ref: '#/components/schemas/Image' }
+
+    ProductSummary:
+      type: object
+      required: [id, name, image]
+      properties:
+        id: { type: string, format: uuid }
+        name: { $ref: '#/components/schemas/Name' }
+        image: { $ref: '#/components/schemas/Image' }
+
+    Name:
+      type: object
+      properties:
+        brand: { type: string }
+        series: { type: string }
+        model: { type: string }
+
+    Format:
+      type: object
+      required: [id, aspect]
+      properties:
+        id: { type: string, format: uuid }
+        aspect: { type: string }
+        length: { $ref: '#/components/schemas/Dimension' }
+        width: { $ref: '#/components/schemas/Dimension' }
+        thickness: { $ref: '#/components/schemas/Dimension' }
+        vendors:
+          type: array
+          items: { $ref: '#/components/schemas/Vendor' }
+
+    Dimension:
+      type: object
+      required: [value, unit]
+      properties:
+        value: { type: integer }
+        unit: { type: string }
+
+    Vendor:
+      type: object
+      required: [id, sku, store, name]
+      properties:
+        id: { type: string, format: uuid }
+        sku: { type: string }
+        store: { type: string }
+        name: { type: string }
+        price: { $ref: '#/components/schemas/Currency' }
+        discontinued: { type: boolean }
+        url: { type: string, format: uri }
+
+    Currency:
+      type: object
+      required: [value, unit]
+      properties:
+        value: { type: integer }
+        unit: { type: string }
+
+    Image:
+      type: object
+      required: [id, url]
+      properties:
+        id: { type: string, format: uuid }
+        url: { type: string, format: uri }

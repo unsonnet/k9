@@ -17,15 +17,15 @@ No content — password reset
 
 ## Response 400
 
-Bad request — invalid request payload or verification code (`InvalidRequest`)
+Bad request — invalid request payload (`InvalidRequest`)
 
 ## Response 404
 
-Not found — user with email does not exist (`NotFound`)
+Not found — user does not exist (`NotFound`)
 
 ## Response 410
 
-Gone — verification code or session expired (`CodeExpired`, `SessionExpired`)
+Gone — expired verification code or session token (`TokenExpired`)
 
 ## Response 500
 

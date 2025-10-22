@@ -169,9 +169,9 @@ border:1px solid var(--border);color:var(--ink);}
 <button class="response-tab client" type="button">404</button>
 <button class="response-tab server" type="button">500</button>
 </div>
-<div class="response-content"><div class="doc"><p>No content — password reset link sent to email</p></div></div>
+<div class="response-content"><div class="doc"><p>No content — password reset link sent to admin</p></div></div>
 <div class="response-content"><div class="doc"><p>Bad request — invalid request payload (<code>InvalidRequest</code>)</p></div></div>
-<div class="response-content"><div class="doc"><p>Not found — user with email does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — user does not exist (<code>NotFound</code>)</p></div></div>
 <div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
 </section>
 </div></article>
@@ -211,7 +211,6 @@ border:1px solid var(--border);color:var(--ink);}
 <button class="response-tab success" type="button">202</button>
 <button class="response-tab client" type="button">400</button>
 <button class="response-tab client" type="button">401</button>
-<button class="response-tab client" type="button">403</button>
 <button class="response-tab client" type="button">404</button>
 <button class="response-tab server" type="button">500</button>
 </div>
@@ -283,8 +282,7 @@ border:1px solid var(--border);color:var(--ink);}
 </div></div>
 <div class="response-content"><div class="doc"><p>Bad request — invalid request payload (<code>InvalidRequest</code>)</p></div></div>
 <div class="response-content"><div class="doc"><p>Unauthorized — invalid credentials (<code>Unauthorized</code>)</p></div></div>
-<div class="response-content"><div class="doc"><p>Forbidden — user not confirmed (<code>UserNotConfirmed</code>)</p></div></div>
-<div class="response-content"><div class="doc"><p>Not found — user does not exist (<code>UserNotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — user does not exist (<code>NotFound</code>)</p></div></div>
 <div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
 </section>
 </div></article>
@@ -355,7 +353,8 @@ border:1px solid var(--border);color:var(--ink);}
 <div class="response-tabs"><h3 style="margin:0;">Responses</h3>
 <button class="response-tab success" type="button">200</button>
 <button class="response-tab client" type="button">400</button>
-<button class="response-tab client" type="button">401</button>
+<button class="response-tab client" type="button">404</button>
+<button class="response-tab client" type="button">410</button>
 <button class="response-tab server" type="button">500</button>
 </div>
 <div class="response-content"><div class="doc"><p>OK — token refreshed</p></div><h4>Body <code>(application/json)</code></h4>
@@ -396,7 +395,8 @@ border:1px solid var(--border);color:var(--ink);}
 </div>
 </div></div>
 <div class="response-content"><div class="doc"><p>Bad request — invalid request payload (<code>InvalidRequest</code>)</p></div></div>
-<div class="response-content"><div class="doc"><p>Unauthorized — invalid or expired refresh token (<code>Unauthorized</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — user does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Gone — expired refresh token (<code>TokenExpired</code>)</p></div></div>
 <div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
 </section>
 </div></article>
@@ -447,9 +447,9 @@ border:1px solid var(--border);color:var(--ink);}
 <button class="response-tab server" type="button">500</button>
 </div>
 <div class="response-content"><div class="doc"><p>No content — password reset</p></div></div>
-<div class="response-content"><div class="doc"><p>Bad request — invalid request payload or verification code (<code>InvalidRequest</code>)</p></div></div>
-<div class="response-content"><div class="doc"><p>Not found — user with email does not exist (<code>NotFound</code>)</p></div></div>
-<div class="response-content"><div class="doc"><p>Gone — verification code or session expired (<code>CodeExpired</code>, <code>SessionExpired</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Bad request — invalid request payload (<code>InvalidRequest</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Not found — user does not exist (<code>NotFound</code>)</p></div></div>
+<div class="response-content"><div class="doc"><p>Gone — expired verification code or session token (<code>TokenExpired</code>)</p></div></div>
 <div class="response-content"><div class="doc"><p>Internal server error (<code>InternalServerError</code>)</p></div></div>
 </section>
 </div></article>

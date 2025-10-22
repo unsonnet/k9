@@ -41,13 +41,9 @@ Bad request — invalid request payload (`InvalidRequest`)
 
 Unauthorized — invalid credentials (`Unauthorized`)
 
-## Response 403
-
-Forbidden — user not confirmed (`UserNotConfirmed`)
-
 ## Response 404
 
-Not found — user does not exist (`UserNotFound`)
+Not found — user does not exist (`NotFound`)
 
 ## Response 500
 

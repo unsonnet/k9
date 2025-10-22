@@ -1,0 +1,143 @@
+openapi: 3.1.0
+info:
+  title: Search API
+  version: 1.0.0
+  description: API for searching products with fuzzy, exact, and vector-based filters.
+
+servers:
+  - url: /api
+
+paths:
+  /search:
+    post:
+      summary: Search products
+      description: Search products (paginated). Only provided fields are filtered.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema: { type: integer }
+        - name: nextToken
+          in: query
+          schema: { type: string }
+        - name: partial
+          in: query
+          schema: { type: boolean }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  $ref: '#/components/schemas/NameFilter'
+                category:
+                  type: object
+                  additionalProperties:
+                    type: array
+                    items: { type: string }
+                format:
+                  $ref: '#/components/schemas/FormatFilter'
+                vendor:
+                  $ref: '#/components/schemas/VendorFilter'
+                colors:
+                  type: array
+                  items: { type: string }
+                references:
+                  type: array
+                  items: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK — database queried
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [total, results]
+                properties:
+                  total: { type: integer }
+                  nextToken: { type: string }
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ProductSummary'
+        '400': { description: Invalid request payload }
+        '401': { description: Unauthorized }
+        '403': { description: Forbidden }
+        '404': { description: Not found — referenced products do not exist }
+        '500': { description: Internal server error }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    NameFilter:
+      type: object
+      properties:
+        brand: { type: string }
+        series: { type: string }
+        model: { type: string }
+
+    FormatFilter:
+      type: object
+      properties:
+        aspect: { type: string }
+        length: { $ref: '#/components/schemas/DimensionRange' }
+        width: { $ref: '#/components/schemas/DimensionRange' }
+        thickness: { $ref: '#/components/schemas/DimensionRange' }
+
+    DimensionRange:
+      type: object
+      required: [unit]
+      properties:
+        min: { type: integer }
+        max: { type: integer }
+        unit: { type: string }
+
+    VendorFilter:
+      type: object
+      properties:
+        sku: { type: string }
+        store:
+          type: array
+          items: { type: string }
+        name: { type: string }
+        price: { $ref: '#/components/schemas/CurrencyRange' }
+        discontinued: { type: boolean }
+
+    CurrencyRange:
+      type: object
+      required: [unit]
+      properties:
+        min: { type: integer }
+        max: { type: integer }
+        unit: { type: string }
+
+    ProductSummary:
+      type: object
+      required: [id, name, image, match]
+      properties:
+        id: { type: string, format: uuid }
+        name: { $ref: '#/components/schemas/Name' }
+        image: { $ref: '#/components/schemas/Image' }
+        match: { type: integer, minimum: 0, maximum: 100 }
+
+    Name:
+      type: object
+      properties:
+        brand: { type: string }
+        series: { type: string }
+        model: { type: string }
+
+    Image:
+      type: object
+      required: [id, url]
+      properties:
+        id: { type: string, format: uuid }
+        url: { type: string, format: uri }

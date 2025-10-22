@@ -26,9 +26,13 @@ OK — token refreshed
 
 Bad request — invalid request payload (`InvalidRequest`)
 
-## Response 401
+## Response 404
 
-Unauthorized — invalid or expired refresh token (`Unauthorized`)
+Not found — user does not exist (`NotFound`)
+
+## Response 410
+
+Gone — expired refresh token (`TokenExpired`)
 
 ## Response 500
 
