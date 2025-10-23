@@ -9,6 +9,7 @@ import boto3
 
 @dataclass(frozen=True)
 class Settings:
+    platform: str = os.getenv("PLATFORM", "local")  # "local" | "aws"
     aws_region: str = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
 
     # Data stores
@@ -27,14 +28,11 @@ class Settings:
     jwt_audience: str = os.getenv("JWT_AUDIENCE", "k9-clients")
     access_token_ttl: int = int(os.getenv("ACCESS_TOKEN_TTL", "900"))  # seconds
     refresh_token_ttl: int = int(os.getenv("REFRESH_TOKEN_TTL", "1209600"))  # 14 days
+
     # Auth mode: local HS256 or cognito (RS256)
-    auth_mode: str = os.getenv("AUTH_MODE", "local")  # "local" | "cognito"
     cognito_user_pool_id: Optional[str] = os.getenv("COGNITO_USER_POOL_ID")
     cognito_client_id: Optional[str] = os.getenv("COGNITO_CLIENT_ID")
     cognito_client_secret: Optional[str] = os.getenv("COGNITO_CLIENT_SECRET")
-
-    # Email
-    email_sender: Optional[str] = os.getenv("EMAIL_SENDER")
 
     # Roles
     admin_role: str = os.getenv("ADMIN_ROLE", "admin")

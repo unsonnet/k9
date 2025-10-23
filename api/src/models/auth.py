@@ -1,0 +1,78 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+from __future__ import annotations
+
+from enum import Enum
+from uuid import UUID
+
+from pydantic import BaseModel, Field
+from pydantic.types import NonNegativeInt
+
+from .common import PasswordStr, SessionStr, TokenStr, UsernameStr
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Request & Response Models
+# ──────────────────────────────────────────────────────────────────────────────
+class ForgotRequest(BaseModel):
+    username: UsernameStr
+
+
+class LoginRequest(BaseModel):
+    username: UsernameStr
+    password: PasswordStr
+
+
+class ChallengeType(str, Enum):
+    NEW_PASSWORD_REQUIRED = "NEW_PASSWORD_REQUIRED"
+
+
+class LoginAcceptedBody(BaseModel):
+    username: UsernameStr
+    challenge: ChallengeType = Field(default=ChallengeType.NEW_PASSWORD_REQUIRED)
+    session: SessionStr
+
+
+class LoginOKBody(BaseModel):
+    user: UUID
+    accessToken: TokenStr
+    refreshToken: TokenStr
+    expiresIn: NonNegativeInt
+
+
+class LogoutContext(BaseModel):
+    bearerToken: TokenStr
+
+
+class RefreshRequest(BaseModel):
+    username: UsernameStr
+    refreshToken: TokenStr
+
+
+class RefreshOKBody(BaseModel):
+    user: UUID
+    accessToken: TokenStr
+    refreshToken: TokenStr
+    expiresIn: NonNegativeInt
+
+
+class ResetRequest(BaseModel):
+    username: UsernameStr
+    session: SessionStr
+    newPassword: PasswordStr
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Domain Models
+# ──────────────────────────────────────────────────────────────────────────────
+class AuthTokens(BaseModel):
+    user: UUID
+    access_token: TokenStr
+    refresh_token: TokenStr
+    expires_in: NonNegativeInt
+
+
+class AuthChallenge(BaseModel):
+    username: UsernameStr
+    session: SessionStr

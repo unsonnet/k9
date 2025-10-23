@@ -1,32 +1,120 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from abc import ABC, abstractmethod
+from typing import NoReturn
+from uuid import UUID
 
-try:
-    from opensearchpy import OpenSearch  # type: ignore
-except Exception:  # noqa: BLE001
-    OpenSearch = None  # type: ignore
+# Typed HTTP responses/errors
+from utils.http import (
+    OK,
+    Unauthorized,
+    Forbidden,
+    NotFound,
+    InternalServerError,
+)
 
-from config import settings
+# ──────────────────────────────────────────────────────────────────────────────
+from models.common import AuthContext
+from models.product import ProductSummary
+from models.search import (
+    SearchRequest,
+    SearchParams,
+    SearchOKBody,
+    SearchResult,
+    SearchProductSummary,
+)
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Domain Errors
+from .errors import (
+    DomainUnauthorized,
+    DomainForbidden,
+    DomainNotFound,
+    DomainInvariantViolation,
+)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Provider Interfaces
+# ──────────────────────────────────────────────────────────────────────────────
+class SearchProvider(ABC):
+    """Backend contract for product search semantics."""
+
+    @abstractmethod
+    def search(
+        self,
+        ctx: AuthContext,
+        *,
+        query: SearchRequest,
+        limit: int | None,
+        next_token: str | None,
+        partial: bool | None,
+    ) -> SearchResult: ...
+
+
+class ProductSummaryProvider(ABC):
+    """Minimal resolver for building ProductSummary from a product id."""
+
+    @abstractmethod
+    def get_summary(self, ctx: AuthContext, *, pid: UUID) -> ProductSummary: ...
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Search Service
+# ──────────────────────────────────────────────────────────────────────────────
 class SearchService:
-    def __init__(self) -> None:
-        endpoint = settings().opensearch_endpoint
-        if not endpoint:
-            # Allow running without search (e.g., tests); operations will raise.
-            self._client = None
-        else:
-            if OpenSearch is None:
-                self._client = None
-            else:
-                self._client = OpenSearch(hosts=[{"host": endpoint, "port": 443, "scheme": "https"}])
-        self._index = settings().opensearch_index
+    """
+    API-facing orchestrator for search operations.
+    Delegates to providers, maps domain errors to HTTP responses,
+    and composes ProductSummaries per hit.
+    """
 
-    def search(self, query: Dict[str, Any], from_: int, size: int) -> Dict[str, Any]:
-        if not self._client:
-            return {"hits": {"total": {"value": 0}, "hits": []}}
-        body = dict(query)
-        body.setdefault("from", from_)
-        body.setdefault("size", size)
-        return self._client.search(index=self._index, body=body)
+    def __init__(self, provider: SearchProvider, products: ProductSummaryProvider):
+        self.provider = provider
+        self.products = products
+
+    # ─────────── Helpers ───────────
+    @staticmethod
+    def _handle_error(e: Exception, msg: str = "Internal error") -> NoReturn:
+        mapping = {
+            DomainUnauthorized: lambda: Unauthorized("Not authorized."),
+            DomainForbidden: lambda: Forbidden("Forbidden."),
+            DomainNotFound: lambda: NotFound(msg),
+            DomainInvariantViolation: lambda: InternalServerError(str(e)),
+        }
+        raise mapping.get(type(e), lambda: InternalServerError(str(e)))()
+
+    # ─────────── Endpoints ───────────
+    # POST /search → 200 | 400 | 401 | 403 | 404 | 500
+    def search(
+        self, ctx: AuthContext, params: SearchParams, payload: SearchRequest
+    ) -> OK[SearchOKBody]:
+        try:
+            result = self.provider.search(
+                ctx,
+                query=payload,
+                limit=params.limit,
+                next_token=params.nextToken,
+                partial=params.partial,
+            )
+            summaries: list[SearchProductSummary] = []
+            for hit in result.hits:
+                summary = self.products.get_summary(ctx, pid=hit.id)
+                summaries.append(
+                    SearchProductSummary(
+                        id=summary.id,
+                        name=summary.name,
+                        image=summary.image,
+                        match=hit.score,
+                    )
+                )
+            body = SearchOKBody(
+                total=result.total, results=summaries, nextToken=result.nextToken
+            )
+            return OK(body)
+        except Exception as e:
+            self._handle_error(e, "Referenced products not found.")
