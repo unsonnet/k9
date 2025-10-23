@@ -3,22 +3,22 @@ from __future__ import annotations
 from typing import Any, Mapping
 from uuid import UUID
 
-from utils.routing import Router
 from utils.http import (
-    OK,
+    BadRequest,
     Created,
     NoContent,
-    BadRequest,
-    read_json_body,
+    OK,
     read_bearer_token,
+    read_json_body,
     read_query,
 )
-from models.common import AuthContext
+from utils.routing import Router
+from models.auth import AuthContext
 from models.user import (
     CreateUserRequest,
     ListUsersParams,
-    UpdateUserRequest,
     UpdatePasswordRequest,
+    UpdateUserRequest,
 )
 from services.user.service import UserService
 

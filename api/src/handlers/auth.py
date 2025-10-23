@@ -2,20 +2,14 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from utils.http import BadRequest, HttpResponse, OK, read_bearer_token, read_json_body
 from utils.routing import Router
-from utils.http import (
-    OK,
-    BadRequest,
-    HttpResponse,
-    read_json_body,
-    read_bearer_token,
-)
 from models.auth import (
+    AuthContext,
+    ForgotRequest,
     LoginRequest,
     RefreshRequest,
-    ForgotRequest,
     ResetRequest,
-    LogoutContext,
 )
 from services.auth.service import AuthService
 
@@ -56,7 +50,7 @@ def logout(event: Mapping[str, Any]) -> HttpResponse[Any]:
     token = read_bearer_token(event)
     if not token:
         raise BadRequest("Missing Authorization header")
-    return OK(svc.logout(LogoutContext(bearerToken=token)))
+    return OK(svc.logout(AuthContext(bearerToken=token)))
 
 
 def lambda_handler(event, context):

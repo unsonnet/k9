@@ -41,10 +41,6 @@ class LoginOKBody(BaseModel):
     expiresIn: NonNegativeInt
 
 
-class LogoutContext(BaseModel):
-    bearerToken: TokenStr
-
-
 class RefreshRequest(BaseModel):
     username: UsernameStr
     refreshToken: TokenStr
@@ -76,3 +72,12 @@ class AuthTokens(BaseModel):
 class AuthChallenge(BaseModel):
     username: UsernameStr
     session: SessionStr
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Contexts
+# ──────────────────────────────────────────────────────────────────────────────
+class AuthContext(BaseModel):
+    """Bearer-auth context made available to providers/services."""
+
+    bearerToken: TokenStr

@@ -5,19 +5,14 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Sequence
 from uuid import UUID
+
 from pydantic import BaseModel
 from pydantic.types import NonNegativeInt
 
-# ──────────────────────────────────────────────────────────────────────────────
-from models.common import AuthContext, NonEmptyStr
-from models.product import (
-    Product,
-    ProductSummary,
-)
-from models.report import (
-    StoredReportSummary,
-    StoredReport,
-)
+from models.auth import AuthContext
+from models.common import NonEmptyStr
+from models.product import Product, ProductSummary
+from models.report import StoredReport, StoredReportSummary
 
 
 # ──────────────────────────────────────────────────────────────────────────────

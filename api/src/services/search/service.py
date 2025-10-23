@@ -5,35 +5,24 @@ from __future__ import annotations
 
 from typing import NoReturn
 
-# Typed HTTP responses/errors
-from utils.http import (
-    OK,
-    Unauthorized,
-    Forbidden,
-    NotFound,
-    InternalServerError,
-)
+from utils.http import Forbidden, InternalServerError, NotFound, OK, Unauthorized
 
-# ──────────────────────────────────────────────────────────────────────────────
-from models.common import AuthContext
+from models.auth import AuthContext
 from models.search import (
-    SearchRequest,
-    SearchParams,
     SearchOKBody,
+    SearchParams,
     SearchProductSummary,
+    SearchRequest,
 )
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Domain Errors
 from ..errors import (
-    DomainUnauthorized,
     DomainForbidden,
-    DomainNotFound,
     DomainInvariantViolation,
+    DomainNotFound,
+    DomainUnauthorized,
 )
 
-from .provider import SearchProvider, ProductSummaryProvider
+from .provider import ProductSummaryProvider, SearchProvider
 
 
 # ──────────────────────────────────────────────────────────────────────────────

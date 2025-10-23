@@ -6,13 +6,9 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-# ──────────────────────────────────────────────────────────────────────────────
-from models.common import AuthContext
+from models.auth import AuthContext
 from models.product import ProductSummary
-from models.search import (
-    SearchRequest,
-    SearchResult,
-)
+from models.search import SearchRequest, SearchResult
 
 
 # ──────────────────────────────────────────────────────────────────────────────

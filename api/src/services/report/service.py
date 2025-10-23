@@ -6,41 +6,36 @@ from datetime import datetime, timezone
 from typing import NoReturn
 from uuid import UUID
 
-# Typed HTTP responses/errors
 from utils.http import (
-    OK,
     Created,
-    NoContent,
-    Unauthorized,
-    Forbidden,
-    NotFound,
     InternalServerError,
+    NoContent,
+    NotFound,
+    OK,
+    Forbidden,
+    Unauthorized,
 )
 
-# ──────────────────────────────────────────────────────────────────────────────
-from models.common import AuthContext
+from models.auth import AuthContext
 from models.report import (
-    ReportSummary,
-    Report,
-    StoredReportSummary,
-    StoredReport,
-    ListReportsParams,
-    ListReportsOKBody,
     CreateReportRequest,
+    ListReportsOKBody,
+    ListReportsParams,
+    Report,
+    ReportSummary,
+    StoredReport,
+    StoredReportSummary,
     UpdateReportRequest,
 )
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Domain Errors
 from ..errors import (
-    DomainUnauthorized,
     DomainForbidden,
-    DomainNotFound,
     DomainInvariantViolation,
+    DomainNotFound,
+    DomainUnauthorized,
 )
 
-from .provider import ReportDBProvider, ProductResolver, UserResolver
+from .provider import ProductResolver, ReportDBProvider, UserResolver
 
 
 # ──────────────────────────────────────────────────────────────────────────────

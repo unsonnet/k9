@@ -4,41 +4,34 @@
 from __future__ import annotations
 from typing import NoReturn
 
-# Typed HTTP responses/errors
 from utils.http import (
-    OK,
     Accepted,
-    NoContent,
-    Unauthorized,
-    NotFound,
     Gone,
     InternalServerError,
+    NoContent,
+    NotFound,
+    OK,
+    Unauthorized,
 )
-
-# ──────────────────────────────────────────────────────────────────────────────
 from models.auth import (
+    AuthChallenge,
+    AuthTokens,
+    AuthContext,
     ForgotRequest,
-    LoginRequest,
     LoginAcceptedBody,
     LoginOKBody,
-    LogoutContext,
-    RefreshRequest,
+    LoginRequest,
     RefreshOKBody,
+    RefreshRequest,
     ResetRequest,
-    AuthTokens,
-    AuthChallenge,
 )
-
-
-# ──────────────────────────────────────────────────────────────────────────────
 from ..errors import (
-    DomainNotFound,
-    DomainInvalidCredentials,
-    DomainUnauthorized,
     DomainExpiredToken,
+    DomainInvalidCredentials,
     DomainInvariantViolation,
+    DomainNotFound,
+    DomainUnauthorized,
 )
-
 from .provider import AuthProvider
 
 
@@ -105,7 +98,7 @@ class AuthService:
             self._handle_error(e, "Failed to authenticate.")
 
     # POST /auth/logout → 204 | 401 | 500
-    def logout(self, ctx: LogoutContext) -> NoContent:
+    def logout(self, ctx: AuthContext) -> NoContent:
         try:
             self.provider.logout(bearer_token=ctx.bearerToken)
             return NoContent()

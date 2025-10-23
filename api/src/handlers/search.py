@@ -2,15 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from utils.http import OK, BadRequest, read_bearer_token, read_json_body, read_query
 from utils.routing import Router
-from utils.http import (
-    OK,
-    BadRequest,
-    read_json_body,
-    read_bearer_token,
-    read_query,
-)
-from models.common import AuthContext
+from models.auth import AuthContext
 from models.search import SearchParams, SearchRequest
 from services.search.service import SearchService
 

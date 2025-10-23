@@ -6,41 +6,34 @@ from datetime import datetime, timezone
 from typing import NoReturn
 from uuid import UUID
 
-# Typed HTTP responses/errors
 from utils.http import (
-    OK,
-    Created,
-    NoContent,
-    Unauthorized,
-    Forbidden,
-    NotFound,
     Conflict,
+    Created,
     InternalServerError,
+    NoContent,
+    NotFound,
+    OK,
+    Forbidden,
+    Unauthorized,
 )
 
-# ──────────────────────────────────────────────────────────────────────────────
-from models.common import (
-    AuthContext,
-)
+from models.auth import AuthContext
 from models.user import (
+    CreateUserRequest,
+    ListUsersOKBody,
+    ListUsersParams,
     Profile,
     StoredProfile,
-    ListUsersParams,
-    ListUsersOKBody,
-    CreateUserRequest,
-    UpdateUserRequest,
     UpdatePasswordRequest,
+    UpdateUserRequest,
 )
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Domain Errors
 from ..errors import (
-    DomainUnauthorized,
-    DomainForbidden,
-    DomainNotFound,
     DomainConflict,
+    DomainForbidden,
     DomainInvariantViolation,
+    DomainNotFound,
+    DomainUnauthorized,
 )
 
 from .provider import UserDBProvider

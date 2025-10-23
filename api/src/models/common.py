@@ -29,9 +29,3 @@ CategoryMap = Mapping[str, NonEmptyStr]
 class TimeStamped(BaseModel):
     createdAt: datetime
     updatedAt: datetime | None = None
-
-
-class AuthContext(BaseModel):
-    """Bearer-auth context made available to providers/services."""
-
-    bearerToken: TokenStr

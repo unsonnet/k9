@@ -2,61 +2,54 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import annotations
+
 from datetime import datetime, timezone
-from typing import Sequence, TypeVar, NoReturn
+from typing import NoReturn, Sequence, TypeVar
 from uuid import UUID, uuid4
+
 from pydantic import BaseModel
 
-# Typed HTTP responses/errors
 from utils.http import (
-    OK,
     Created,
-    NoContent,
-    Unauthorized,
     Forbidden,
-    NotFound,
     InternalServerError,
+    NoContent,
+    NotFound,
+    OK,
+    Unauthorized,
 )
 
 M = TypeVar("M", bound=BaseModel)
 
-# ──────────────────────────────────────────────────────────────────────────────
-from models.common import AuthContext
+from models.auth import AuthContext
 from models.product import (
-    Name,
-    Vendor,
+    CreateFormatRequest,
+    CreateProductRequest,
+    CreateVendorRequest,
     Format,
     Image,
+    ImageUpdateRequest,
+    ImageUploadRequest,
+    Name,
     Product,
-    StoredVendor,
     StoredFormat,
     StoredImage,
     StoredProduct,
-    CreateProductRequest,
-    UpdateProductRequest,
-    CreateFormatRequest,
+    StoredVendor,
     UpdateFormatRequest,
-    CreateVendorRequest,
+    UpdateProductRequest,
     UpdateVendorRequest,
-    ImageUploadRequest,
-    ImageUpdateRequest,
+    Vendor,
 )
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Domain Errors
 from ..errors import (
-    DomainUnauthorized,
     DomainForbidden,
-    DomainNotFound,
     DomainInvariantViolation,
+    DomainNotFound,
+    DomainUnauthorized,
 )
 
-from .provider import (
-    ProductDBProvider,
-    ImageDBProvider,
-    EmbeddingIndexProvider,
-)
+from .provider import EmbeddingIndexProvider, ImageDBProvider, ProductDBProvider
 
 
 # ──────────────────────────────────────────────────────────────────────────────

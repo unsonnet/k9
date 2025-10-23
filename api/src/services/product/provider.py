@@ -8,7 +8,8 @@ from uuid import UUID
 from pydantic import AnyUrl
 
 # ──────────────────────────────────────────────────────────────────────────────
-from models.common import AuthContext, CategoryMap
+from models.auth import AuthContext
+from models.common import CategoryMap
 from models.product import (
     Name,
     StoredProduct,

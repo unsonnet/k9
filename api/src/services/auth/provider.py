@@ -4,11 +4,8 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
 
+from models.auth import AuthChallenge, AuthTokens
 from models.common import PasswordStr, SessionStr, TokenStr, UsernameStr
-from models.auth import (
-    AuthTokens,
-    AuthChallenge,
-)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

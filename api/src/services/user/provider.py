@@ -9,8 +9,8 @@ from pydantic import BaseModel
 from pydantic.types import NonNegativeInt
 
 # ──────────────────────────────────────────────────────────────────────────────
+from models.auth import AuthContext
 from models.common import (
-    AuthContext,
     NonEmptyStr,
     PasswordStr,
     PrefValueStr,
