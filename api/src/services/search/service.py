@@ -3,9 +3,7 @@
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from typing import NoReturn
-from uuid import UUID
 
 # Typed HTTP responses/errors
 from utils.http import (
@@ -18,49 +16,24 @@ from utils.http import (
 
 # ──────────────────────────────────────────────────────────────────────────────
 from models.common import AuthContext
-from models.product import ProductSummary
 from models.search import (
     SearchRequest,
     SearchParams,
     SearchOKBody,
-    SearchResult,
     SearchProductSummary,
 )
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Domain Errors
-from .errors import (
+from ..errors import (
     DomainUnauthorized,
     DomainForbidden,
     DomainNotFound,
     DomainInvariantViolation,
 )
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Provider Interfaces
-# ──────────────────────────────────────────────────────────────────────────────
-class SearchProvider(ABC):
-    """Backend contract for product search semantics."""
-
-    @abstractmethod
-    def search(
-        self,
-        ctx: AuthContext,
-        *,
-        query: SearchRequest,
-        limit: int | None,
-        next_token: str | None,
-        partial: bool | None,
-    ) -> SearchResult: ...
-
-
-class ProductSummaryProvider(ABC):
-    """Minimal resolver for building ProductSummary from a product id."""
-
-    @abstractmethod
-    def get_summary(self, ctx: AuthContext, *, pid: UUID) -> ProductSummary: ...
+from .provider import SearchProvider, ProductSummaryProvider
 
 
 # ──────────────────────────────────────────────────────────────────────────────
