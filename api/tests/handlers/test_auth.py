@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-import base64
-import json
-
-import pytest
-
 from tests.utils.events import make_event, parse_body
 
 
@@ -14,7 +9,7 @@ def _call(event):
     return h.lambda_handler(event, None)
 
 
-def test_login_ok(monkeypatch):
+def test_login_ok():
     # FakeAuthProvider returns tokens by default
     event = make_event(
         "POST",
@@ -27,7 +22,7 @@ def test_login_ok(monkeypatch):
     assert set(body.keys()) == {"user", "accessToken", "refreshToken", "expiresIn"}
 
 
-def test_login_challenge(monkeypatch):
+def test_login_challenge():
     event = make_event(
         "POST",
         "/auth/login",
@@ -40,7 +35,7 @@ def test_login_challenge(monkeypatch):
     assert set(body.keys()) == {"username", "challenge", "session"}
 
 
-def test_login_invalid_credentials(monkeypatch):
+def test_login_invalid_credentials():
     event = make_event(
         "POST",
         "/auth/login",

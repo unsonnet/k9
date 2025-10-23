@@ -4,6 +4,7 @@
 from __future__ import annotations
 from typing import NoReturn
 
+from config import settings
 from utils.http import (
     Accepted,
     Gone,
@@ -47,9 +48,17 @@ class AuthService:
     provider: AuthProvider
 
     def __init__(self):
-        from .provider import _NoopAuthProvider
+        # Choose provider by stage from config settings
+        from .provider import LocalAuthProvider, _NoopAuthProvider
 
-        self.provider = _NoopAuthProvider()
+        stage = settings().stage.lower().strip()
+        if stage == "dev":
+            self.provider = LocalAuthProvider()
+        elif stage == "prod":
+            self.provider = _NoopAuthProvider()
+        else:
+            # Unknown stage should fail fast with a 5xx
+            raise InternalServerError(f"Unsupported stage: {stage}")
 
     # ─────────── Helpers ───────────
     @staticmethod

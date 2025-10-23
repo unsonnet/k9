@@ -9,8 +9,10 @@ import boto3
 
 @dataclass(frozen=True)
 class Settings:
-    platform: str = os.getenv("PLATFORM", "local")  # "local" | "aws"
-    aws_region: str = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "us-east-1"))
+    stage: str = os.getenv("STAGE", "dev")  # "dev" | "prod"
+    aws_region: str = os.getenv(
+        "AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "us-east-1")
+    )
 
     # Data stores
     products_table: str = os.getenv("PRODUCTS_TABLE", "k9_products")
