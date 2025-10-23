@@ -55,16 +55,21 @@ class NoContent(HttpResponse[None]):
 
 
 # Error 4xx/5xx
-class HttpError(HttpResponse[ErrorBody], Exception):
-    """Base mixin for all errors."""
+class HttpError(Exception):
+    """Base class for HTTP-style errors with a JSON body.
+
+    Note: We avoid inheriting from HttpResponse to prevent CPython layout conflicts
+    with dataclass(slots=True) when mixing with Exception.
+    """
 
     code: str = "Error"
     status: int = 500
+    headers: dict[str, str] | None = None
+    body: ErrorBody
 
     def __init__(self, message: str | None = None) -> None:
-        body = ErrorBody(code=self.code, message=message or self.code)
-        HttpResponse.__init__(self, body=body, status=self.status)
-        Exception.__init__(self, body["message"])
+        self.body = ErrorBody(code=self.code, message=message or self.code)
+        super().__init__(self.body["message"])
 
 
 # 4xx
@@ -227,4 +232,9 @@ def to_apigw_response(resp: HttpResponse[Any]) -> Dict[str, Any]:
 
 def error_to_apigw(err: HttpError) -> Dict[str, Any]:
     """Convert an HttpError to an API Gateway response."""
-    return to_apigw_response(err)
+    # Reuse to_apigw_response serialization path by adapting fields
+    return {
+        "statusCode": err.status,
+        "headers": {"Content-Type": "application/json"},
+        "body": json.dumps(err.body),
+    }

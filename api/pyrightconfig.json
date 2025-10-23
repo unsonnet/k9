@@ -1,0 +1,11 @@
+{
+  "include": ["src", "tests"],
+  "exclude": ["layers", "scripts", "requirements"],
+  "venvPath": "./.venv",
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "extraPaths": ["./src"]
+    }
+  ]
+}
