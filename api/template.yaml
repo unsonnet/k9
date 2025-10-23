@@ -8,6 +8,7 @@ Globals:
     Timeout: 30
     MemorySize: 512
     Tracing: Active
+    CodeUri: src/
     Environment:
       Variables:
         AWS_REGION: !Ref AWS::Region
@@ -43,44 +44,120 @@ Conditions:
   UseArnLayersCond: !Equals [!Ref UseArnLayers, "true"]
 
 Resources:
-  ApiFunction:
+  ########################################
+  # LAMBDA FUNCTIONS
+  ########################################
+
+  AuthFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: app.lambda_handler
-      CodeUri: src/
+      Handler: handlers/auth.lambda_handler
       Layers:
         - !If [UseArnLayersCond, !Ref CoreLayerArn, !Ref CoreLayer]
         - !If [UseArnLayersCond, !Ref DataLayerArn, !Ref DataLayer]
         - !If [UseArnLayersCond, !Ref MLLayerArn, !Ref MLLayer]
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ProductsTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref UsersTable
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ReportsTable
-        - S3CrudPolicy:
-            BucketName: !Ref ImagesBucket
+        - DynamoDBCrudPolicy: { TableName: !Ref UsersTable }
       Events:
-        HttpApi:
+        Api:
           Type: HttpApi
           Properties:
-            Path: /{proxy+}
+            Path: /auth/{proxy+}
             Method: ANY
       Environment:
         Variables:
           OPENSEARCH_ENDPOINT: !Ref OpenSearchEndpoint
+
+  UserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/user.lambda_handler
+      Layers:
+        - !If [UseArnLayersCond, !Ref CoreLayerArn, !Ref CoreLayer]
+        - !If [UseArnLayersCond, !Ref DataLayerArn, !Ref DataLayer]
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref UsersTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /user/{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          OPENSEARCH_ENDPOINT: !Ref OpenSearchEndpoint
+
+  ProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/product.lambda_handler
+      Layers:
+        - !If [UseArnLayersCond, !Ref CoreLayerArn, !Ref CoreLayer]
+        - !If [UseArnLayersCond, !Ref DataLayerArn, !Ref DataLayer]
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref ProductsTable }
+        - S3CrudPolicy: { BucketName: !Ref ImagesBucket }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /product/{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          OPENSEARCH_ENDPOINT: !Ref OpenSearchEndpoint
+
+  ReportFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/report.lambda_handler
+      Layers:
+        - !If [UseArnLayersCond, !Ref CoreLayerArn, !Ref CoreLayer]
+        - !If [UseArnLayersCond, !Ref DataLayerArn, !Ref DataLayer]
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref ReportsTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /report/{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          OPENSEARCH_ENDPOINT: !Ref OpenSearchEndpoint
+
+  SearchFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handlers/search.lambda_handler
+      Layers:
+        - !If [UseArnLayersCond, !Ref CoreLayerArn, !Ref CoreLayer]
+        - !If [UseArnLayersCond, !Ref DataLayerArn, !Ref DataLayer]
+        - !If [UseArnLayersCond, !Ref MLLayerArn, !Ref MLLayer]
+      Policies:
+        - DynamoDBReadPolicy: { TableName: !Ref ProductsTable }
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            Path: /search/{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          OPENSEARCH_ENDPOINT: !Ref OpenSearchEndpoint
+
+  ########################################
+  # DATA RESOURCES
+  ########################################
 
   ProductsTable:
     Type: AWS::DynamoDB::Table
     Properties:
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: id
-          AttributeType: S
+        - { AttributeName: id, AttributeType: S }
       KeySchema:
-        - AttributeName: id
-          KeyType: HASH
+        - { AttributeName: id, KeyType: HASH }
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
 
@@ -89,11 +166,9 @@ Resources:
     Properties:
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: id
-          AttributeType: S
+        - { AttributeName: id, AttributeType: S }
       KeySchema:
-        - AttributeName: id
-          KeyType: HASH
+        - { AttributeName: id, KeyType: HASH }
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
 
@@ -102,18 +177,14 @@ Resources:
     Properties:
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: id
-          AttributeType: S
-        - AttributeName: author
-          AttributeType: S
+        - { AttributeName: id, AttributeType: S }
+        - { AttributeName: author, AttributeType: S }
       KeySchema:
-        - AttributeName: id
-          KeyType: HASH
+        - { AttributeName: id, KeyType: HASH }
       GlobalSecondaryIndexes:
         - IndexName: author-index
           KeySchema:
-            - AttributeName: author
-              KeyType: HASH
+            - { AttributeName: author, KeyType: HASH }
           Projection:
             ProjectionType: ALL
       PointInTimeRecoverySpecification:
@@ -122,7 +193,10 @@ Resources:
   ImagesBucket:
     Type: AWS::S3::Bucket
 
-  # Layers (local fallback)
+  ########################################
+  # LAYERS
+  ########################################
+
   CoreLayer:
     Type: AWS::Serverless::LayerVersion
     Properties:
@@ -144,14 +218,25 @@ Resources:
       ContentUri: layers/ml/
       CompatibleRuntimes: [python3.11]
 
-Outputs:
-  ApiFunctionArn:
-    Description: ARN of the main Lambda function
-    Value: !GetAtt ApiFunction.Arn
+########################################
+# OUTPUTS
+########################################
 
-  HttpApiUrl:
+Outputs:
+  ApiBaseUrl:
     Description: Base URL for the deployed HTTP API
     Value: !Sub "https://${ServerlessHttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+
+  AuthFunctionArn:
+    Value: !GetAtt AuthFunction.Arn
+  UserFunctionArn:
+    Value: !GetAtt UserFunction.Arn
+  ProductFunctionArn:
+    Value: !GetAtt ProductFunction.Arn
+  ReportFunctionArn:
+    Value: !GetAtt ReportFunction.Arn
+  SearchFunctionArn:
+    Value: !GetAtt SearchFunction.Arn
 
   CoreLayerVersion:
     Condition: !Not [UseArnLayersCond]

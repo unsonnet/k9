@@ -1,67 +1,96 @@
 from __future__ import annotations
 
-import json
-import re
-from typing import Any, Dict
+from typing import Any, Mapping
+from uuid import UUID
 
-from services.service import ReportsService
-from utils.auth import get_auth_claims
-from utils.http import InvalidRequest, Unauthorized, no_content, response
+from utils.routing import Router
+from utils.http import (
+    OK,
+    Created,
+    NoContent,
+    BadRequest,
+    read_json_body,
+    read_bearer_token,
+    read_query,
+)
+from models.common import AuthContext
+from models.report import (
+    CreateReportRequest,
+    UpdateReportRequest,
+    ListReportsParams,
+)
+from services.report.service import ReportService
+
+router = Router(prefix="/report")
+svc = ReportService()
 
 
-svc = ReportsService()
+def _ctx(event: Mapping[str, Any]) -> AuthContext:
+    token = read_bearer_token(event)
+    if not token:
+        raise BadRequest("Missing Authorization header")
+    return AuthContext(bearerToken=token)
 
 
-def handle_report(event: Dict[str, Any]) -> Dict[str, Any]:
-    path = event.get("rawPath") or event.get("path", "")
-    method = (event.get("requestContext", {}).get("http", {}) or {}).get("method") or event.get("httpMethod")
-    claims = get_auth_claims(event, expected_typ="access")
-    user_id = claims.get("sub") or claims.get("username") or claims.get("cognito:username")
-    if not isinstance(user_id, str) or not user_id:
-        raise Unauthorized("Missing user id in token")
+@router.route("", method="GET")
+def list_reports(event: Mapping[str, Any]) -> OK[Any]:
+    ctx = _ctx(event)
+    qp = read_query(event)
+    params = ListReportsParams(
+        limit=int(qp["limit"]) if qp.get("limit") else None,
+        nextToken=qp.get("nextToken"),
+        everyone=(qp.get("everyone", "false").lower() == "true"),
+    )
+    return OK(svc.list_reports(ctx, params))
 
-    # parse path
-    m = re.fullmatch(r"/report(?:/([0-9a-fA-F-]+)(?:/favorite/(?:([0-9a-fA-F-]+)))?)?", path)
-    if not m:
-        raise InvalidRequest("Invalid report route")
-    rid, fav_pid = m.groups()
 
-    # query params
-    qp = event.get("queryStringParameters") or {}
-    if path == "/report" and method == "GET":
-        limit = int(qp.get("limit", "25"))
-        next_token = qp.get("nextToken")
-        everyone = qp.get("everyone", "false").lower() == "true"
-        items, nt = svc.list(user_id, limit, next_token, everyone)
-        return response(200, {"total": len(items), "nextToken": nt, "reports": items})
+@router.route("", method="POST")
+def create_report(event: Mapping[str, Any]) -> Created[Any]:
+    ctx = _ctx(event)
+    data = read_json_body(event)
+    req = CreateReportRequest.model_validate(data)
+    return Created(svc.create_report(ctx, req))
 
-    body = json.loads((event.get("body") or "{}"))
-    if path == "/report" and method == "POST":
-        title = body.get("title")
-        reference = body.get("reference")
-        if not title or not reference:
-            raise InvalidRequest("title and reference required")
-        item = svc.create(user_id, title, reference)
-        return response(201, item)
 
-    if rid and not fav_pid:
-        if method == "GET":
-            item = svc.get(rid)
-            return response(200, item)
-        if method == "PATCH":
-            updates = {k: v for k, v in body.items() if k in ("title", "reference")}
-            item = svc.update(rid, updates)
-            return response(200, item)
-        if method == "DELETE":
-            svc.delete(rid)
-            return no_content()
+@router.route("/{reportId}", method="GET")
+def get_report(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+    ctx = _ctx(event)
+    rid = UUID(params["reportId"])
+    return OK(svc.get_report(ctx, rid))
 
-    if rid and fav_pid:
-        if method == "PUT":
-            svc.favorite(rid, fav_pid, add=True)
-            return no_content()
-        if method == "DELETE":
-            svc.favorite(rid, fav_pid, add=False)
-            return no_content()
 
-    raise InvalidRequest("Unsupported report route")
+@router.route("/{reportId}", method="PATCH")
+def update_report(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+    ctx = _ctx(event)
+    rid = UUID(params["reportId"])
+    data = read_json_body(event)
+    req = UpdateReportRequest.model_validate(data)
+    return OK(svc.update_report(ctx, rid, req))
+
+
+@router.route("/{reportId}", method="DELETE")
+def delete_report(event: Mapping[str, Any], params: Mapping[str, str]) -> NoContent:
+    ctx = _ctx(event)
+    rid = UUID(params["reportId"])
+    svc.delete_report(ctx, rid)
+    return NoContent()
+
+
+@router.route("/{reportId}/favorite/{productId}", method="PUT")
+def favorite_product(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+    ctx = _ctx(event)
+    rid = UUID(params["reportId"])
+    pid = UUID(params["productId"])
+    return OK(svc.favorite_product(ctx, rid, pid))
+
+
+@router.route("/{reportId}/favorite/{productId}", method="DELETE")
+def unfavorite_product(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+    ctx = _ctx(event)
+    rid = UUID(params["reportId"])
+    pid = UUID(params["productId"])
+    return OK(svc.unfavorite_product(ctx, rid, pid))
+
+
+def lambda_handler(event, context):
+    return router.dispatch(event)

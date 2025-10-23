@@ -77,3 +77,24 @@ class UserDBProvider(ABC):
         current_password: NonEmptyStr,
         new_password: PasswordStr,
     ) -> None: ...
+
+
+# Default no-op used by service constructors unless overridden
+class _NoopUserDBProvider(UserDBProvider):  # pragma: no cover - placeholder
+    def get_user(self, *_, **__) -> StoredProfile:  # type: ignore[override]
+        raise NotImplementedError("UserDBProvider not configured")
+
+    def post_user(self, *_, **__) -> StoredProfile:  # type: ignore[override]
+        raise NotImplementedError("UserDBProvider not configured")
+
+    def put_user(self, *_, **__) -> StoredProfile:  # type: ignore[override]
+        raise NotImplementedError("UserDBProvider not configured")
+
+    def delete_user(self, *_, **__) -> None:  # type: ignore[override]
+        raise NotImplementedError("UserDBProvider not configured")
+
+    def list_users(self, *_, **__) -> ListUsersResult:  # type: ignore[override]
+        raise NotImplementedError("UserDBProvider not configured")
+
+    def update_password(self, *_, **__) -> None:  # type: ignore[override]
+        raise NotImplementedError("UserDBProvider not configured")

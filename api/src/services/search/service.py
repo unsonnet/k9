@@ -46,9 +46,14 @@ class SearchService:
     and composes ProductSummaries per hit.
     """
 
-    def __init__(self, provider: SearchProvider, products: ProductSummaryProvider):
-        self.provider = provider
-        self.products = products
+    provider: SearchProvider
+    products: ProductSummaryProvider
+
+    def __init__(self):
+        from .provider import _NoopProductSummaryProvider, _NoopSearchProvider
+
+        self.provider = _NoopSearchProvider()
+        self.products = _NoopProductSummaryProvider()
 
     # ─────────── Helpers ───────────
     @staticmethod

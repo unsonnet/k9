@@ -1,123 +1,192 @@
 from __future__ import annotations
 
 import base64
-import json
-import re
-from typing import Any, Dict
+from typing import Any, Mapping
+from uuid import UUID
 
-from models.api import (
-    CreateFormatRequest,
-    CreateProductRequest,
-    CreateVendorRequest,
-    UpdateFormatRequest,
-    UpdateProductRequest,
-    UpdateVendorRequest,
+from utils.routing import Router
+from utils.http import (
+    OK,
+    Created,
+    NoContent,
+    BadRequest,
+    read_json_body,
+    read_bearer_token,
 )
-from services.service import ProductsService
-from utils.auth import get_auth_claims
-from utils.http import InvalidRequest, no_content, response
+from models.common import AuthContext
+from models.product import (
+    CreateProductRequest,
+    UpdateProductRequest,
+    CreateFormatRequest,
+    UpdateFormatRequest,
+    CreateVendorRequest,
+    UpdateVendorRequest,
+    ImageUploadRequest,
+    ImageUpdateRequest,
+)
+from services.product.service import ProductService
+
+router = Router(prefix="/product")
+svc = ProductService()
 
 
-svc = ProductsService()
+def _ctx(event: Mapping[str, Any]) -> AuthContext:
+    token = read_bearer_token(event)
+    if not token:
+        raise BadRequest("Missing Authorization header")
+    return AuthContext(bearerToken=token)
 
 
-def handle_product(event: Dict[str, Any]) -> Dict[str, Any]:
-    path = event.get("rawPath") or event.get("path", "")
-    method = (event.get("requestContext", {}).get("http", {}) or {}).get("method") or event.get("httpMethod")
-    # auth (supports API GW authorizer or Bearer)
-    _claims = get_auth_claims(event, expected_typ="access")
+# --- /product
 
-    m = re.fullmatch(r"/product(?:/([0-9a-fA-F-]+)(?:/(format)(?:/([0-9a-fA-F-]+)(?:/(vendor)(?:/([0-9a-fA-F-]+))?)?)?)?(?:/(image)(?:/([0-9a-fA-F-]+))?)?)?", path)
-    if not m:
-        raise InvalidRequest("Invalid product route")
-    pid, fmt_kw, fid, ven_kw, vid, img_kw, iid = m.groups()
 
-    # Body
-    raw_body = event.get("body")
-    if raw_body and event.get("isBase64Encoded"):
-        raw_body = base64.b64decode(raw_body)
-        try:
-            raw_body = raw_body.decode("utf-8")
-        except Exception:  # noqa: BLE001
-            # keep bytes for multipart
-            pass
-    data = {}
-    if not (img_kw == "image" and method == "POST"):
-        # non-multipart or JSON payloads
-        data = json.loads(raw_body or "{}") if isinstance(raw_body, str) else {}
+@router.route("", method="POST")
+def create_product(event: Mapping[str, Any]) -> Created[Any]:
+    ctx = _ctx(event)
+    data = read_json_body(event)
+    req = CreateProductRequest.model_validate(data)
+    return Created(svc.create_product(ctx, req))
 
-    if path == "/product" and method == "POST":
-        req = CreateProductRequest.model_validate(data)
-        item = svc.create(req)
-        return response(201, item)
 
-    if pid and not fmt_kw and not img_kw:
-        if method == "GET":
-            item = svc.get(pid)
-            return response(200, item)
-        if method == "PATCH":
-            req = UpdateProductRequest.model_validate(data)
-            item = svc.update(pid, req)
-            return response(200, item)
-        if method == "DELETE":
-            svc.delete(pid)
-            return no_content()
+# --- /product/{productId}
 
-    if pid and fmt_kw == "format" and not fid and method == "POST":
-        req = CreateFormatRequest.model_validate(data)
-        fmt = svc.create_format(pid, req)
-        return response(201, fmt)
 
-    if pid and fmt_kw == "format" and fid and not ven_kw and method == "PATCH":
-        req = UpdateFormatRequest.model_validate(data)
-        fmt = svc.update_format(pid, fid, req)
-        return response(200, fmt)
+@router.route("/{productId}", method="GET")
+def get_product(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+    ctx = _ctx(event)
+    pid = UUID(params["productId"])
+    return OK(svc.get_product(ctx, pid))
 
-    if pid and fmt_kw == "format" and fid and not ven_kw and method == "DELETE":
-        svc.delete_format(pid, fid)
-        return no_content()
 
-    if pid and fmt_kw == "format" and fid and ven_kw == "vendor" and not vid and method == "POST":
-        req = CreateVendorRequest.model_validate(data)
-        ven = svc.create_vendor(pid, fid, req)
-        return response(201, ven)
+@router.route("/{productId}", method="PATCH")
+def update_product(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+    ctx = _ctx(event)
+    pid = UUID(params["productId"])
+    data = read_json_body(event)
+    req = UpdateProductRequest.model_validate(data)
+    return OK(svc.update_product(ctx, pid, req))
 
-    if pid and fmt_kw == "format" and fid and ven_kw == "vendor" and vid and method == "PATCH":
-        req = UpdateVendorRequest.model_validate(data)
-        ven = svc.update_vendor(pid, fid, vid, req)
-        return response(200, ven)
 
-    if pid and fmt_kw == "format" and fid and ven_kw == "vendor" and vid and method == "DELETE":
-        svc.delete_vendor(pid, fid, vid)
-        return no_content()
+@router.route("/{productId}", method="DELETE")
+def delete_product(event: Mapping[str, Any], params: Mapping[str, str]) -> NoContent:
+    ctx = _ctx(event)
+    pid = UUID(params["productId"])
+    svc.delete_product(ctx, pid)
+    return NoContent()
 
-    # Image upload and update
-    if pid and img_kw == "image" and not iid and method == "POST":
-        # Expect multipart/form-data: not fully parsed here; assume API Gateway HTTP API with base64 body
-        # For simplicity in this scaffold, allow JSON with base64 fields as well
-        ctype = (event.get("headers") or {}).get("content-type") or (event.get("headers") or {}).get("Content-Type")
-        if ctype and ctype.startswith("multipart/"):
-            # Implementing robust multipart parsing in Lambda requires parsing; omitted in scaffold
-            raise InvalidRequest("Multipart upload not supported in scaffold; send JSON with base64 fields")
-        payload = json.loads(raw_body or "{}")
-        image_b64 = payload.get("image")
-        mask_b64 = payload.get("mask")
-        hom_b64 = payload.get("hom")
-        if not image_b64 or not mask_b64 or not hom_b64:
-            raise InvalidRequest("image, mask, hom are required")
-        image_bytes = base64.b64decode(image_b64)
-        img = svc.create_image(pid, image_bytes, mask_b64, hom_b64)
-        return response(201, img)
 
-    if pid and img_kw == "image" and iid and method == "PATCH":
-        payload = json.loads(raw_body or "{}")
-        mask_b64 = payload.get("mask")
-        hom_b64 = payload.get("hom")
-        img = svc.update_image(pid, iid, mask_b64, hom_b64)
-        return response(200, img)
+# --- /product/{productId}/format
 
-    if pid and img_kw == "image" and iid and method == "DELETE":
-        svc.delete_image(pid, iid)
-        return no_content()
 
-    raise InvalidRequest("Unsupported product route")
+@router.route("/{productId}/format", method="POST")
+def create_format(event: Mapping[str, Any], params: Mapping[str, str]) -> Created[Any]:
+    ctx = _ctx(event)
+    pid = UUID(params["productId"])
+    data = read_json_body(event)
+    req = CreateFormatRequest.model_validate(data)
+    return Created(svc.create_format(ctx, pid, req))
+
+
+# --- /product/{productId}/format/{formatId}
+
+
+@router.route("/{productId}/format/{formatId}", method="PATCH")
+def update_format(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+    ctx = _ctx(event)
+    pid = UUID(params["productId"])
+    fid = UUID(params["formatId"])
+    data = read_json_body(event)
+    req = UpdateFormatRequest.model_validate(data)
+    return OK(svc.update_format(ctx, pid, fid, req))
+
+
+@router.route("/{productId}/format/{formatId}", method="DELETE")
+def delete_format(event: Mapping[str, Any], params: Mapping[str, str]) -> NoContent:
+    ctx = _ctx(event)
+    pid = UUID(params["productId"])
+    fid = UUID(params["formatId"])
+    svc.delete_format(ctx, pid, fid)
+    return NoContent()
+
+
+# --- /product/{productId}/format/{formatId}/vendor
+
+
+@router.route("/{productId}/format/{formatId}/vendor", method="POST")
+def create_vendor(event: Mapping[str, Any], params: Mapping[str, str]) -> Created[Any]:
+    ctx = _ctx(event)
+    pid = UUID(params["productId"])
+    fid = UUID(params["formatId"])
+    data = read_json_body(event)
+    req = CreateVendorRequest.model_validate(data)
+    return Created(svc.create_vendor(ctx, pid, fid, req))
+
+
+# --- /product/{productId}/format/{formatId}/vendor/{vendorId}
+
+
+@router.route("/{productId}/format/{formatId}/vendor/{vendorId}", method="PATCH")
+def update_vendor(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+    ctx = _ctx(event)
+    pid = UUID(params["productId"])
+    fid = UUID(params["formatId"])
+    vid = UUID(params["vendorId"])
+    data = read_json_body(event)
+    req = UpdateVendorRequest.model_validate(data)
+    return OK(svc.update_vendor(ctx, pid, fid, vid, req))
+
+
+@router.route("/{productId}/format/{formatId}/vendor/{vendorId}", method="DELETE")
+def delete_vendor(event: Mapping[str, Any], params: Mapping[str, str]) -> NoContent:
+    ctx = _ctx(event)
+    pid = UUID(params["productId"])
+    fid = UUID(params["formatId"])
+    vid = UUID(params["vendorId"])
+    svc.delete_vendor(ctx, pid, fid, vid)
+    return NoContent()
+
+
+# --- /product/{productId}/image
+
+
+@router.route("/{productId}/image", method="POST")
+def upload_image(event: Mapping[str, Any], params: Mapping[str, str]) -> Created[Any]:
+    ctx = _ctx(event)
+    pid = UUID(params["productId"])
+    data = read_json_body(event)
+
+    image_b64 = data.get("image")
+    mask_b64 = data.get("mask")
+    hom_b64 = data.get("hom")
+    if not image_b64 or not mask_b64 or not hom_b64:
+        raise BadRequest("image, mask, hom are required")
+
+    image_bytes = base64.b64decode(image_b64)
+    req = ImageUploadRequest(image_bytes=image_bytes, mask=mask_b64, hom=hom_b64)
+    return Created(svc.upload_image(ctx, pid, req))
+
+
+# --- /product/{productId}/image/{imageId}
+
+
+@router.route("/{productId}/image/{imageId}", method="PATCH")
+def update_image(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+    ctx = _ctx(event)
+    pid = UUID(params["productId"])
+    iid = UUID(params["imageId"])
+    data = read_json_body(event)
+    req = ImageUpdateRequest.model_validate(data)
+    return OK(svc.update_image(ctx, pid, iid, req))
+
+
+@router.route("/{productId}/image/{imageId}", method="DELETE")
+def delete_image(event: Mapping[str, Any], params: Mapping[str, str]) -> NoContent:
+    ctx = _ctx(event)
+    pid = UUID(params["productId"])
+    iid = UUID(params["imageId"])
+    svc.delete_image(ctx, pid, iid)
+    return NoContent()
+
+
+def lambda_handler(event, context):
+    return router.dispatch(event)

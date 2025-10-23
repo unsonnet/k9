@@ -55,8 +55,12 @@ class UserService:
     Mirrors provider contract and matches product/report/auth service patterns.
     """
 
-    def __init__(self, provider: UserDBProvider):
-        self.provider = provider
+    provider: UserDBProvider
+
+    def __init__(self):
+        from .provider import _NoopUserDBProvider
+
+        self.provider = _NoopUserDBProvider()
 
     # ─────────── Helpers ───────────
     @staticmethod

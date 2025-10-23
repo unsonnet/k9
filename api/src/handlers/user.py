@@ -1,65 +1,89 @@
 from __future__ import annotations
 
-import json
-import re
-from typing import Any, Dict
+from typing import Any, Mapping
+from uuid import UUID
 
-from models.api import CreateUserRequest, PasswordUpdateRequest, UpdateUserRequest
-from services.service import UsersService
-from utils.auth import get_auth_claims
-from utils.http import Forbidden, InvalidRequest, Unauthorized, no_content, response
+from utils.routing import Router
+from utils.http import (
+    OK,
+    Created,
+    NoContent,
+    BadRequest,
+    read_json_body,
+    read_bearer_token,
+    read_query,
+)
+from models.common import AuthContext
+from models.user import (
+    CreateUserRequest,
+    ListUsersParams,
+    UpdateUserRequest,
+    UpdatePasswordRequest,
+)
+from services.user.service import UserService
+
+router = Router(prefix="/user")
+svc = UserService()
 
 
-svc = UsersService()
+def _ctx(event: Mapping[str, Any]) -> AuthContext:
+    token = read_bearer_token(event)
+    if not token:
+        raise BadRequest("Missing Authorization header")
+    return AuthContext(bearerToken=token)
 
 
-def handle_user(event: Dict[str, Any]) -> Dict[str, Any]:
-    path = event.get("rawPath") or event.get("path", "")
-    method = (event.get("requestContext", {}).get("http", {}) or {}).get("method") or event.get("httpMethod")
-    claims = get_auth_claims(event, expected_typ="access")
-    # Simple role check: expecting claim 'role' (Cognito custom claim or local token)
-    role = claims.get("role", "user")
+@router.route("", method="GET")
+def list_users(event: Mapping[str, Any]) -> OK[Any]:
+    ctx = _ctx(event)
+    qp = read_query(event)
+    params = ListUsersParams(
+        limit=int(qp["limit"]) if qp.get("limit") else None,
+        nextToken=qp.get("nextToken"),
+    )
+    return OK(svc.list_users(ctx, params))
 
-    m = re.fullmatch(r"/user(?:/([0-9a-fA-F-]+)(?:/(password))?)?", path)
-    if not m:
-        raise InvalidRequest("Invalid user route")
-    uid, pw_kw = m.groups()
 
-    qp = event.get("queryStringParameters") or {}
-    if path == "/user" and method == "GET":
-        if role != "admin":
-            raise Forbidden("Insufficient permissions")
-        limit = int(qp.get("limit", "25"))
-        next_token = qp.get("nextToken")
-        items, nt = svc.list(limit, next_token)
-        return response(200, {"total": len(items), "nextToken": nt, "users": items})
+@router.route("", method="POST")
+def create_user(event: Mapping[str, Any]) -> Created[Any]:
+    ctx = _ctx(event)
+    data = read_json_body(event)
+    req = CreateUserRequest.model_validate(data)
+    return Created(svc.create_user(ctx, req))
 
-    body = json.loads((event.get("body") or "{}"))
-    if path == "/user" and method == "POST":
-        if role != "admin":
-            raise Forbidden("Insufficient permissions")
-        req = CreateUserRequest.model_validate(body)
-        item = svc.create(req.username, req.email, req.role, req.preferences)
-        return response(201, item)
 
-    if uid and not pw_kw:
-        if method == "GET":
-            item = svc.get(uid)
-            return response(200, item)
-        if method == "PATCH":
-            req = UpdateUserRequest.model_validate(body)
-            updates = req.model_dump(exclude_none=True)
-            item = svc.update(uid, updates)
-            return response(200, item)
-        if method == "DELETE":
-            if role != "admin":
-                raise Forbidden("Insufficient permissions")
-            svc.delete(uid)
-            return no_content()
+@router.route("/{userId}", method="GET")
+def get_user(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+    ctx = _ctx(event)
+    uid = UUID(params["userId"])
+    return OK(svc.get_user(ctx, uid))
 
-    if uid and pw_kw == "password" and method == "PATCH":
-        _ = PasswordUpdateRequest.model_validate(body)  # validation only; not stored here
-        # In a real system, verify current password and update in IdP
-        return no_content()
 
-    raise InvalidRequest("Unsupported user route")
+@router.route("/{userId}", method="PATCH")
+def update_user(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+    ctx = _ctx(event)
+    uid = UUID(params["userId"])
+    data = read_json_body(event)
+    req = UpdateUserRequest.model_validate(data)
+    return OK(svc.update_user(ctx, uid, req))
+
+
+@router.route("/{userId}", method="DELETE")
+def delete_user(event: Mapping[str, Any], params: Mapping[str, str]) -> NoContent:
+    ctx = _ctx(event)
+    uid = UUID(params["userId"])
+    svc.delete_user(ctx, uid)
+    return NoContent()
+
+
+@router.route("/{userId}/password", method="PATCH")
+def update_password(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+    ctx = _ctx(event)
+    uid = UUID(params["userId"])
+    data = read_json_body(event)
+    req = UpdatePasswordRequest.model_validate(data)
+    return OK(svc.update_password(ctx, uid, req))
+
+
+def lambda_handler(event, context):
+    return router.dispatch(event)

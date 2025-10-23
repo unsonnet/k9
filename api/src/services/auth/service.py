@@ -51,8 +51,12 @@ class AuthService:
     Mirrors provider contract and matches product/report/user service patterns.
     """
 
-    def __init__(self, provider: AuthProvider):
-        self.provider = provider
+    provider: AuthProvider
+
+    def __init__(self):
+        from .provider import _NoopAuthProvider
+
+        self.provider = _NoopAuthProvider()
 
     # ─────────── Helpers ───────────
     @staticmethod

@@ -56,7 +56,6 @@ from .provider import (
     ProductDBProvider,
     ImageDBProvider,
     EmbeddingIndexProvider,
-    NoopEmbeddingIndexProvider,
 )
 
 
@@ -70,15 +69,16 @@ class ProductService:
     Provider owns IDs for products and images; service owns IDs for formats and vendors.
     """
 
-    def __init__(
-        self,
-        db: ProductDBProvider,
-        images: ImageDBProvider,
-        embed_index: EmbeddingIndexProvider | None = None,
-    ):
-        self.db = db
-        self.images = images
-        self.embed = embed_index or NoopEmbeddingIndexProvider()
+    db: ProductDBProvider
+    images: ImageDBProvider
+    embed: EmbeddingIndexProvider
+
+    def __init__(self):
+        from .provider import _NoopImageDB, _NoopProductDB, NoopEmbeddingIndexProvider
+
+        self.db = _NoopProductDB()
+        self.images = _NoopImageDB()
+        self.embed = NoopEmbeddingIndexProvider()
 
     # ──────────────────────────── Helpers ────────────────────────────
     @staticmethod

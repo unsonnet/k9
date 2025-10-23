@@ -52,15 +52,20 @@ class ReportService:
     Mirrors provider contract and matches user/product/auth service patterns.
     """
 
-    def __init__(
-        self,
-        provider: ReportDBProvider,
-        products: ProductResolver,
-        users: UserResolver,
-    ):
-        self.provider = provider
-        self.products = products
-        self.users = users
+    provider: ReportDBProvider
+    products: ProductResolver
+    users: UserResolver
+
+    def __init__(self):
+        from .provider import (
+            _NoopProductResolver,
+            _NoopReportDBProvider,
+            _NoopUserResolver,
+        )
+
+        self.provider = _NoopReportDBProvider()
+        self.products = _NoopProductResolver()
+        self.users = _NoopUserResolver()
 
     # ─────────── Helpers ───────────
     @staticmethod

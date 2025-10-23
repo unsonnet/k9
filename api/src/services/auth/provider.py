@@ -35,3 +35,25 @@ class AuthProvider(ABC):
     def reset_password(
         self, username: UsernameStr, session: SessionStr, new_password: PasswordStr
     ) -> None: ...
+
+
+# Default no-op provider used by service constructors unless overridden
+class _NoopAuthProvider(AuthProvider):  # pragma: no cover - placeholder
+    def start_password_reset(self, username: UsernameStr) -> None:  # type: ignore[override]
+        raise NotImplementedError("AuthProvider not configured")
+
+    def authenticate(
+        self, username: UsernameStr, password: PasswordStr
+    ) -> AuthTokens | AuthChallenge:  # type: ignore[override]
+        raise NotImplementedError("AuthProvider not configured")
+
+    def logout(self, bearer_token: TokenStr) -> None:  # type: ignore[override]
+        raise NotImplementedError("AuthProvider not configured")
+
+    def refresh(self, username: UsernameStr, refresh_token: TokenStr) -> AuthTokens:  # type: ignore[override]
+        raise NotImplementedError("AuthProvider not configured")
+
+    def reset_password(
+        self, username: UsernameStr, session: SessionStr, new_password: PasswordStr
+    ) -> None:  # type: ignore[override]
+        raise NotImplementedError("AuthProvider not configured")

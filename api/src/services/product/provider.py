@@ -107,3 +107,32 @@ class NoopEmbeddingIndexProvider(EmbeddingIndexProvider):
     def delete_product_embedding(self, *_, **__): ...
     def upsert_image_local_embeddings(self, *_, **__): ...
     def delete_image_local_embeddings(self, *_, **__): ...
+
+
+# Default underscored no-ops for DB and Images
+class _NoopProductDB(ProductDBProvider):  # pragma: no cover - placeholder
+    def get_product(self, *_, **__) -> StoredProduct:  # type: ignore[override]
+        raise NotImplementedError("ProductDBProvider not configured")
+
+    def post_product(self, *_, **__) -> StoredProduct:  # type: ignore[override]
+        raise NotImplementedError("ProductDBProvider not configured")
+
+    def put_product(self, *_, **__) -> StoredProduct:  # type: ignore[override]
+        raise NotImplementedError("ProductDBProvider not configured")
+
+    def delete_product(self, *_, **__) -> None:  # type: ignore[override]
+        raise NotImplementedError("ProductDBProvider not configured")
+
+
+class _NoopImageDB(ImageDBProvider):  # pragma: no cover - placeholder
+    def post_image(self, *_, **__) -> UUID:  # type: ignore[override]
+        raise NotImplementedError("ImageDBProvider not configured")
+
+    def put_image_metadata(self, *_, **__) -> None:  # type: ignore[override]
+        raise NotImplementedError("ImageDBProvider not configured")
+
+    def get_url(self, *_, **__) -> AnyUrl:  # type: ignore[override]
+        raise NotImplementedError("ImageDBProvider not configured")
+
+    def delete(self, *_, **__) -> None:  # type: ignore[override]
+        raise NotImplementedError("ImageDBProvider not configured")
