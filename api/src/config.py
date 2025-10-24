@@ -9,7 +9,7 @@ import boto3
 
 @dataclass(frozen=True)
 class Settings:
-    stage: str = os.getenv("STAGE", "dev")  # "dev" | "prod"
+    platform: str = os.getenv("PLATFORM", "local")  # "local" | "aws"
     aws_region: str = os.getenv(
         "AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "us-east-1")
     )

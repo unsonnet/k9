@@ -1,4 +1,4 @@
-# ``forgot``
+# ``forget``
 
 | Field | Type | Required | Description |
 |-------|------|-----------|--------------|

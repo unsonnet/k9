@@ -2,12 +2,17 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from utils.http import BadRequest, HttpResponse, read_bearer_token, read_json_body
+from utils.http import (
+    Unauthorized,
+    HttpResponse,
+    read_json_body,
+)
 from utils.routing import Router
 from models.auth import (
     AuthContext,
-    ForgotRequest,
+    ForgetRequest,
     LoginRequest,
+    LogoutRequest,
     RefreshRequest,
     ResetRequest,
 )
@@ -31,11 +36,11 @@ def refresh(event: Mapping[str, Any]) -> HttpResponse[Any]:
     return svc.refresh(req)
 
 
-@router.route("/forgot", method="POST")
-def forgot(event: Mapping[str, Any]) -> HttpResponse[Any]:
+@router.route("/forget", method="POST")
+def forget(event: Mapping[str, Any]) -> HttpResponse[Any]:
     data = read_json_body(event)
-    req = ForgotRequest.model_validate(data)
-    return svc.forgot(req)
+    req = ForgetRequest.model_validate(data)
+    return svc.forget(req)
 
 
 @router.route("/reset", method="POST")
@@ -47,10 +52,9 @@ def reset(event: Mapping[str, Any]) -> HttpResponse[Any]:
 
 @router.route("/logout", method="POST")
 def logout(event: Mapping[str, Any]) -> HttpResponse[Any]:
-    token = read_bearer_token(event)
-    if not token:
-        raise BadRequest("Missing Authorization header")
-    return svc.logout(AuthContext(bearerToken=token))
+    data = read_json_body(event)
+    req = LogoutRequest.model_validate(data)
+    return svc.logout(req)
 
 
 def lambda_handler(event, context):

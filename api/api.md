@@ -3,7 +3,7 @@
 # Table of Contents
 
 - [Auth API](#auth-api)
-  - [POST /auth/forgot](#post-authforgot)
+  - [POST /auth/forget](#post-authforget)
   - [POST /auth/login](#post-authlogin)
   - [POST /auth/logout](#post-authlogout)
   - [POST /auth/refresh](#post-authrefresh)
@@ -46,12 +46,12 @@
 
 ### Table of Contents
 
-- [POST /auth/forgot](#post-authforgot)
-  - [Request](#post-authforgot-request)
-  - [Response 204](#post-authforgot-response-204)
-  - [Response 400](#post-authforgot-response-400)
-  - [Response 404](#post-authforgot-response-404)
-  - [Response 500](#post-authforgot-response-500)
+- [POST /auth/forget](#post-authforget)
+  - [Request](#post-authforget-request)
+  - [Response 204](#post-authforget-response-204)
+  - [Response 400](#post-authforget-response-400)
+  - [Response 404](#post-authforget-response-404)
+  - [Response 500](#post-authforget-response-500)
 - [POST /auth/login](#post-authlogin)
   - [Request](#post-authlogin-request)
   - [Response 200](#post-authlogin-response-200)
@@ -84,12 +84,12 @@
 
 
 
-## POST /auth/forgot
+## POST /auth/forget
 
 
 > Request password reset for user account.
 
-<a id="post-authforgot-request"></a>
+<a id="post-authforget-request"></a>
 ### Request
 
 
@@ -103,25 +103,25 @@
 > |:------|:-----|:--------:|:------------|
 > | **username** | `string` | ✅ | User name |
 
-<a id="post-authforgot-response-204"></a>
+<a id="post-authforget-response-204"></a>
 ### Response 204
 
 
 > No content — password reset link sent to email
 
-<a id="post-authforgot-response-400"></a>
+<a id="post-authforget-response-400"></a>
 ### Response 400
 
 
 > Bad request — invalid request payload (`InvalidRequest`)
 
-<a id="post-authforgot-response-404"></a>
+<a id="post-authforget-response-404"></a>
 ### Response 404
 
 
 > Not found — user with email does not exist (`NotFound`)
 
-<a id="post-authforgot-response-500"></a>
+<a id="post-authforget-response-500"></a>
 ### Response 500
 
 

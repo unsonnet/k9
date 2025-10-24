@@ -1,17 +1,22 @@
 openapi: 3.1.0
 info:
   title: Auth API
-  version: 1.0.0
-  description: API for authentication and password management.
+  version: 1.0.1
+  description: >
+    API for authentication and password management.
+    Responses are standardized to support common identity provider workflows.
 
 servers:
   - url: /api
 
 paths:
-  /auth/forgot:
+  /auth/forget:
     post:
       summary: Request password reset
-      description: Request password reset for user account.
+      description: >
+        Initiates a password reset for a user account.
+        If the user exists, a reset code or link is sent via the configured delivery method.
+        Existing sessions or tokens may be invalidated.
       requestBody:
         required: true
         content:
@@ -22,17 +27,25 @@ paths:
               properties:
                 username:
                   type: string
-                  description: User name
+                  description: Username or login identifier.
       responses:
-        '204': { description: No content — password reset link sent to admin }
-        '400': { description: Bad request — invalid request payload }
-        '404': { description: Not found — user does not exist }
-        '500': { description: Internal server error }
+        '204':
+          description: No content — password reset initiated successfully.
+        '400':
+          description: Bad request — missing or malformed input.
+        '404':
+          description: Not found — user does not exist.
+        '429':
+          description: Too many requests — rate limit exceeded.
+        '500':
+          description: Internal server error.
 
   /auth/login:
     post:
       summary: User login
-      description: Authenticate user with username and password.
+      description: >
+        Authenticates a user using a username and password.
+        Returns access and refresh tokens, or a challenge if additional steps are required.
       requestBody:
         required: true
         content:
@@ -41,52 +54,70 @@ paths:
               type: object
               required: [username, password]
               properties:
-                username: { type: string, description: User name }
-                password: { type: string, description: User password }
+                username:
+                  type: string
+                  description: User’s login name.
+                password:
+                  type: string
+                  description: User’s password.
       responses:
         '200':
-          description: OK — user logged in
+          description: OK — authentication successful.
           content:
             application/json:
               schema:
                 type: object
                 required: [user, accessToken, refreshToken, expiresIn]
                 properties:
-                  user: { type: string, format: uuid }
-                  accessToken: { type: string }
-                  refreshToken: { type: string }
-                  expiresIn: { type: integer }
+                  user:
+                    type: string
+                    format: uuid
+                    description: Unique user identifier.
+                  accessToken:
+                    type: string
+                    description: Access token (JWT or opaque).
+                  refreshToken:
+                    type: string
+                    description: Refresh token.
+                  expiresIn:
+                    type: integer
+                    description: Token expiration time in seconds.
         '202':
-          description: Accepted — new password required
+          description: Accepted — user must complete a follow-up authentication challenge.
           content:
             application/json:
               schema:
                 type: object
                 required: [username, challenge, session]
                 properties:
-                  username: { type: string }
-                  challenge: { type: string, enum: [NEW_PASSWORD_REQUIRED] }
-                  session: { type: string }
-        '400': { description: Invalid request payload }
-        '401': { description: Unauthorized — invalid credentials }
-        '404': { description: Not found — user does not exist }
-        '500': { description: Internal server error }
+                  username:
+                    type: string
+                    description: Username associated with the challenge.
+                  challenge:
+                    type: string
+                    enum: [NEW_PASSWORD_REQUIRED]
+                    description: Challenge type to be completed.
+                  session:
+                    type: string
+                    description: Session identifier for completing the challenge.
+        '400':
+          description: Invalid request payload.
+        '401':
+          description: Unauthorized — invalid credentials.
+        '403':
+          description: Forbidden — user disabled or not verified.
+        '404':
+          description: Not found — user does not exist.
+        '429':
+          description: Too many requests — login attempts exceeded.
+        '500':
+          description: Internal server error.
 
   /auth/logout:
     post:
       summary: Logout user
-      description: Logout user and invalidate tokens.
-      security:
-        - bearerAuth: []
-      responses:
-        '204': { description: No content — user logged out }
-        '401': { description: Unauthorized — missing or invalid Authorization header }
-        '500': { description: Internal server error }
-
-  /auth/refresh:
-    post:
-      summary: Refresh token
-      description: Refresh access token using refresh token.
+      description: >
+        Logs out a user and invalidates all active sessions or refresh tokens associated with their account.
       requestBody:
         required: true
         content:
@@ -95,30 +126,79 @@ paths:
               type: object
               required: [username, refreshToken]
               properties:
-                username: { type: string }
-                refreshToken: { type: string }
+                username:
+                  type: string
+                  description: Username of the account to log out.
+                refreshToken:
+                  type: string
+                  description: Refresh token to invalidate.
+      responses:
+        '204':
+          description: No content — user logged out successfully.
+        '400':
+          description: Invalid request payload.
+        '401':
+          description: Unauthorized — invalid or expired token.
+        '500':
+          description: Internal server error.
+
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      description: >
+        Issues a new access token using a valid refresh token.
+        Returns a refreshed set of credentials if successful.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, refreshToken]
+              properties:
+                username:
+                  type: string
+                  description: Username associated with the token.
+                refreshToken:
+                  type: string
+                  description: Valid refresh token.
       responses:
         '200':
-          description: OK — token refreshed
+          description: OK — new tokens issued.
           content:
             application/json:
               schema:
                 type: object
                 required: [user, accessToken, refreshToken, expiresIn]
                 properties:
-                  user: { type: string, format: uuid }
-                  accessToken: { type: string }
-                  refreshToken: { type: string }
-                  expiresIn: { type: integer }
-        '400': { description: Invalid request payload }
-        '404': { description: Not found — user does not exist }
-        '410': { description: Gone — expired refresh token }
-        '500': { description: Internal server error }
+                  user:
+                    type: string
+                    format: uuid
+                    description: Unique user identifier.
+                  accessToken:
+                    type: string
+                    description: New access token.
+                  refreshToken:
+                    type: string
+                    description: Refresh token (new or reused).
+                  expiresIn:
+                    type: integer
+                    description: Token expiration time in seconds.
+        '400':
+          description: Invalid request payload or malformed token.
+        '401':
+          description: Unauthorized — invalid refresh token.
+        '410':
+          description: Gone — refresh token has expired or been revoked.
+        '500':
+          description: Internal server error.
 
   /auth/reset:
     post:
       summary: Reset password
-      description: Reset user password.
+      description: >
+        Completes a password reset using a verification code or active session.
+        This is typically used after a password reset request or challenge response.
       requestBody:
         required: true
         content:
@@ -127,19 +207,25 @@ paths:
               type: object
               required: [username, session, newPassword]
               properties:
-                username: { type: string }
-                session: { type: string }
-                newPassword: { type: string }
+                username:
+                  type: string
+                  description: Username associated with the account.
+                session:
+                  type: string
+                  description: Verification code or active session identifier.
+                newPassword:
+                  type: string
+                  description: New password to be set.
       responses:
-        '204': { description: No content — password reset }
-        '400': { description: Invalid request payload }
-        '404': { description: Not found — user does not exist }
-        '410': { description: Gone — expired verification code or session token }
-        '500': { description: Internal server error }
-
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+        '204':
+          description: No content — password reset successfully.
+        '400':
+          description: Invalid request payload or weak password.
+        '404':
+          description: Not found — user does not exist.
+        '410':
+          description: Gone — expired or invalid verification code or session.
+        '429':
+          description: Too many requests — reset attempts exceeded.
+        '500':
+          description: Internal server error.

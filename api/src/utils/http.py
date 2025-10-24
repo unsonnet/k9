@@ -97,6 +97,10 @@ class Gone(HttpError):
     code, status = "Gone", 410
 
 
+class TooManyRequests(HttpError):
+    code, status = "TooManyRequests", 429
+
+
 # 5xx
 class InternalServerError(HttpError):
     code, status = "InternalServerError", 500

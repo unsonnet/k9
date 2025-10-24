@@ -18,7 +18,7 @@ Docs: see `api.md` (Markdown reference) or `docs/api.html` (HTML reference).
 - **DynamoDB** — `ProductsTable`, `UsersTable`, `ReportsTable` (GSI: `author-index`)
 - **S3** — stores normalized product images
 - **OpenSearch** — optional; configurable endpoint
-- **Auth** — local JWT (HS256) or Cognito (RS256)
+- **Auth** — Local (dev) or AWS Cognito (when configured)
 
 ### Key Files
 | File | Purpose |
@@ -192,10 +192,13 @@ You can override them post-deployment using `aws lambda update-function-configur
 | `IMAGES_BUCKET` | S3 bucket for images |
 | `OPENSEARCH_ENDPOINT` | Optional OpenSearch endpoint |
 | `OPENSEARCH_INDEX` | Default: `products` |
-| `AUTH_MODE` | `local` or `cognito` |
-| `JWT_SECRET` | **must be overridden in production** |
-| `JWT_ISSUER`, `JWT_AUDIENCE` | JWT claims |
-| `ACCESS_TOKEN_TTL`, `REFRESH_TOKEN_TTL` | Token lifetimes (seconds) |
+| `STAGE` | `dev` (default) or `prod`; affects provider defaults |
+| `JWT_SECRET` | Used by local dev auth; override locally if needed |
+| `JWT_ISSUER`, `JWT_AUDIENCE` | Local dev JWT claims |
+| `ACCESS_TOKEN_TTL`, `REFRESH_TOKEN_TTL` | Local dev token lifetimes (seconds) |
+| `COGNITO_USER_POOL_ID` | Use Cognito provider when set (with client id) |
+| `COGNITO_CLIENT_ID` | Cognito App Client ID |
+| `COGNITO_CLIENT_SECRET` | Optional — for secret-enabled app clients |
 
 ---
 

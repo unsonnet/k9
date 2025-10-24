@@ -15,7 +15,7 @@ from .common import PasswordStr, SessionStr, TokenStr, UsernameStr
 # ──────────────────────────────────────────────────────────────────────────────
 # Request & Response Models
 # ──────────────────────────────────────────────────────────────────────────────
-class ForgotRequest(BaseModel):
+class ForgetRequest(BaseModel):
     username: UsernameStr
 
 
@@ -57,6 +57,19 @@ class ResetRequest(BaseModel):
     username: UsernameStr
     session: SessionStr
     newPassword: PasswordStr
+
+
+class LogoutRequest(BaseModel):
+    """Logout request body per OpenAPI: requires username and refreshToken.
+
+    Note: Service will prefer this refresh token when provided, but for
+    backward compatibility the access token from the Authorization header
+    may still be used by the service/provider if no refreshToken is supplied
+    by the caller.
+    """
+
+    username: UsernameStr
+    refreshToken: TokenStr
 
 
 # ──────────────────────────────────────────────────────────────────────────────

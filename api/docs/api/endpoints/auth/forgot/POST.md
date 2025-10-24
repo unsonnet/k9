@@ -1,4 +1,4 @@
-# POST `/auth/forgot`
+# POST `/auth/forget`
 
 Request password reset for user account.
 
@@ -8,7 +8,7 @@ Request password reset for user account.
 
 <!-- Schema Begin -->
 <!-- import auth -->
-``auth.forgot``
+``auth.forget``
 <!-- Schema End -->
 
 ## Response 204

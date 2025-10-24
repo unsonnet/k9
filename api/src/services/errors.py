@@ -12,10 +12,16 @@ to typed HTTP responses in utils.http.
 from __future__ import annotations
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Base Domain Error
+# ──────────────────────────────────────────────────────────────────────────────
 class DomainError(Exception):
     """Base class for all domain-level errors."""
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Generic / Common Errors
+# ──────────────────────────────────────────────────────────────────────────────
 class DomainUnauthorized(DomainError):
     """Operation requires authentication or lacks valid credentials."""
 
@@ -33,18 +39,31 @@ class DomainConflict(DomainError):
 
 
 class DomainInvariantViolation(DomainError):
-    """A domain invariant was violated (unexpected/illegal state)."""
+    """A domain invariant was violated (unexpected or illegal state)."""
 
 
-# Auth-specific domain errors
+# ──────────────────────────────────────────────────────────────────────────────
+# Auth-Specific Domain Errors
+# ──────────────────────────────────────────────────────────────────────────────
 class DomainInvalidCredentials(DomainError):
-    """Auth-specific: provided credentials are invalid."""
+    """Authentication failed due to invalid credentials."""
 
 
 class DomainExpiredToken(DomainError):
-    """Auth-specific: token is expired or otherwise invalid."""
+    """Token, session, or verification code is expired or invalid."""
 
 
+class DomainUserDisabled(DomainError):
+    """User account is disabled, locked, or not verified."""
+
+
+class DomainRateLimited(DomainError):
+    """Request rate exceeded — caller should retry later."""
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Exports
+# ──────────────────────────────────────────────────────────────────────────────
 __all__ = [
     # base
     "DomainError",
@@ -57,4 +76,6 @@ __all__ = [
     # auth-specific
     "DomainInvalidCredentials",
     "DomainExpiredToken",
+    "DomainUserDisabled",
+    "DomainRateLimited",
 ]

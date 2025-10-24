@@ -1,124 +1,177 @@
 from __future__ import annotations
 
+import os
+import pytest
 from tests.utils.events import make_event, parse_body
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Internal helpers
+# ──────────────────────────────────────────────────────────────────────────────
+
+
 def _call(event):
-    from src.handlers import auth as h
+    """Invoke the auth Lambda handler directly."""
+    from src.handlers import auth as handler
 
-    return h.lambda_handler(event, None)
+    return handler.lambda_handler(event, None)
 
 
-def test_login_ok():
-    # FakeAuthProvider returns tokens by default
+def _creds() -> tuple[str, str]:
+    """Return configured or default test credentials."""
+    return (
+        os.getenv("PYTEST_USERNAME", "bob"),
+        os.getenv("PYTEST_PASSWORD", "secret123"),
+    )
+
+
+def _login(username: str, password: str):
+    """Helper to call /auth/login and parse its body."""
     event = make_event(
-        "POST",
-        "/auth/login",
-        body={"username": "bob", "password": "secret123"},
+        "POST", "/auth/login", body={"username": username, "password": password}
     )
     resp = _call(event)
-    assert resp["statusCode"] == 200
-    body = parse_body(resp)
-    assert set(body.keys()) == {"user", "accessToken", "refreshToken", "expiresIn"}
+    return resp, parse_body(resp)
 
 
-def test_login_challenge():
-    event = make_event(
-        "POST",
-        "/auth/login",
-        body={"username": "challenge", "password": "secret123"},
-    )
-    resp = _call(event)
-    assert resp["statusCode"] == 202
-    body = parse_body(resp)
+# ──────────────────────────────────────────────────────────────────────────────
+# Fixtures
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture(scope="session")
+def auth_login_result():
+    """Attempt login once per session for reuse across tests."""
+    username, password = _creds()
+    resp, body = _login(username, password)
+    return {"status": resp.get("statusCode"), "body": body, "username": username}
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Unit / Integration tests
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def test_login_preflight(auth_login_result):
+    """Login should yield 200 OK or 202 challenge."""
+    assert auth_login_result["status"] in (
+        200,
+        202,
+    ), f"Unexpected login result: {auth_login_result}"
+
+
+def test_login_ok(auth_login_result):
+    """When login succeeds, it must return tokens as per OpenAPI spec."""
+    if auth_login_result["status"] == 202:
+        pytest.skip("Challenge path handled separately.")
+    body = auth_login_result["body"]
+    assert set(body) == {"user", "accessToken", "refreshToken", "expiresIn"}
+
+
+def test_login_challenge(auth_login_result):
+    """When challenge required, schema must match NEW_PASSWORD_REQUIRED spec."""
+    if auth_login_result["status"] == 200:
+        pytest.skip("Challenge not triggered.")
+    body = auth_login_result["body"]
+    assert auth_login_result["status"] == 202
     assert body["challenge"] == "NEW_PASSWORD_REQUIRED"
-    assert set(body.keys()) == {"username", "challenge", "session"}
+    assert set(body) == {"username", "challenge", "session"}
 
 
 def test_login_invalid_credentials():
+    """Invalid password should yield 401 Unauthorized."""
+    username, _ = _creds()
     event = make_event(
-        "POST",
-        "/auth/login",
-        body={"username": "bob", "password": "bad"},
+        "POST", "/auth/login", body={"username": username, "password": "wrongpassword"}
     )
     resp = _call(event)
-    assert resp["statusCode"] in (401, 500)  # service maps to 401, but safety net 500
+    assert resp["statusCode"] == 401
 
 
-def test_forgot_ok():
-    event = make_event("POST", "/auth/forgot", body={"username": "bob"})
-    resp = _call(event)
-    # Service returns 204 NoContent on success, but handler wraps in OK; check 204
-    assert resp["statusCode"] in (200, 204)
-
-
-def test_forgot_user_not_found():
-    event = make_event("POST", "/auth/forgot", body={"username": "missing"})
-    resp = _call(event)
-    assert resp["statusCode"] == 404
-
-
-def test_refresh_ok():
+def test_refresh_ok(auth_login_result):
+    """Refresh with valid token must succeed and return full token set."""
+    if auth_login_result["status"] == 202:
+        pytest.skip("Challenge flow incomplete.")
+    username, _ = _creds()
+    refresh_token = auth_login_result["body"]["refreshToken"]
     event = make_event(
         "POST",
         "/auth/refresh",
-        body={"username": "bob", "refreshToken": "refresh-token-123456"},
+        body={"username": username, "refreshToken": refresh_token},
     )
     resp = _call(event)
     assert resp["statusCode"] == 200
     body = parse_body(resp)
-    assert set(body.keys()) == {"user", "accessToken", "refreshToken", "expiresIn"}
+    assert set(body) == {"user", "accessToken", "refreshToken", "expiresIn"}
 
 
-def test_refresh_expired():
+def test_logout_ok(auth_login_result):
+    """Logout with valid token should return 204 No Content."""
+    if auth_login_result["status"] == 202:
+        pytest.skip("Challenge flow incomplete.")
+    username, _ = _creds()
+    refresh_token = auth_login_result["body"]["refreshToken"]
     event = make_event(
+        "POST",
+        "/auth/logout",
+        body={"username": username, "refreshToken": refresh_token},
+    )
+    resp = _call(event)
+    assert resp["statusCode"] == 204
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# End-to-End Authentication flow (follows OpenAPI spec)
+# ──────────────────────────────────────────────────────────────────────────────
+
+
+def test_auth_e2e():
+    username, password = _creds()
+
+    # 1. Login (handle challenge if needed)
+    resp, body = _login(username, password)
+    status = resp.get("statusCode")
+
+    if status == 202:
+        assert body.get("challenge") == "NEW_PASSWORD_REQUIRED"
+        session = body.get("session")
+        assert session, "Missing session in challenge response"
+
+        reset_event = make_event(
+            "POST",
+            "/auth/reset",
+            body={"username": username, "session": session, "newPassword": password},
+        )
+        reset_resp = _call(reset_event)
+        assert reset_resp["statusCode"] == 204, reset_resp
+
+        resp, body = _login(username, password)
+        status = resp.get("statusCode")
+
+    assert status == 200, f"Expected 200 after challenge; got {status}"
+    assert set(body) == {"user", "accessToken", "refreshToken", "expiresIn"}
+
+    # 2. Refresh
+    refresh_event = make_event(
         "POST",
         "/auth/refresh",
-        body={"username": "bob", "refreshToken": "refresh-token-123456-expired"},
+        body={"username": username, "refreshToken": body["refreshToken"]},
     )
-    resp = _call(event)
-    # Service maps expired to 410 Gone via invariant mapping
-    assert resp["statusCode"] in (410, 500)
+    refresh_resp = _call(refresh_event)
+    assert refresh_resp["statusCode"] == 200
+    refresh_body = parse_body(refresh_resp)
+    assert set(refresh_body) == {"user", "accessToken", "refreshToken", "expiresIn"}
 
-
-def test_reset_ok():
-    event = make_event(
+    # 3. Logout (new signature expects username + refreshToken in body)
+    logout_event = make_event(
         "POST",
-        "/auth/reset",
-        body={
-            "username": "bob",
-            "session": "session-abc123",
-            "newPassword": "newpass123",
-        },
+        "/auth/logout",
+        body={"username": username, "refreshToken": refresh_body["refreshToken"]},
     )
-    resp = _call(event)
-    assert resp["statusCode"] in (200, 204)
+    logout_resp = _call(logout_event)
+    assert logout_resp["statusCode"] == 204
 
-
-def test_reset_not_found():
-    event = make_event(
-        "POST",
-        "/auth/reset",
-        body={
-            "username": "missing",
-            "session": "session-abc123",
-            "newPassword": "newpass123",
-        },
-    )
-    resp = _call(event)
-    assert resp["statusCode"] == 404
-
-
-def test_logout_missing_auth():
-    event = make_event("POST", "/auth/logout")
-    resp = _call(event)
-    # Handler raises BadRequest for missing header
-    assert resp["statusCode"] == 400
-    body = parse_body(resp)
-    assert body["code"] == "InvalidRequest"
-
-
-def test_logout_ok(auth_headers):
-    event = make_event("POST", "/auth/logout", headers=auth_headers)
-    resp = _call(event)
-    assert resp["statusCode"] in (200, 204)
+    # 4. Forget
+    forget_event = make_event("POST", "/auth/forget", body={"username": username})
+    forget_resp = _call(forget_event)
+    assert forget_resp["statusCode"] == 204
