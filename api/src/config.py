@@ -16,7 +16,6 @@ class Settings:
 
     # Data stores
     products_table: str = os.getenv("PRODUCTS_TABLE", "k9_products")
-    users_table: str = os.getenv("USERS_TABLE", "k9_users")
     reports_table: str = os.getenv("REPORTS_TABLE", "k9_reports")
     images_bucket: str = os.getenv("IMAGES_BUCKET", "k9-images")
 

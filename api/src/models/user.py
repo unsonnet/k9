@@ -10,7 +10,14 @@ from uuid import UUID
 from pydantic import BaseModel
 from pydantic.types import NonNegativeInt, PositiveInt
 
-from .common import PrefValueStr, RoleStr, UsernameStr, NonEmptyStr, PasswordStr
+from .common import (
+    PrefValueStr,
+    RoleStr,
+    UsernameStr,
+    NonEmptyStr,
+    PasswordStr,
+    PhoneStr,
+)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -19,6 +26,8 @@ from .common import PrefValueStr, RoleStr, UsernameStr, NonEmptyStr, PasswordStr
 class Profile(BaseModel):
     id: UUID
     username: UsernameStr
+    name: NonEmptyStr
+    phone: PhoneStr
     role: RoleStr
     preferences: Mapping[str, PrefValueStr]
 
@@ -36,6 +45,12 @@ class ListUsersParams(BaseModel):
     nextToken: NonEmptyStr | None = None
 
 
+class ListUsersResult(BaseModel):
+    total: NonNegativeInt
+    users: Sequence[StoredProfile]
+    nextToken: NonEmptyStr | None = None
+
+
 class ListUsersOKBody(BaseModel):
     total: NonNegativeInt
     users: Sequence[Profile]
@@ -44,16 +59,25 @@ class ListUsersOKBody(BaseModel):
 
 class CreateUserRequest(BaseModel):
     username: UsernameStr
+    name: NonEmptyStr
+    phone: PhoneStr
     role: RoleStr
     preferences: Mapping[str, PrefValueStr] | None = None
 
 
+class CreateUserResult(BaseModel):
+    username: UsernameStr
+    tempPassword: PasswordStr
+
+
 class UpdateUserRequest(BaseModel):
     username: UsernameStr | None = None
+    name: NonEmptyStr | None = None
+    phone: PhoneStr | None = None
     role: RoleStr | None = None
     preferences: Mapping[str, PrefValueStr | None] | None = None
 
 
 class UpdatePasswordRequest(BaseModel):
-    currentPassword: NonEmptyStr
+    currentPassword: NonEmptyStr | None = None
     newPassword: PasswordStr

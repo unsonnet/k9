@@ -113,20 +113,27 @@ class CognitoAuthProvider(AuthProvider):
         return base64.b64encode(digest).decode()
 
     @staticmethod
-    def _decode_jwt_sub(token: str) -> UUID | None:
-        """Decode JWT payload (no verification) to extract `sub` as UUID."""
+    def _decode_jwt_sub(token: str) -> UUID:
+        """Decode JWT payload (no verification) to extract `sub` as UUID.
+        Raises DomainInvariantViolation if not found or invalid.
+        """
         try:
             parts = token.split(".")
             if len(parts) < 2:
-                return None
+                raise DomainInvariantViolation("Invalid JWT: missing payload.")
+
             payload_bytes = base64.urlsafe_b64decode(
                 parts[1] + "=" * (-len(parts[1]) % 4)
             )
             payload = json.loads(payload_bytes)
+
             sub = payload.get("sub")
-            return UUID(str(sub)) if sub else None
-        except Exception:
-            return None
+            if not sub:
+                raise DomainInvariantViolation("JWT is missing `sub` claim.")
+
+            return UUID(str(sub))
+        except (ValueError, json.JSONDecodeError, KeyError) as e:
+            raise DomainInvariantViolation(f"Failed to decode JWT `sub`: {e}")
 
     def _handle_error(self, e: Exception, msg: str) -> NoReturn:
         """Translate Cognito SDK exceptions to domain-level errors."""
@@ -187,7 +194,7 @@ class CognitoAuthProvider(AuthProvider):
 
             auth = resp.get("AuthenticationResult", {})
             id_token = auth.get("IdToken", "")
-            user = self._decode_jwt_sub(id_token) or UUID(int=0)
+            user = self._decode_jwt_sub(id_token)
 
             return AuthTokens(
                 user=user,
@@ -224,7 +231,7 @@ class CognitoAuthProvider(AuthProvider):
 
             auth = resp.get("AuthenticationResult", {})
             id_token = auth.get("IdToken", "")
-            user = self._decode_jwt_sub(id_token) or UUID(int=0)
+            user = self._decode_jwt_sub(id_token)
 
             return AuthTokens(
                 user=user,

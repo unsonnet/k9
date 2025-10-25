@@ -1,8 +1,10 @@
 openapi: 3.1.0
 info:
   title: User API
-  version: 1.0.0
-  description: API for managing users, including creation, retrieval, updates, deletion, and password management.
+  version: 1.0.1
+  description: >
+    User management API including creation, retrieval, updates, deletion, 
+    and password updates for responsible identity administration.
 
 servers:
   - url: /api
@@ -11,16 +13,21 @@ paths:
   /user:
     get:
       summary: List users
-      description: List users (paginated). Only for administrator role.
+      description: >
+        List users with pagination support. Requires administrative privileges.
       security:
         - bearerAuth: []
       parameters:
         - name: limit
           in: query
-          schema: { type: integer }
+          schema:
+            type: integer
+            minimum: 1
+            default: 25
         - name: nextToken
           in: query
-          schema: { type: string }
+          schema:
+            type: string
       responses:
         '200':
           description: OK — users listed
@@ -30,19 +37,25 @@ paths:
                 type: object
                 required: [total, users]
                 properties:
-                  total: { type: integer }
-                  nextToken: { type: string }
+                  total:
+                    type: integer
+                  nextToken:
+                    type: string
+                    nullable: true
                   users:
                     type: array
                     items:
                       $ref: '#/components/schemas/Profile'
-        '401': { description: Unauthorized }
-        '403': { description: Forbidden }
+        '400': { description: Invalid query parameters }
+        '401': { description: Unauthorized — missing or invalid authentication }
+        '403': { description: Forbidden — insufficient permissions }
+        '429': { description: Too many requests — rate limit exceeded }
         '500': { description: Internal server error }
 
     post:
       summary: Create user
-      description: Create a new user. Only for administrator role.
+      description: >
+        Create a new user. Requires administrative privileges.
       security:
         - bearerAuth: []
       requestBody:
@@ -51,34 +64,58 @@ paths:
           application/json:
             schema:
               type: object
-              required: [username, role]
+              required: [username, name, phone, role]
               properties:
-                username: { type: string }
-                role: { type: string }
+                username:
+                  type: string
+                name:
+                  type: string
+                phone:
+                  type: string
+                  description: User's phone number in E.164 format.
+                role:
+                  type: string
+                  description: Role name/identifier granted to the user. Either `user` or `admin`.
                 preferences:
                   type: object
+                  description: Arbitrary per-user settings.
                   additionalProperties: { type: string }
       responses:
         '201':
-          description: Created — user created successfully
+          description: Created — user successfully created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Profile'
+                type: object
+                required: [username, tempPassword]
+                properties:
+                  username:
+                    type: string
+                    description: Newly created user's username
+                  tempPassword:
+                    type: string
+                    description: Temporary password for first login challenge
         '400': { description: Invalid request payload }
         '401': { description: Unauthorized }
-        '403': { description: Forbidden }
-        '409': { description: Conflict — user already exists }
+        '403': { description: Forbidden — insufficient permissions }
+        '409': { description: Conflict — username already in use }
+        '429': { description: Too many requests — rate limit exceeded }
         '500': { description: Internal server error }
 
   /user/{uid}:
+    parameters:
+      - name: uid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
     get:
       summary: Retrieve user
-      description: Retrieve user by ID.
+      description: Retrieve user profile by ID.
       security:
         - bearerAuth: []
-      parameters:
-        - { name: uid, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '200':
           description: OK — user retrieved
@@ -87,17 +124,19 @@ paths:
               schema:
                 $ref: '#/components/schemas/Profile'
         '401': { description: Unauthorized }
-        '403': { description: Forbidden }
+        '403': { description: Forbidden — insufficient permissions }
         '404': { description: Not found — user does not exist }
+        '429': { description: Too many requests — rate limit exceeded }
         '500': { description: Internal server error }
 
     patch:
       summary: Update user
-      description: Update user details. Only provided fields are changed.
+      description: >
+        Update provided user profile fields. 
+        Only provided attributes will be updated.
+        Requires administrative privileges for updating another user.
       security:
         - bearerAuth: []
-      parameters:
-        - { name: uid, in: path, required: true, schema: { type: string, format: uuid } }
       requestBody:
         required: true
         content:
@@ -105,8 +144,16 @@ paths:
             schema:
               type: object
               properties:
-                username: { type: string }
-                role: { type: string }
+                username:
+                  type: string
+                name:
+                  type: string
+                phone:
+                  type: string
+                  description: User's phone number in E.164 format.
+                role:
+                  type: string
+                  description: Role granted to the user. Requires admin privileges to update.
                 preferences:
                   type: object
                   additionalProperties:
@@ -122,49 +169,66 @@ paths:
                 $ref: '#/components/schemas/Profile'
         '400': { description: Invalid request payload }
         '401': { description: Unauthorized }
-        '403': { description: Forbidden }
+        '403': { description: Forbidden — insufficient permissions }
         '404': { description: Not found — user does not exist }
-        '409': { description: Conflict — username or email already in use }
+        '409': { description: Conflict — username already in use }
+        '429': { description: Too many requests — rate limit exceeded }
         '500': { description: Internal server error }
 
     delete:
       summary: Delete user
-      description: Delete a user account. Only for administrator role.
+      description: >
+        Soft-delete or permanently delete a user account.
+        Requires administrative privileges.
       security:
         - bearerAuth: []
-      parameters:
-        - { name: uid, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
         '204': { description: No content — user deleted }
+        '400': { description: Invalid request parameters }
         '401': { description: Unauthorized }
-        '403': { description: Forbidden }
+        '403': { description: Forbidden — insufficient permissions }
         '404': { description: Not found — user does not exist }
+        '429': { description: Too many requests — rate limit exceeded }
         '500': { description: Internal server error }
 
   /user/{uid}/password:
     patch:
       summary: Update password
-      description: Update user password.
+      description: >
+        Allows a user to update their own password.
+        Admins may also reset passwords for any other user.
       security:
         - bearerAuth: []
       parameters:
-        - { name: uid, in: path, required: true, schema: { type: string, format: uuid } }
+        - name: uid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [currentPassword, newPassword]
+              required: [newPassword]
               properties:
-                currentPassword: { type: string }
-                newPassword: { type: string, minLength: 8 }
+                currentPassword:
+                  type: string
+                  minLength: 1
+                  description: Required if the user is not admin.
+                newPassword:
+                  type: string
+                  minLength: 8
+                  description: New password must satisfy security policy.
       responses:
         '204': { description: No content — password updated }
         '400': { description: Invalid request payload }
         '401': { description: Unauthorized }
-        '403': { description: Forbidden — insufficient permissions or incorrect password }
+        '403': { description: Forbidden — insufficient permissions or incorrect credentials }
         '404': { description: Not found — user does not exist }
+        '429': { description: Too many requests — rate limit exceeded }
         '500': { description: Internal server error }
 
 components:
@@ -177,11 +241,21 @@ components:
   schemas:
     Profile:
       type: object
-      required: [id, username, role, preferences]
+      required: [id, username, name, phone, role, preferences]
       properties:
-        id: { type: string, format: uuid }
-        username: { type: string }
-        role: { type: string }
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        role:
+          type: string
+          description: Assigned access role.
         preferences:
           type: object
+          description: Arbitrary per-user settings
           additionalProperties: { type: string }

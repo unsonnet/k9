@@ -19,6 +19,15 @@ UsernameStr = Annotated[str, StringConstraints(min_length=1, strip_whitespace=Tr
 RoleStr = Annotated[str, StringConstraints(min_length=1, strip_whitespace=True)]
 PrefValueStr = Annotated[str, StringConstraints(min_length=0, strip_whitespace=False)]
 
+# E.164 phone number: leading +, country code 1-9, 7–14 additional digits
+PhoneStr = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        pattern=r"^\+[1-9][0-9]{7,14}$",
+    ),
+]
+
 # Common mapping types
 CategoryMap = Mapping[str, NonEmptyStr]
 
