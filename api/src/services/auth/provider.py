@@ -8,13 +8,14 @@ import hashlib
 import hmac
 import json
 from abc import ABC, abstractmethod
-from typing import NoReturn
+from typing import Final, NoReturn
 from uuid import UUID
 
 from config import boto3_client, settings
 from models.auth import AuthChallenge, AuthTokens
 from models.common import PasswordStr, SessionStr, TokenStr, UsernameStr
-from ..errors import (
+from utils.errors import (
+    DomainError,
     DomainExpiredToken,
     DomainInvalidCredentials,
     DomainInvariantViolation,
@@ -26,42 +27,51 @@ from ..errors import (
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Abstract Base: Auth Provider
+# Auth Provider
 # ──────────────────────────────────────────────────────────────────────────────
 class AuthProvider(ABC):
-    """
-    Abstract contract for authentication backends.
-    Implementations must raise domain errors rather than HTTP errors directly.
-    """
+    """Manage authentication contracts for backends."""
 
     @abstractmethod
-    def start_password_reset(self, username: UsernameStr) -> None: ...
+    def start_password_reset(self, username: UsernameStr) -> None:
+        """Initiate forgot-password flow."""
+        ...
 
     @abstractmethod
     def authenticate(
         self, username: UsernameStr, password: PasswordStr
-    ) -> AuthTokens | AuthChallenge: ...
+    ) -> AuthTokens | AuthChallenge:
+        """Authenticate user with username/password."""
+        ...
 
     @abstractmethod
-    def logout(self, refresh_token: TokenStr) -> None: ...
+    def logout(self, refresh_token: TokenStr) -> None:
+        """Revoke refresh token and invalidate session."""
+        ...
 
     @abstractmethod
-    def refresh(self, username: UsernameStr, refresh_token: TokenStr) -> AuthTokens: ...
+    def refresh(self, username: UsernameStr, refresh_token: TokenStr) -> AuthTokens:
+        """Refresh access token using a valid refresh token."""
+        ...
 
     @abstractmethod
     def reset_password(
         self, username: UsernameStr, session: SessionStr, new_password: PasswordStr
-    ) -> None: ...
+    ) -> None:
+        """Complete password reset (e.g., NEW_PASSWORD_REQUIRED)."""
+        ...
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Default / No-op Provider
+# Disabled Provider
 # ──────────────────────────────────────────────────────────────────────────────
 class _NoopAuthProvider(AuthProvider):
-    """Fallback provider when no authentication backend is configured."""
+    """Manage authentication operations as a disabled provider."""
+
+    _MSG: Final = "Failed to perform authentication operation."
 
     def _raise(self) -> NoReturn:
-        raise DomainInvariantViolation("Auth provider not configured.")
+        raise DomainInvariantViolation(self._MSG)
 
     def start_password_reset(self, username: UsernameStr) -> None:
         self._raise()
@@ -84,83 +94,60 @@ class _NoopAuthProvider(AuthProvider):
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Cognito-backed Provider
+# Cognito Provider
 # ──────────────────────────────────────────────────────────────────────────────
 class CognitoAuthProvider(AuthProvider):
-    """
-    AWS Cognito-based authentication provider.
-    """
+    """Manage authentication operations using AWS Cognito."""
 
     def __init__(self) -> None:
         cfg = settings()
-
-        if not cfg.cognito_user_pool_id or not cfg.cognito_client_id:
-            raise DomainInvariantViolation("Cognito configuration incomplete.")
-        if not cfg.cognito_client_secret:
+        if not (
+            cfg.cognito_user_pool_id
+            and cfg.cognito_client_id
+            and cfg.cognito_client_secret
+        ):
             raise DomainInvariantViolation(
-                "COGNITO_CLIENT_SECRET must be set for secret-enabled clients."
+                "Failed to initialize authentication provider."
             )
-
-        self.user_pool_id = cfg.cognito_user_pool_id
-        self.client_id = cfg.cognito_client_id
-        self.client_secret = cfg.cognito_client_secret
+        self.user_pool_id: str = cfg.cognito_user_pool_id
+        self.client_id: str = cfg.cognito_client_id
+        self.client_secret: str = cfg.cognito_client_secret
         self._cognito = boto3_client("cognito-idp")
 
     # ─────────── Helpers ───────────
     def _secret_hash(self, username: str) -> str:
-        msg = (username + self.client_id).encode()
-        digest = hmac.new(self.client_secret.encode(), msg, hashlib.sha256).digest()
-        return base64.b64encode(digest).decode()
+        msg = (username + self.client_id).encode("utf-8")
+        key = self.client_secret.encode("utf-8")
+        digest = hmac.new(key, msg, hashlib.sha256).digest()
+        return base64.b64encode(digest).decode("utf-8")
 
     @staticmethod
     def _decode_jwt_sub(token: str) -> UUID:
-        """Decode JWT payload (no verification) to extract `sub` as UUID.
-        Raises DomainInvariantViolation if not found or invalid.
-        """
         try:
             parts = token.split(".")
             if len(parts) < 2:
-                raise DomainInvariantViolation("Invalid JWT: missing payload.")
-
-            payload_bytes = base64.urlsafe_b64decode(
-                parts[1] + "=" * (-len(parts[1]) % 4)
-            )
-            payload = json.loads(payload_bytes)
-
-            sub = payload.get("sub")
-            if not sub:
-                raise DomainInvariantViolation("JWT is missing `sub` claim.")
-
-            return UUID(str(sub))
-        except (ValueError, json.JSONDecodeError, KeyError) as e:
-            raise DomainInvariantViolation(f"Failed to decode JWT `sub`: {e}")
+                raise ValueError
+            padded = parts[1] + "=" * (-len(parts[1]) % 4)
+            payload = json.loads(base64.urlsafe_b64decode(padded).decode("utf-8"))
+            return UUID(payload["sub"])
+        except Exception as e:
+            raise DomainInvariantViolation("Failed to parse identity token.") from e
 
     def _handle_error(self, e: Exception, msg: str) -> NoReturn:
-        """Translate Cognito SDK exceptions to domain-level errors."""
         cx = self._cognito.exceptions
-        mapping = {
-            cx.UserNotFoundException: DomainNotFound(msg),
-            cx.UserNotConfirmedException: DomainUserDisabled("User not confirmed."),
-            cx.PasswordResetRequiredException: DomainUserDisabled(
-                "Password reset required."
-            ),
-            cx.UnsupportedUserStateException: DomainUserDisabled(
-                "User disabled or unsupported state."
-            ),
-            cx.NotAuthorizedException: DomainInvalidCredentials("Invalid credentials."),
-            cx.ExpiredCodeException: DomainExpiredToken(
-                "Expired or invalid code/session."
-            ),
-            cx.CodeMismatchException: DomainExpiredToken("Invalid verification code."),
-            cx.TooManyRequestsException: DomainRateLimited("Rate limit exceeded."),
-            cx.LimitExceededException: DomainRateLimited("Rate limit exceeded."),
-            cx.InvalidParameterException: DomainUnauthorized("Invalid parameters."),
-            cx.InternalErrorException: DomainInvariantViolation(
-                "Identity provider internal error."
-            ),
+        mapping: dict[type[Exception], type[DomainError]] = {
+            cx.UserNotFoundException: DomainNotFound,
+            cx.UserNotConfirmedException: DomainUserDisabled,
+            cx.PasswordResetRequiredException: DomainUserDisabled,
+            cx.UnsupportedUserStateException: DomainUserDisabled,
+            cx.NotAuthorizedException: DomainInvalidCredentials,
+            cx.ExpiredCodeException: DomainExpiredToken,
+            cx.CodeMismatchException: DomainExpiredToken,
+            cx.TooManyRequestsException: DomainRateLimited,
+            cx.LimitExceededException: DomainRateLimited,
+            cx.InvalidParameterException: DomainUnauthorized,
         }
-
-        raise mapping.get(type(e), DomainUnauthorized(f"{msg}: {e}"))
+        raise mapping.get(type(e), DomainInvariantViolation)(msg) from e
 
     # ─────────── Contract Methods ───────────
     def start_password_reset(self, username: UsernameStr) -> None:
@@ -172,7 +159,7 @@ class CognitoAuthProvider(AuthProvider):
                 SecretHash=self._secret_hash(str(username)),
             )
         except Exception as e:
-            self._handle_error(e, "Failed to start password reset")
+            self._handle_error(e, "Failed to initiate password reset.")
 
     def authenticate(
         self, username: UsernameStr, password: PasswordStr
@@ -188,22 +175,18 @@ class CognitoAuthProvider(AuthProvider):
                     "SECRET_HASH": self._secret_hash(str(username)),
                 },
             )
-
             if resp.get("ChallengeName") == "NEW_PASSWORD_REQUIRED":
-                return AuthChallenge(username=username, session=resp.get("Session", ""))
-
-            auth = resp.get("AuthenticationResult", {})
-            id_token = auth.get("IdToken", "")
-            user = self._decode_jwt_sub(id_token)
-
+                return AuthChallenge(username=username, session=resp["Session"])
+            auth = resp["AuthenticationResult"]
+            user = self._decode_jwt_sub(auth["IdToken"])
             return AuthTokens(
                 user=user,
-                access_token=auth.get("AccessToken", ""),
-                refresh_token=auth.get("RefreshToken", ""),
-                expires_in=int(auth.get("ExpiresIn", 0)),
+                access_token=auth["AccessToken"],
+                refresh_token=auth["RefreshToken"],
+                expires_in=int(auth["ExpiresIn"]),
             )
         except Exception as e:
-            self._handle_error(e, "Authentication failed")
+            self._handle_error(e, "Failed to authenticate user.")
 
     def logout(self, refresh_token: TokenStr) -> None:
         """Revoke refresh token and invalidate session."""
@@ -214,7 +197,7 @@ class CognitoAuthProvider(AuthProvider):
                 ClientSecret=self.client_secret,
             )
         except Exception as e:
-            self._handle_error(e, "Logout failed")
+            self._handle_error(e, "Failed to revoke refresh token.")
 
     def refresh(self, username: UsernameStr, refresh_token: TokenStr) -> AuthTokens:
         """Refresh access token using a valid refresh token."""
@@ -228,19 +211,16 @@ class CognitoAuthProvider(AuthProvider):
                     "SECRET_HASH": self._secret_hash(str(username)),
                 },
             )
-
-            auth = resp.get("AuthenticationResult", {})
-            id_token = auth.get("IdToken", "")
-            user = self._decode_jwt_sub(id_token)
-
+            auth = resp["AuthenticationResult"]
+            user = self._decode_jwt_sub(auth["IdToken"])
             return AuthTokens(
                 user=user,
-                access_token=auth.get("AccessToken", ""),
-                refresh_token=str(refresh_token),  # no rotation on refresh
-                expires_in=int(auth.get("ExpiresIn", 0)),
+                access_token=auth["AccessToken"],
+                refresh_token=str(refresh_token),
+                expires_in=int(auth["ExpiresIn"]),
             )
         except Exception as e:
-            self._handle_error(e, "Token refresh failed")
+            self._handle_error(e, "Failed to refresh access token.")
 
     def reset_password(
         self, username: UsernameStr, session: SessionStr, new_password: PasswordStr
@@ -258,4 +238,4 @@ class CognitoAuthProvider(AuthProvider):
                 Session=str(session),
             )
         except Exception as e:
-            self._handle_error(e, "Password reset failed")
+            self._handle_error(e, "Failed to complete password reset.")

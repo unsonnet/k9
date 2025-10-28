@@ -42,7 +42,7 @@ from models.product import (
     Vendor,
 )
 
-from ..errors import (
+from utils.errors import (
     DomainForbidden,
     DomainInvariantViolation,
     DomainNotFound,

@@ -8,6 +8,7 @@ from uuid import UUID
 
 from config import settings
 from utils.http import (
+    HttpError,
     Conflict,
     Created,
     Forbidden,
@@ -17,8 +18,8 @@ from utils.http import (
     OK,
     TooManyRequests,
     Unauthorized,
+    Gone,
 )
-
 from models.auth import AuthContext, LoginRequest
 from models.user import (
     CreateUserRequest,
@@ -30,16 +31,17 @@ from models.user import (
     UpdatePasswordRequest,
     UpdateUserRequest,
 )
-
-from ..errors import (
+from utils.errors import (
     DomainConflict,
-    DomainForbidden,
+    DomainExpiredToken,
     DomainInvariantViolation,
     DomainNotFound,
     DomainRateLimited,
     DomainUnauthorized,
+    DomainUserDisabled,
+    DomainForbidden,
 )
-
+from services.auth.service import AuthService
 from .provider import UserDBProvider
 
 
@@ -47,40 +49,44 @@ from .provider import UserDBProvider
 # User Service
 # ──────────────────────────────────────────────────────────────────────────────
 class UserService:
-    """
-    API-facing orchestrator for user management.
-    Provider enforces identity truth: admin vs self.
-    """
+    """Orchestrate user management using a configured provider."""
 
     provider: UserDBProvider
 
-    def __init__(self):
+    def __init__(self) -> None:
         from .provider import CognitoUserDBProvider, _NoopUserDBProvider
 
         cfg = settings()
-        if cfg.cognito_user_pool_id and cfg.cognito_client_id:
+        if (
+            cfg.cognito_user_pool_id
+            and cfg.cognito_client_id
+            and cfg.cognito_client_secret
+        ):
             self.provider = CognitoUserDBProvider()
-            return
-        if cfg.platform in ("dev", "local"):
+        elif cfg.platform in {"dev", "local"}:
             self.provider = _NoopUserDBProvider()
-            return
-        raise InternalServerError("User provider not configured properly.")
+        else:
+            raise InternalServerError("Failed to initialize user provider.")
 
     # ─────────── Helpers ───────────
     @staticmethod
-    def _handle_error(e: Exception, msg: str = "Internal error") -> NoReturn:
-        mapping = {
-            DomainUnauthorized: lambda: Unauthorized("Not authorized."),
-            DomainForbidden: lambda: Forbidden("Forbidden."),
-            DomainNotFound: lambda: NotFound(msg),
-            DomainConflict: lambda: Conflict("Conflict."),
-            DomainRateLimited: lambda: TooManyRequests("Rate limit exceeded."),
-            DomainInvariantViolation: lambda: InternalServerError(str(e)),
+    def _handle_error(e: Exception) -> NoReturn:
+        """Map domain errors to HTTP responses."""
+        m: dict[type[Exception], type[HttpError]] = {
+            DomainNotFound: NotFound,
+            DomainConflict: Conflict,
+            DomainUnauthorized: Unauthorized,
+            DomainForbidden: Forbidden,
+            DomainUserDisabled: Forbidden,
+            DomainExpiredToken: Gone,
+            DomainRateLimited: TooManyRequests,
+            DomainInvariantViolation: InternalServerError,
         }
-        raise mapping.get(type(e), lambda: InternalServerError(str(e)))()
+        raise m.get(type(e), InternalServerError).from_exception(e)
 
     @staticmethod
-    def _public_profile(u: StoredProfile) -> Profile:
+    def _public(u: StoredProfile) -> Profile:
+        """Sanitize private user attributes."""
         return Profile(
             id=u.id,
             username=u.username,
@@ -91,141 +97,119 @@ class UserService:
         )
 
     @staticmethod
-    def _touch(u: StoredProfile, **updates) -> StoredProfile:
-        return u.model_copy(update={**updates, "updatedAt": datetime.now(timezone.utc)})
+    def _touch(u: StoredProfile, **x) -> StoredProfile:
+        """Apply update timestamp."""
+        return u.model_copy(update={**x, "updatedAt": datetime.now(timezone.utc)})
 
-    # ─────────── Endpoints ───────────
+    # ─────────── Contract Methods ───────────
 
     # GET /user → 200 | 401 | 403 | 429 | 500
-    def list_users(
-        self, ctx: AuthContext, params: ListUsersParams
-    ) -> OK[ListUsersOKBody]:
+    def list_users(self, ctx: AuthContext, p: ListUsersParams) -> OK[ListUsersOKBody]:
+        """List users."""
         try:
             if not self.provider.is_admin(ctx):
-                raise DomainForbidden("Admin privileges required.")
-
-            res = self.provider.list_users(
-                limit=params.limit, next_token=params.nextToken
+                raise DomainForbidden("Request denied.")
+            r = self.provider.list_users(limit=p.limit, next_token=p.nextToken)
+            return OK(
+                ListUsersOKBody(
+                    total=r.total,
+                    users=[self._public(u) for u in r.users],
+                    nextToken=r.nextToken,
+                )
             )
-            body = ListUsersOKBody(
-                total=res.total,
-                users=[self._public_profile(u) for u in res.users],
-                nextToken=res.nextToken,
-            )
-            return OK(body)
         except Exception as e:
-            self._handle_error(e, "Failed to list users.")
+            self._handle_error(e)
 
-    # POST /user → 201 | 400 | 401 | 403 | 409 | 429 | 500
+    # POST /user → 201 | 401 | 403 | 409 | 429 | 500
     def create_user(
-        self, ctx: AuthContext, payload: CreateUserRequest
+        self, ctx: AuthContext, p: CreateUserRequest
     ) -> Created[CreateUserResult]:
+        """Create a new user."""
         try:
             if not self.provider.is_admin(ctx):
-                raise DomainForbidden("Admin privileges required.")
-
-            created = self.provider.post_user(
-                username=payload.username,
-                name=payload.name,
-                phone=payload.phone,
-                role=payload.role,
-                preferences=payload.preferences,
+                raise DomainForbidden("Request denied.")
+            return Created(
+                self.provider.post_user(
+                    username=p.username,
+                    name=p.name,
+                    phone=p.phone,
+                    role=p.role,
+                    preferences=p.preferences,
+                )
             )
-            return Created(created)
         except Exception as e:
-            self._handle_error(e, "Failed to create user.")
+            self._handle_error(e)
 
     # GET /user/{uid} → 200 | 401 | 403 | 404 | 429 | 500
     def get_user(self, ctx: AuthContext, uid: UUID) -> OK[Profile]:
+        """Retrieve a user by id."""
         try:
             if not (self.provider.is_admin(ctx) or self.provider.is_self(ctx, uid=uid)):
-                raise DomainForbidden("Not allowed to view other users unless admin.")
-
-            stored = self.provider.get_user(uid=uid)
-            return OK(self._public_profile(stored))
+                raise DomainForbidden("Request denied.")
+            return OK(self._public(self.provider.get_user(uid=uid)))
         except Exception as e:
-            self._handle_error(e, "User not found.")
+            self._handle_error(e)
 
     # PATCH /user/{uid} → 200 | 401 | 403 | 404 | 409 | 429 | 500
     def update_user(
-        self, ctx: AuthContext, uid: UUID, payload: UpdateUserRequest
+        self, ctx: AuthContext, uid: UUID, p: UpdateUserRequest
     ) -> OK[Profile]:
+        """Update a user by id."""
         try:
-            is_admin = self.provider.is_admin(ctx)
-            is_self = self.provider.is_self(ctx, uid=uid)
-
-            if not (is_admin or is_self):
-                raise DomainForbidden(
-                    "Not allowed to update users unless admin or self."
-                )
-
-            if payload.role is not None and not is_admin:
-                raise DomainForbidden("Only administrators can change role.")
-
-            user = self.provider.get_user(uid=uid)
-
-            if payload.username is not None:
-                user.username = payload.username
-            if payload.name is not None:
-                user.name = payload.name
-            if payload.phone is not None:
-                user.phone = payload.phone
-            if payload.role is not None:
-                user.role = payload.role
-            if payload.preferences is not None:
-                new_prefs = dict(user.preferences)
-                for k, v in payload.preferences.items():
-                    if v is None:
-                        new_prefs.pop(k, None)
-                    else:
-                        new_prefs[k] = v
-                user.preferences = new_prefs
-
-            stored = self.provider.put_user(user=self._touch(user))
-            return OK(self._public_profile(stored))
+            a = self.provider.is_admin(ctx)
+            s = self.provider.is_self(ctx, uid=uid)
+            if not (a or s):
+                raise DomainForbidden("Request denied.")
+            if p.role is not None and not a:
+                raise DomainForbidden("Request denied.")
+            u = self.provider.get_user(uid=uid)
+            if p.username is not None:
+                u.username = p.username
+            if p.name is not None:
+                u.name = p.name
+            if p.phone is not None:
+                u.phone = p.phone
+            if p.role is not None:
+                u.role = p.role
+            if p.preferences is not None:
+                prefs = dict(u.preferences)
+                for k, v in p.preferences.items():
+                    prefs.pop(k, None) if v is None else prefs.__setitem__(k, v)
+                u.preferences = prefs
+            r = self.provider.put_user(user=self._touch(u))
+            return OK(self._public(r))
         except Exception as e:
-            self._handle_error(e, "Failed to update user.")
+            self._handle_error(e)
 
     # DELETE /user/{uid} → 204 | 401 | 403 | 404 | 429 | 500
     def delete_user(self, ctx: AuthContext, uid: UUID) -> NoContent:
+        """Delete a user by id."""
         try:
             if not self.provider.is_admin(ctx):
-                raise DomainForbidden("Admin privileges required.")
-
+                raise DomainForbidden("Request denied.")
             self.provider.delete_user(uid=uid)
             return NoContent()
         except Exception as e:
-            self._handle_error(e, "Failed to delete user.")
+            self._handle_error(e)
 
     # PATCH /user/{uid}/password → 204 | 401 | 403 | 404 | 429 | 500
     def update_password(
-        self, ctx: AuthContext, uid: UUID, payload: UpdatePasswordRequest
+        self, ctx: AuthContext, uid: UUID, p: UpdatePasswordRequest
     ) -> NoContent:
+        """Change a user's password."""
         try:
-            is_admin = self.provider.is_admin(ctx)
-            is_self = self.provider.is_self(ctx, uid=uid)
-
-            if not (is_admin or is_self):
-                raise DomainForbidden(
-                    "Only administrators can reset another user's password."
-                )
-
-            if not is_admin:
-                if not payload.currentPassword:
+            a = self.provider.is_admin(ctx)
+            s = self.provider.is_self(ctx, uid=uid)
+            if not (a or s):
+                raise DomainForbidden("Request denied.")
+            if s:
+                if not p.currentPassword:
                     raise DomainForbidden("Current password required.")
-
-                profile = self.provider.get_user(uid=uid)
-                from services.auth.service import AuthService
-
-                auth = AuthService()
-                auth.login(
-                    LoginRequest(
-                        username=profile.username,
-                        password=payload.currentPassword,
-                    )
+                pr = self.provider.get_user(uid=uid)
+                AuthService().login(
+                    LoginRequest(username=pr.username, password=p.currentPassword)
                 )
-
-            self.provider.update_password(uid=uid, new_password=payload.newPassword)
+            self.provider.update_password(uid=uid, new_password=p.newPassword)
             return NoContent()
         except Exception as e:
-            self._handle_error(e, "Failed to update password.")
+            self._handle_error(e)

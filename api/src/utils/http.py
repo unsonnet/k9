@@ -6,7 +6,11 @@ import base64
 import json
 import re
 from dataclasses import dataclass
-from typing import Any, Dict, Generic, Mapping, Optional, TypeVar, TypedDict
+import traceback
+from typing import Any, Generic, Mapping, TypeVar, TypedDict
+from typing_extensions import Self
+
+from .errors import DomainError
 
 T_co = TypeVar("T_co", covariant=True)
 
@@ -18,6 +22,7 @@ T_co = TypeVar("T_co", covariant=True)
 class ErrorBody(TypedDict):
     code: str
     message: str
+    traceback: str | None
 
 
 @dataclass(slots=True, frozen=True)
@@ -30,6 +35,13 @@ class HttpResponse(Generic[T_co]):
 
     def __str__(self) -> str:  # pragma: no cover
         return f"{self.__class__.__name__}(status={self.status}, body={self.body!r})"
+
+    def to_apigw(self) -> dict[str, Any]:
+        headers = {"Content-Type": "application/json"}
+        if self.headers:
+            headers.update(self.headers)
+        body = "" if self.body is None else json.dumps(self.body, default=_json_default)
+        return {"statusCode": self.status, "headers": headers, "body": body}
 
 
 # Success 2xx
@@ -56,20 +68,34 @@ class NoContent(HttpResponse[None]):
 
 # Error 4xx/5xx
 class HttpError(Exception):
-    """Base class for HTTP-style errors with a JSON body.
-
-    Note: We avoid inheriting from HttpResponse to prevent CPython layout conflicts
-    with dataclass(slots=True) when mixing with Exception.
-    """
-
     code: str = "Error"
     status: int = 500
     headers: dict[str, str] | None = None
     body: ErrorBody
 
-    def __init__(self, message: str | None = None) -> None:
-        self.body = ErrorBody(code=self.code, message=message or self.code)
-        super().__init__(self.body["message"])
+    def __init__(self, msg: str | None = None) -> None:
+        super().__init__(msg or self.code)
+        self.body = ErrorBody(
+            code=self.code,
+            message=msg or self.code,
+            traceback=None,
+        )
+
+    @classmethod
+    def from_exception(cls, e: BaseException) -> Self:
+        self = cls(f"{type(e).__name__}: {str(e)}")
+        e = e.__cause__ if isinstance(e, DomainError) and e.__cause__ else e
+        self.body["traceback"] = "".join(
+            traceback.format_exception(type(e), e, e.__traceback__)
+        )
+        return self
+
+    def to_apigw(self) -> dict[str, Any]:
+        return {
+            "statusCode": self.status,
+            "headers": {"Content-Type": "application/json"},
+            "body": json.dumps(self.body),
+        }
 
 
 # 4xx
@@ -190,7 +216,7 @@ def read_query(event: Mapping[str, Any]) -> dict[str, str]:
     return {str(k): str(v) for k, v in qs.items()} if isinstance(qs, dict) else {}
 
 
-def read_bearer_token(event: Mapping[str, Any]) -> Optional[str]:
+def read_bearer_token(event: Mapping[str, Any]) -> str | None:
     """Extract Bearer token from Authorization header (case-insensitive)."""
     if not isinstance(event, dict):
         return None
@@ -221,24 +247,3 @@ def _json_default(o: Any) -> Any:
         return o.__dict__
     except Exception:
         return str(o)
-
-
-def to_apigw_response(resp: HttpResponse[Any]) -> Dict[str, Any]:
-    """Convert our HttpResponse to API Gateway proxy integration response."""
-    headers = {"Content-Type": "application/json"}
-    if resp.headers:
-        headers.update(resp.headers)
-    body = ""
-    if resp.body is not None:
-        body = json.dumps(resp.body, default=_json_default)
-    return {"statusCode": resp.status, "headers": headers, "body": body}
-
-
-def error_to_apigw(err: HttpError) -> Dict[str, Any]:
-    """Convert an HttpError to an API Gateway response."""
-    # Reuse to_apigw_response serialization path by adapting fields
-    return {
-        "statusCode": err.status,
-        "headers": {"Content-Type": "application/json"},
-        "body": json.dumps(err.body),
-    }

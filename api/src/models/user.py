@@ -9,6 +9,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 from pydantic.types import NonNegativeInt, PositiveInt
+from pydantic.fields import _Unset
 
 from .common import (
     PrefValueStr,

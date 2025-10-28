@@ -4,10 +4,8 @@ from typing import Any, Mapping
 from uuid import UUID
 
 from utils.http import (
+    HttpResponse,
     BadRequest,
-    Created,
-    NoContent,
-    OK,
     read_bearer_token,
     read_json_body,
     read_query,
@@ -34,55 +32,60 @@ def _ctx(event: Mapping[str, Any]) -> AuthContext:
 
 
 @router.route("", method="GET")
-def list_users(event: Mapping[str, Any]) -> OK[Any]:
+def list_users(event: Mapping[str, Any]) -> HttpResponse[Any]:
     ctx = _ctx(event)
     qp = read_query(event)
     params = ListUsersParams(
         limit=int(qp["limit"]) if qp.get("limit") else None,
         nextToken=qp.get("nextToken"),
     )
-    return OK(svc.list_users(ctx, params))
+    return svc.list_users(ctx, params)
 
 
 @router.route("", method="POST")
-def create_user(event: Mapping[str, Any]) -> Created[Any]:
+def create_user(event: Mapping[str, Any]) -> HttpResponse[Any]:
     ctx = _ctx(event)
     data = read_json_body(event)
-    req = CreateUserRequest.model_validate(data)
-    return Created(svc.create_user(ctx, req))
+    payload = CreateUserRequest.model_validate(data)
+    return svc.create_user(ctx, payload)
 
 
 @router.route("/{userId}", method="GET")
-def get_user(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+def get_user(event: Mapping[str, Any], params: Mapping[str, str]) -> HttpResponse[Any]:
     ctx = _ctx(event)
     uid = UUID(params["userId"])
-    return OK(svc.get_user(ctx, uid))
+    return svc.get_user(ctx, uid)
 
 
 @router.route("/{userId}", method="PATCH")
-def update_user(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+def update_user(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     uid = UUID(params["userId"])
     data = read_json_body(event)
-    req = UpdateUserRequest.model_validate(data)
-    return OK(svc.update_user(ctx, uid, req))
+    payload = UpdateUserRequest.model_validate(data)
+    return svc.update_user(ctx, uid, payload)
 
 
 @router.route("/{userId}", method="DELETE")
-def delete_user(event: Mapping[str, Any], params: Mapping[str, str]) -> NoContent:
+def delete_user(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     uid = UUID(params["userId"])
-    svc.delete_user(ctx, uid)
-    return NoContent()
+    return svc.delete_user(ctx, uid)
 
 
 @router.route("/{userId}/password", method="PATCH")
-def update_password(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+def update_password(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     uid = UUID(params["userId"])
     data = read_json_body(event)
-    req = UpdatePasswordRequest.model_validate(data)
-    return OK(svc.update_password(ctx, uid, req))
+    payload = UpdatePasswordRequest.model_validate(data)
+    return svc.update_password(ctx, uid, payload)
 
 
 def lambda_handler(event, context):

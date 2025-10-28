@@ -6,6 +6,7 @@ from typing import NoReturn
 
 from config import settings
 from utils.http import (
+    HttpError,
     Accepted,
     Forbidden,
     Gone,
@@ -29,7 +30,7 @@ from models.auth import (
     ResetRequest,
     ChallengeType,
 )
-from ..errors import (
+from utils.errors import (
     DomainExpiredToken,
     DomainInvalidCredentials,
     DomainInvariantViolation,
@@ -45,67 +46,56 @@ from .provider import AuthProvider
 # Auth Service
 # ──────────────────────────────────────────────────────────────────────────────
 class AuthService:
-    """
-    High-level orchestrator for authentication and password flows.
-    Vendor-neutral design — integrates with any AuthProvider backend (e.g., Cognito, Keycloak, Local).
-    """
+    """Orchestrate authentication flows using a configured provider."""
 
     provider: AuthProvider
 
-    def __init__(self):
+    def __init__(self) -> None:
         from .provider import CognitoAuthProvider, _NoopAuthProvider
 
         cfg = settings()
-
-        # Prefer Cognito if configured, otherwise local dev fallback.
-        if cfg.cognito_user_pool_id and cfg.cognito_client_id:
+        if (
+            cfg.cognito_user_pool_id
+            and cfg.cognito_client_id
+            and cfg.cognito_client_secret
+        ):
             self.provider = CognitoAuthProvider()
-            return
-
-        if cfg.platform in ("dev", "local"):
+        elif cfg.platform in {"dev", "local"}:
             self.provider = _NoopAuthProvider()
-            return
-
-        raise InternalServerError("Authentication provider not configured properly.")
+        else:
+            raise InternalServerError("Failed to initialize authentication provider.")
 
     # ─────────── Helpers ───────────
     @staticmethod
-    def _handle_error(e: Exception, msg: str = "Internal error") -> NoReturn:
-        """
-        Maps domain-level errors to standardized HTTP responses.
-        Ensures consistency with OpenAPI 1.0.1 spec.
-        """
-        mapping = {
-            DomainNotFound: lambda: NotFound(msg),
-            DomainInvalidCredentials: lambda: Unauthorized("Invalid credentials."),
-            DomainUnauthorized: lambda: Unauthorized("Unauthorized or invalid token."),
-            DomainUserDisabled: lambda: Forbidden("User disabled or not verified."),
-            DomainExpiredToken: lambda: Gone("Token or session expired."),
-            DomainRateLimited: lambda: TooManyRequests("Rate limit exceeded."),
-            DomainInvariantViolation: lambda: InternalServerError(str(e)),
+    def _handle_error(e: Exception) -> NoReturn:
+        """Map domain-level errors to standardized HTTP responses."""
+        mapping: dict[type[Exception], type[HttpError]] = {
+            DomainNotFound: NotFound,
+            DomainInvalidCredentials: Unauthorized,
+            DomainUnauthorized: Unauthorized,
+            DomainUserDisabled: Forbidden,
+            DomainExpiredToken: Gone,
+            DomainRateLimited: TooManyRequests,
+            DomainInvariantViolation: InternalServerError,
         }
-        raise mapping.get(type(e), lambda: InternalServerError(str(e)))()
+        raise mapping.get(type(e), InternalServerError).from_exception(e)
 
-    # ─────────── Endpoints ───────────
+    # ─────────── Contract Methods ───────────
 
     # POST /auth/forget → 204 | 400 | 404 | 429 | 500
     def forget(self, payload: ForgetRequest) -> NoContent:
-        """
-        Initiate password reset flow for a given username.
-        """
+        """Initiate password reset flow."""
         try:
             self.provider.start_password_reset(username=payload.username)
             return NoContent()
         except Exception as e:
-            self._handle_error(e, "User not found or invalid request.")
+            self._handle_error(e)
 
     # POST /auth/login → 200 | 202 | 400 | 401 | 403 | 404 | 429 | 500
     def login(
         self, payload: LoginRequest
     ) -> OK[LoginOKBody] | Accepted[LoginAcceptedBody]:
-        """
-        Authenticate a user and issue tokens or return a challenge (if applicable).
-        """
+        """Authenticate user and issue tokens or challenge."""
         try:
             result = self.provider.authenticate(
                 username=payload.username, password=payload.password
@@ -127,26 +117,22 @@ class AuthService:
                         expiresIn=result.expires_in,
                     )
                 )
-            raise DomainInvariantViolation("Unexpected authentication result shape.")
+            raise DomainInvariantViolation("Failed to process authentication result.")
         except Exception as e:
-            self._handle_error(e, "Authentication failed.")
+            self._handle_error(e)
 
     # POST /auth/logout → 204 | 400 | 401 | 500
     def logout(self, payload: LogoutRequest) -> NoContent:
-        """
-        Logout user and revoke active tokens.
-        """
+        """Logout user and revoke active tokens."""
         try:
             self.provider.logout(refresh_token=payload.refreshToken)
             return NoContent()
         except Exception as e:
-            self._handle_error(e, "Failed to log out user.")
+            self._handle_error(e)
 
     # POST /auth/refresh → 200 | 400 | 401 | 410 | 500
     def refresh(self, payload: RefreshRequest) -> OK[RefreshOKBody]:
-        """
-        Refresh the user's access token using a valid refresh token.
-        """
+        """Refresh access token using a valid refresh token."""
         try:
             tokens = self.provider.refresh(
                 username=payload.username, refresh_token=payload.refreshToken
@@ -160,13 +146,11 @@ class AuthService:
                 )
             )
         except Exception as e:
-            self._handle_error(e, "Failed to refresh token.")
+            self._handle_error(e)
 
     # POST /auth/reset → 204 | 400 | 404 | 410 | 429 | 500
     def reset(self, payload: ResetRequest) -> NoContent:
-        """
-        Complete password reset or change flow.
-        """
+        """Complete password reset."""
         try:
             self.provider.reset_password(
                 username=payload.username,
@@ -175,4 +159,4 @@ class AuthService:
             )
             return NoContent()
         except Exception as e:
-            self._handle_error(e, "Failed to reset password.")
+            self._handle_error(e)

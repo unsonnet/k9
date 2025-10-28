@@ -18,11 +18,16 @@ def _call(event):
 
 
 def _creds() -> tuple[str, str]:
-    """Return configured or default test credentials."""
-    return (
-        os.getenv("PYTEST_USERNAME", "bob"),
-        os.getenv("PYTEST_PASSWORD", "secret123"),
-    )
+    username = os.getenv("PYTEST_USER_USERNAME")
+    password = os.getenv("PYTEST_USER_PASSWORD")
+
+    if not username or not password:
+        raise RuntimeError(
+            "Environment variables PYTEST_USER_USERNAME and PYTEST_USER_PASSWORD "
+            "must be set to run authentication tests."
+        )
+
+    return username, password
 
 
 def _login(username: str, password: str):

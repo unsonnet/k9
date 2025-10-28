@@ -15,7 +15,7 @@ from models.search import (
     SearchRequest,
 )
 
-from ..errors import (
+from utils.errors import (
     DomainForbidden,
     DomainInvariantViolation,
     DomainNotFound,

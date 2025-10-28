@@ -3,13 +3,11 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from utils.http import (
-    Unauthorized,
     HttpResponse,
     read_json_body,
 )
 from utils.routing import Router
 from models.auth import (
-    AuthContext,
     ForgetRequest,
     LoginRequest,
     LogoutRequest,

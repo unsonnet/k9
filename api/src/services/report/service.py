@@ -28,7 +28,7 @@ from models.report import (
     UpdateReportRequest,
 )
 
-from ..errors import (
+from utils.errors import (
     DomainForbidden,
     DomainInvariantViolation,
     DomainNotFound,

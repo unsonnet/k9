@@ -11,8 +11,6 @@ from utils.http import (
     InternalServerError,
     get_method,
     normalize_path,
-    to_apigw_response,
-    error_to_apigw,
 )
 
 # Types
@@ -100,9 +98,9 @@ class Router:
                     return self._invoke(func, event, params)
             raise NotFound(f"Route not found: {method} {path}")
         except HttpError as e:
-            return error_to_apigw(e)
+            return e.to_apigw()
         except Exception as e:  # pragma: no cover
-            return error_to_apigw(InternalServerError(str(e)))
+            return InternalServerError(str(e)).to_apigw()
 
     def _invoke(
         self, func: Handler, event: Mapping[str, Any], params: Mapping[str, str]
@@ -118,6 +116,6 @@ class Router:
                 result = func(event)
             if not isinstance(result, HttpResponse):
                 raise InternalServerError("Handler did not return HttpResponse")
-            return to_apigw_response(result)
+            return result.to_apigw()
         except HttpError as e:
-            return error_to_apigw(e)
+            return e.to_apigw()
