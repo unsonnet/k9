@@ -145,7 +145,6 @@ def managed_user(admin_login) -> Generator[dict[str, Any], None, None]:
         "name": "New User",
         "phone": "+15550007777",
         "role": "user",
-        # "preferences": {"foo": "bar"},  # Temporarily remove to avoid schema issues
     }
     resp = _call_user(
         make_event("POST", "/user", headers=_auth_header(admin_token), body=payload)

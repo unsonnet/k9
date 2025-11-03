@@ -1,9 +1,10 @@
 openapi: 3.1.0
 info:
   title: Product API
-  version: 1.0.0
-  description: |
-    API for creating, retrieving, updating, and deleting products, formats, vendors, and images.
+  version: 1.0.2
+  description: >
+    Product management API including creation, retrieval, updates, and deletion 
+    of products, formats, vendors, and images.
 
 servers:
   - url: /api
@@ -15,7 +16,8 @@ paths:
   /product:
     post:
       summary: Create product
-      description: Create a new product.
+      description: >
+        Create a new product entry.
       security:
         - bearerAuth: []
       requestBody:
@@ -34,49 +36,48 @@ paths:
                     type: string
       responses:
         '201':
-          description: Created — product created
+          description: Created — product created.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Product'
-        '400': { description: Bad request — invalid request payload }
-        '401': { description: Unauthorized — missing or invalid Authorization header }
-        '403': { description: Forbidden — insufficient permissions }
-        '500': { description: Internal server error }
+        '400': { description: Invalid request payload. }
+        '401': { description: Unauthorized. }
+        '409': { description: Conflict — product already exists. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
   /product/{pid}:
+    parameters:
+      - name: pid
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+
     get:
       summary: Retrieve product
-      description: Retrieve product by ID.
+      description: >
+        Retrieve full product details by product ID.
       security:
         - bearerAuth: []
-      parameters:
-        - name: pid
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
       responses:
         '200':
-          description: OK — product retrieved
+          description: OK — product retrieved.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Product'
-        '401': { description: Unauthorized }
-        '403': { description: Forbidden }
-        '404': { description: Not found — product does not exist }
-        '500': { description: Internal server error }
+        '401': { description: Unauthorized. }
+        '404': { description: Not found — product does not exist. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
     patch:
       summary: Update product
-      description: Update product fields. Only provided fields are changed.
+      description: >
+        Update product fields. Only provided fields are updated.
       security:
         - bearerAuth: []
-      parameters:
-        - name: pid
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
       requestBody:
         required: true
         content:
@@ -89,41 +90,41 @@ paths:
                 category:
                   type: object
                   additionalProperties:
-                    type: [string, 'null']
+                    type: string
       responses:
         '200':
-          description: OK — product updated
+          description: OK — product updated.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Product'
-        '400': { description: Invalid request payload }
-        '401': { description: Unauthorized }
-        '403': { description: Forbidden }
-        '404': { description: Product not found }
-        '500': { description: Internal server error }
+        '400': { description: Invalid request payload. }
+        '401': { description: Unauthorized. }
+        '404': { description: Not found — product does not exist. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
     delete:
       summary: Delete product
-      description: Delete product and associated data. Operation is irreversible.
+      description: >
+        Permanently delete a product and associated data. Operation is irreversible.
+        Requires administrative privileges.
       security:
         - bearerAuth: []
-      parameters:
-        - name: pid
-          in: path
-          required: true
-          schema: { type: string, format: uuid }
       responses:
-        '204': { description: No content — product deleted }
-        '401': { description: Unauthorized }
-        '403': { description: Forbidden }
-        '404': { description: Not found }
-        '500': { description: Internal server error }
+        '204': { description: No content — product deleted. }
+        '400': { description: Invalid request parameters. }
+        '401': { description: Unauthorized. }
+        '403': { description: Forbidden — insufficient permissions. }
+        '404': { description: Not found — product does not exist. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
   /product/{pid}/format:
     post:
       summary: Create format
-      description: Create product format.
+      description: >
+        Create a new product format.
       security:
         - bearerAuth: []
       parameters:
@@ -145,25 +146,29 @@ paths:
                 thickness: { $ref: '#/components/schemas/Dimension' }
       responses:
         '201':
-          description: Created — format created
+          description: Created — format created.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Format'
-        '400': { description: Invalid payload or aspect mismatch }
-        '401': { description: Unauthorized }
-        '404': { description: Product not found }
-        '500': { description: Internal server error }
+        '400': { description: Invalid request payload or aspect mismatch. }
+        '401': { description: Unauthorized. }
+        '404': { description: Not found — product does not exist. }
+        '409': { description: Conflict — format already exists. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
   /product/{pid}/format/{fid}:
+    parameters:
+      - { name: pid, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: fid, in: path, required: true, schema: { type: string, format: uuid } }
+
     patch:
       summary: Update format
-      description: Update product format. Dimensions are replaced, not merged.
+      description: >
+        Update product format fields. All provided dimensions are replaced.
       security:
         - bearerAuth: []
-      parameters:
-        - { name: pid, in: path, required: true, schema: { type: string, format: uuid } }
-        - { name: fid, in: path, required: true, schema: { type: string, format: uuid } }
       requestBody:
         required: true
         content:
@@ -177,36 +182,38 @@ paths:
                 thickness: { oneOf: [{ $ref: '#/components/schemas/Dimension' }, { type: 'null' }] }
       responses:
         '200':
-          description: OK — format updated
+          description: OK — format updated.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Format'
-        '400': { description: Invalid request payload or aspect mismatch }
-        '401': { description: Unauthorized }
-        '403': { description: Forbidden }
-        '404': { description: Not found — product or format does not exist }
-        '500': { description: Internal server error }
+        '400': { description: Invalid request payload or aspect mismatch. }
+        '401': { description: Unauthorized. }
+        '404': { description: Not found — format or product does not exist. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
     delete:
       summary: Delete format
-      description: Delete product format. Operation is irreversible.
+      description: >
+        Permanently delete a product format. Operation is irreversible.
+        Requires administrative privileges.
       security:
         - bearerAuth: []
-      parameters:
-        - { name: pid, in: path, required: true, schema: { type: string, format: uuid } }
-        - { name: fid, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
-        '204': { description: No content — format deleted }
-        '401': { description: Unauthorized }
-        '403': { description: Forbidden }
-        '404': { description: Not found — product or format does not exist }
-        '500': { description: Internal server error }
+        '204':
+          description: No content — format deleted.
+        '401': { description: Unauthorized. }
+        '403': { description: Forbidden — insufficient permissions. }
+        '404': { description: Not found — format or product does not exist. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
   /product/{pid}/format/{fid}/vendor:
     post:
-      summary: Create vendor
-      description: Create product format vendor listing.
+      summary: Create vendor listing
+      description: >
+        Create vendor listing for a product format.
       security:
         - bearerAuth: []
       parameters:
@@ -220,26 +227,30 @@ paths:
               $ref: '#/components/schemas/VendorCreate'
       responses:
         '201':
-          description: Created — vendor created
+          description: Created — vendor created.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Vendor'
-        '400': { description: Invalid request payload }
-        '401': { description: Unauthorized }
-        '404': { description: Not found — product or format does not exist }
-        '500': { description: Internal server error }
+        '400': { description: Invalid request payload. }
+        '401': { description: Unauthorized. }
+        '404': { description: Not found — product or format does not exist. }
+        '409': { description: Conflict — vendor already exists. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
   /product/{pid}/format/{fid}/vendor/{vid}:
+    parameters:
+      - { name: pid, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: fid, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: vid, in: path, required: true, schema: { type: string, format: uuid } }
+
     patch:
-      summary: Update vendor
-      description: Update vendor listing. Currency is replaced, not merged.
+      summary: Update vendor listing
+      description: >
+        Update vendor listing. Currency data is fully replaced when provided.
       security:
         - bearerAuth: []
-      parameters:
-        - { name: pid, in: path, required: true, schema: { type: string, format: uuid } }
-        - { name: fid, in: path, required: true, schema: { type: string, format: uuid } }
-        - { name: vid, in: path, required: true, schema: { type: string, format: uuid } }
       requestBody:
         required: true
         content:
@@ -248,41 +259,44 @@ paths:
               $ref: '#/components/schemas/VendorPartial'
       responses:
         '200':
-          description: OK — vendor updated
+          description: OK — vendor updated.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Vendor'
-        '400': { description: Invalid request payload }
-        '401': { description: Unauthorized }
-        '403': { description: Forbidden }
-        '404': { description: Not found — product, format, or vendor does not exist }
-        '500': { description: Internal server error }
+        '400': { description: Invalid request payload. }
+        '401': { description: Unauthorized. }
+        '404': { description: Not found — vendor, format, or product does not exist. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
     delete:
-      summary: Delete vendor
-      description: Delete product format vendor listing. Operation is irreversible.
+      summary: Delete vendor listing
+      description: >
+        Permanently delete a vendor listing. Operation is irreversible.
+        Requires administrative privileges.
       security:
         - bearerAuth: []
-      parameters:
-        - { name: pid, in: path, required: true, schema: { type: string, format: uuid } }
-        - { name: fid, in: path, required: true, schema: { type: string, format: uuid } }
-        - { name: vid, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
-        '204': { description: No content — vendor deleted }
-        '401': { description: Unauthorized }
-        '403': { description: Forbidden }
-        '404': { description: Not found — product, format, or vendor does not exist }
-        '500': { description: Internal server error }
+        '204': { description: No content — vendor deleted. }
+        '401': { description: Unauthorized. }
+        '403': { description: Forbidden — insufficient permissions. }
+        '404': { description: Not found — vendor, format, or product does not exist. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
   /product/{pid}/image:
     post:
       summary: Upload image
-      description: Upload product image with mask and homography for normalization.
+      description: >
+        Upload product image with segmentation mask and homography data.
       security:
         - bearerAuth: []
       parameters:
-        - { name: pid, in: path, required: true, schema: { type: string, format: uuid } }
+        - name: pid
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
       requestBody:
         required: true
         content:
@@ -296,26 +310,28 @@ paths:
                 hom: { type: string }
       responses:
         '201':
-          description: Created — image created
+          description: Created — image uploaded.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Image'
-        '400': { description: Invalid image data or homography }
-        '401': { description: Unauthorized }
-        '403': { description: Forbidden }
-        '404': { description: Product not found }
-        '500': { description: Internal server error }
+        '400': { description: Invalid image data or metadata. }
+        '401': { description: Unauthorized. }
+        '404': { description: Not found — product does not exist. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
   /product/{pid}/image/{iid}:
+    parameters:
+      - { name: pid, in: path, required: true, schema: { type: string, format: uuid } }
+      - { name: iid, in: path, required: true, schema: { type: string, format: uuid } }
+
     patch:
-      summary: Update image
-      description: Update image metadata (mask, homography matrix).
+      summary: Update image metadata
+      description: >
+        Update image metadata including mask or homography.
       security:
         - bearerAuth: []
-      parameters:
-        - { name: pid, in: path, required: true, schema: { type: string, format: uuid } }
-        - { name: iid, in: path, required: true, schema: { type: string, format: uuid } }
       requestBody:
         required: true
         content:
@@ -327,31 +343,31 @@ paths:
                 hom: { type: string }
       responses:
         '200':
-          description: OK — image updated
+          description: OK — image metadata updated.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Image'
-        '400': { description: Invalid request payload or image metadata }
-        '401': { description: Unauthorized }
-        '403': { description: Forbidden }
-        '404': { description: Not found — product or image does not exist }
-        '500': { description: Internal server error }
+        '400': { description: Invalid request payload. }
+        '401': { description: Unauthorized. }
+        '404': { description: Not found — image or product does not exist. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
     delete:
       summary: Delete image
-      description: Delete product image. Operation is irreversible.
+      description: >
+        Permanently delete product image. Operation is irreversible.
+        Requires administrative privileges.
       security:
         - bearerAuth: []
-      parameters:
-        - { name: pid, in: path, required: true, schema: { type: string, format: uuid } }
-        - { name: iid, in: path, required: true, schema: { type: string, format: uuid } }
       responses:
-        '204': { description: No content — image deleted }
-        '401': { description: Unauthorized }
-        '403': { description: Forbidden }
-        '404': { description: Not found — product or image does not exist }
-        '500': { description: Internal server error }
+        '204': { description: No content — image deleted. }
+        '401': { description: Unauthorized. }
+        '403': { description: Forbidden — insufficient permissions. }
+        '404': { description: Not found — image or product does not exist. }
+        '429': { description: Too many requests — rate limit exceeded. }
+        '500': { description: Internal server error. }
 
 components:
   securitySchemes:
@@ -409,7 +425,7 @@ components:
       type: object
       required: [value, unit]
       properties:
-        value: { type: integer }
+        value: { type: number }
         unit: { type: string }
 
     Vendor:
@@ -433,7 +449,7 @@ components:
         name: { type: string }
         price: { $ref: '#/components/schemas/Currency' }
         discontinued: { type: boolean }
-        url: { type: string }
+        url: { type: string, format: uri }
 
     VendorPartial:
       type: object
@@ -446,13 +462,13 @@ components:
             - $ref: '#/components/schemas/Currency'
             - type: 'null'
         discontinued: { type: [boolean, 'null'] }
-        url: { type: [string, 'null'] }
+        url: { type: [string, 'null'], format: uri }
 
     Currency:
       type: object
       required: [value, unit]
       properties:
-        value: { type: integer }
+        value: { type: number }
         unit: { type: string }
 
     Image:

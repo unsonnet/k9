@@ -52,6 +52,7 @@ class UserService:
     """Orchestrate user management using a configured provider."""
 
     provider: UserDBProvider
+    auth: AuthService
 
     def __init__(self) -> None:
         from .provider import CognitoUserDBProvider, _NoopUserDBProvider
@@ -67,6 +68,8 @@ class UserService:
             self.provider = _NoopUserDBProvider()
         else:
             raise InternalServerError("Failed to initialize user provider.")
+
+        self.auth = AuthService()
 
     # ─────────── Helpers ───────────
     @staticmethod
@@ -100,6 +103,16 @@ class UserService:
     def _touch(u: StoredProfile, **x) -> StoredProfile:
         """Apply update timestamp."""
         return u.model_copy(update={**x, "updatedAt": datetime.now(timezone.utc)})
+
+    # ─────────── Noncontract Methods ───────────
+
+    def is_admin(self, ctx: AuthContext) -> bool:
+        """Check if context user is an admin."""
+        return self.provider.is_admin(ctx)
+
+    def is_self(self, ctx: AuthContext, uid: UUID) -> bool:
+        """Check if context user matches given user id."""
+        return self.provider.is_self(ctx, uid=uid)
 
     # ─────────── Contract Methods ───────────
 
@@ -206,7 +219,7 @@ class UserService:
                 if not p.currentPassword:
                     raise DomainForbidden("Current password required.")
                 pr = self.provider.get_user(uid=uid)
-                AuthService().login(
+                self.auth.login(
                     LoginRequest(username=pr.username, password=p.currentPassword)
                 )
             self.provider.update_password(uid=uid, new_password=p.newPassword)

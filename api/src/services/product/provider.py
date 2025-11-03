@@ -2,138 +2,152 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Mapping, Sequence
+from typing import Final, NoReturn
 from uuid import UUID
 from pydantic import AnyUrl
 
-# ──────────────────────────────────────────────────────────────────────────────
-from models.auth import AuthContext
 from models.common import CategoryMap
 from models.product import (
-    Name,
+    ProductName,
     StoredProduct,
+    ImageMask,
+    HomographyMatrix,
+    LocalEmbeddings,
+    GlobalEmbedding,
 )
+from utils.errors import DomainInvariantViolation
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# Provider Interfaces
+# Product Provider
 # ──────────────────────────────────────────────────────────────────────────────
 class ProductDBProvider(ABC):
-    """Backend contract for product persistence."""
+    """Manage product data contracts for backends."""
 
     @abstractmethod
-    def get_product(
-        self, ctx: AuthContext, *, pid: UUID, embeddings: bool = False
-    ) -> StoredProduct: ...
+    def get_product(self, *, pid: UUID, embeddings: bool = False) -> StoredProduct:
+        """Retrieve product by id."""
+        ...
 
     @abstractmethod
     def post_product(
         self,
-        ctx: AuthContext,
         *,
-        name: Name,
+        name: ProductName,
         category: CategoryMap,
-    ) -> StoredProduct: ...
+    ) -> StoredProduct:
+        """Create product record."""
+        ...
 
     @abstractmethod
-    def put_product(
-        self, ctx: AuthContext, *, product: StoredProduct
-    ) -> StoredProduct: ...
+    def put_product(self, *, product: StoredProduct) -> StoredProduct:
+        """Replace product record."""
+        ...
 
     @abstractmethod
-    def delete_product(self, ctx: AuthContext, *, pid: UUID) -> None: ...
+    def delete_product(self, *, pid: UUID) -> None:
+        """Delete product record."""
+        ...
 
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Disabled Provider
+# ──────────────────────────────────────────────────────────────────────────────
+class _NoopProductDBProvider(ProductDBProvider):
+    """Manage product operations as a disabled provider."""
+
+    _MSG: Final = "Failed to perform product operation."
+
+    def _raise(self) -> NoReturn:
+        raise DomainInvariantViolation(self._MSG)
+
+    def get_product(self, *_, **__) -> StoredProduct:
+        self._raise()
+
+    def post_product(self, *_, **__) -> StoredProduct:
+        self._raise()
+
+    def put_product(self, *_, **__) -> StoredProduct:
+        self._raise()
+
+    def delete_product(self, *_, **__) -> None:
+        self._raise()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Image Provider
+# ──────────────────────────────────────────────────────────────────────────────
 class ImageDBProvider(ABC):
-    """Backend contract for image persistence and metadata."""
+    """Manage image storage, transformation, metadata, and embeddings."""
 
     @abstractmethod
     def post_image(
         self,
-        ctx: AuthContext,
         *,
         pid: UUID,
-        original_bytes: bytes,
-        transformed_bytes: bytes,
-        metadata: Mapping[str, str | None],
-    ) -> UUID: ...
+        image: bytes,
+        mask: ImageMask | None,
+        homography: HomographyMatrix | None,
+    ) -> tuple[UUID, LocalEmbeddings, GlobalEmbedding]:
+        """
+        Store original image, apply optional mask/homography to produce transformed
+        variant, and compute embeddings.
+
+        Returns:
+            (iid, local_vectors, global_vector)
+        """
+        ...
 
     @abstractmethod
-    def put_image_metadata(
+    def put_image(
         self,
-        ctx: AuthContext,
         *,
         pid: UUID,
         iid: UUID,
-        metadata: Mapping[str, str | None],
-    ) -> None: ...
+        mask: ImageMask | None,
+        homography: HomographyMatrix | None,
+    ) -> tuple[LocalEmbeddings, GlobalEmbedding]:
+        """
+        Update image transformation metadata (mask/homography) and recompute
+        embeddings for the image and product.
+
+        Returns:
+            (local_vectors, global_vector)
+        """
+        ...
 
     @abstractmethod
-    def get_url(
-        self, ctx: AuthContext, *, pid: UUID, iid: UUID, kind: str
-    ) -> AnyUrl: ...
+    def get_url(self, *, pid: UUID, iid: UUID, original: bool) -> AnyUrl:
+        """Retrieve a URL for the original or transformed image."""
+        ...
 
     @abstractmethod
-    def delete(self, ctx: AuthContext, *, pid: UUID, iid: UUID) -> None: ...
+    def delete(self, *, pid: UUID, iid: UUID) -> None:
+        """Delete image and any derived artifacts."""
+        ...
 
 
-class EmbeddingIndexProvider(ABC):
-    @abstractmethod
-    def upsert_product_embedding(
-        self, ctx: AuthContext, *, pid: UUID, vector: Sequence[float]
-    ) -> None: ...
+# ──────────────────────────────────────────────────────────────────────────────
+# Disabled Provider
+# ──────────────────────────────────────────────────────────────────────────────
+class _NoopImageDBProvider(ImageDBProvider):
+    """Manage image operations as a disabled provider."""
 
-    @abstractmethod
-    def delete_product_embedding(self, ctx: AuthContext, *, pid: UUID) -> None: ...
+    _MSG: Final = "Failed to perform image operation."
 
-    @abstractmethod
-    def upsert_image_local_embeddings(
-        self,
-        ctx: AuthContext,
-        *,
-        pid: UUID,
-        iid: UUID,
-        vectors: Sequence[Sequence[float]],
-    ) -> None: ...
+    def _raise(self) -> NoReturn:
+        raise DomainInvariantViolation(self._MSG)
 
-    @abstractmethod
-    def delete_image_local_embeddings(
-        self, ctx: AuthContext, *, pid: UUID, iid: UUID
-    ) -> None: ...
+    def post_image(self, *_, **__) -> tuple[UUID, LocalEmbeddings, GlobalEmbedding]:
+        self._raise()
 
+    def put_image(self, *_, **__) -> tuple[LocalEmbeddings, GlobalEmbedding]:
+        self._raise()
 
-class NoopEmbeddingIndexProvider(EmbeddingIndexProvider):
-    def upsert_product_embedding(self, *_, **__): ...
-    def delete_product_embedding(self, *_, **__): ...
-    def upsert_image_local_embeddings(self, *_, **__): ...
-    def delete_image_local_embeddings(self, *_, **__): ...
+    def get_url(self, *_, **__) -> AnyUrl:
+        self._raise()
 
-
-# Default underscored no-ops for DB and Images
-class _NoopProductDB(ProductDBProvider):  # pragma: no cover - placeholder
-    def get_product(self, *_, **__) -> StoredProduct:  # type: ignore[override]
-        raise NotImplementedError("ProductDBProvider not configured")
-
-    def post_product(self, *_, **__) -> StoredProduct:  # type: ignore[override]
-        raise NotImplementedError("ProductDBProvider not configured")
-
-    def put_product(self, *_, **__) -> StoredProduct:  # type: ignore[override]
-        raise NotImplementedError("ProductDBProvider not configured")
-
-    def delete_product(self, *_, **__) -> None:  # type: ignore[override]
-        raise NotImplementedError("ProductDBProvider not configured")
-
-
-class _NoopImageDB(ImageDBProvider):  # pragma: no cover - placeholder
-    def post_image(self, *_, **__) -> UUID:  # type: ignore[override]
-        raise NotImplementedError("ImageDBProvider not configured")
-
-    def put_image_metadata(self, *_, **__) -> None:  # type: ignore[override]
-        raise NotImplementedError("ImageDBProvider not configured")
-
-    def get_url(self, *_, **__) -> AnyUrl:  # type: ignore[override]
-        raise NotImplementedError("ImageDBProvider not configured")
-
-    def delete(self, *_, **__) -> None:  # type: ignore[override]
-        raise NotImplementedError("ImageDBProvider not configured")
+    def delete(self, *_, **__) -> None:
+        self._raise()
