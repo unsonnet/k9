@@ -54,16 +54,18 @@ class AuthService:
         from providers.auth import CognitoAuthProvider, _NoopAuthProvider
 
         cfg = settings()
-        if (
-            cfg.cognito_user_pool_id
-            and cfg.cognito_client_id
-            and cfg.cognito_client_secret
-        ):
+
+        # Full provider when deployed on AWS
+        if cfg.platform == "aws":
             self.provider = CognitoAuthProvider()
+
+        # Local / dev fallback
         elif cfg.platform in {"dev", "local"}:
             self.provider = _NoopAuthProvider()
+
+        # Fail clearly if neither condition applies
         else:
-            raise InternalServerError("Failed to initialize authentication provider.")
+            raise InternalServerError("Failed to initialize authentication service.")
 
     # ─────────── Helpers ───────────
     @staticmethod

@@ -74,13 +74,26 @@ class ProductService:
     users: UserService
 
     def __init__(self) -> None:
-        # For now, default to noop providers only. Concrete providers will be added later.
-        from providers.product import _NoopProductDBProvider
-        from providers.image import _NoopImageDBProvider
+        from providers.product import DynamoProductDBProvider, _NoopProductDBProvider
+        from providers.image import S3ImageDBProvider, _NoopImageDBProvider
 
-        _ = settings()  # kept for parity with other services; not used yet
-        self.db = _NoopProductDBProvider()
-        self.images = _NoopImageDBProvider()
+        cfg = settings()
+
+        # Full providers when deployed on AWS
+        if cfg.platform == "aws":
+            self.db = DynamoProductDBProvider()
+            self.images = S3ImageDBProvider()
+
+        # Local / dev fallback
+        elif cfg.platform in {"dev", "local"}:
+            self.db = _NoopProductDBProvider()
+            self.images = _NoopImageDBProvider()
+
+        # Fail clearly if neither condition applies
+        else:
+            raise InternalServerError("Failed to initialize product service.")
+
+        # Sub-services initialized last
         self.users = UserService()
 
     # ─────────── Helpers ───────────

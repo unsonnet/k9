@@ -58,17 +58,20 @@ class UserService:
         from providers.user import CognitoUserDBProvider, _NoopUserDBProvider
 
         cfg = settings()
-        if (
-            cfg.cognito_user_pool_id
-            and cfg.cognito_client_id
-            and cfg.cognito_client_secret
-        ):
+
+        # Full provider when deployed on AWS
+        if cfg.platform == "aws":
             self.provider = CognitoUserDBProvider()
+
+        # Local / dev fallback
         elif cfg.platform in {"dev", "local"}:
             self.provider = _NoopUserDBProvider()
-        else:
-            raise InternalServerError("Failed to initialize user provider.")
 
+        # Fail clearly if neither condition applies
+        else:
+            raise InternalServerError("Failed to initialize user service.")
+
+        # Sub-services initialized last for consistency
         self.auth = AuthService()
 
     # ─────────── Helpers ───────────
