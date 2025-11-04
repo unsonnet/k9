@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any
 
 
 def call_handler(handler_module: str, event: dict[str, Any]) -> dict[str, Any]:

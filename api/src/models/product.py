@@ -114,7 +114,7 @@ class StoredImage(TimeStamped):
         return a
 
     @field_serializer("localEmbeddings")
-    def _dump_local(cls, v: LocalEmbeddings) -> list[list[float]]:
+    def _dump_local(self, v: LocalEmbeddings, info) -> list[list[float]]:
         return v.tolist()
 
 
@@ -156,7 +156,7 @@ class StoredProduct(TimeStamped):
         return a
 
     @field_serializer("globalEmbedding")
-    def _dump_global(cls, v: GlobalEmbedding) -> list[float]:
+    def _dump_global(self, v: GlobalEmbedding, info) -> list[float]:
         return v.tolist()
 
 

@@ -9,6 +9,8 @@ from dataclasses import dataclass
 import traceback
 from typing import Any, Generic, Mapping, TypeVar, TypedDict
 from typing_extensions import Self
+import cgi
+from io import BytesIO
 
 from .errors import DomainError
 
@@ -229,6 +231,86 @@ def read_bearer_token(event: Mapping[str, Any]) -> str | None:
     if auth.startswith("Bearer "):
         return auth[7:]
     return auth
+
+
+def read_multipart_body(
+    event: Mapping[str, Any],
+) -> dict[str, tuple[str | None, bytes]]:
+    """
+    Parse multipart/form-data from an API Gateway v1/v2 proxy event.
+
+    Returns: { field_name: (filename_or_None, bytes_value) }
+      - File parts => (filename, raw bytes)
+      - Text parts => (None, raw bytes)  (empty string => b"")
+    """
+    if not isinstance(event, dict):
+        raise BadRequest("Invalid event")
+
+    headers = event.get("headers") or {}
+    if not isinstance(headers, dict):
+        headers = {}
+    # case-insensitive header lookup
+    hdrs = {str(k).lower(): v for k, v in headers.items()}
+    ctype = hdrs.get("content-type") or hdrs.get("content_type") or ""
+    if not isinstance(ctype, str) or "multipart/form-data" not in ctype:
+        raise BadRequest("Content-Type must be multipart/form-data")
+
+    body = event.get("body")
+    if body is None:
+        raise BadRequest("Missing body")
+
+    # API Gateway may base64-encode the raw bytes
+    try:
+        if event.get("isBase64Encoded"):
+            raw = base64.b64decode(body)
+        else:
+            raw = body.encode("utf-8") if isinstance(body, str) else body
+            if not isinstance(raw, (bytes, bytearray)):
+                raise ValueError("Body must be bytes or string")
+    except Exception:
+        raise BadRequest("Invalid multipart body")
+
+    # cgi.FieldStorage expects a WSGI-ish environ
+    environ = {
+        "REQUEST_METHOD": "POST",
+        "CONTENT_TYPE": ctype,
+        "CONTENT_LENGTH": str(len(raw)),
+    }
+    fp = BytesIO(raw)
+    form = cgi.FieldStorage(fp=fp, environ=environ, keep_blank_values=True)
+
+    out: dict[str, tuple[str | None, bytes]] = {}
+
+    # FieldStorage can be dict-like or a single item; normalize to a list
+    items = []
+    if getattr(form, "list", None):
+        items = form.list or []
+    else:
+        items = [form]
+
+    for field in items:
+        # Some libraries emit None-name fields; skip them
+        name = getattr(field, "name", None)
+        if not name:
+            continue
+
+        if getattr(field, "filename", None):
+            # File part
+            filename = field.filename
+            data = field.file.read() if field.file else b""
+            out[name] = (filename, data)
+        else:
+            # Text part (treat as raw bytes; empty is b"")
+            val = field.value if hasattr(field, "value") else ""
+            if isinstance(val, str):
+                data = val.encode("utf-8")
+            elif isinstance(val, (bytes, bytearray)):
+                data = bytes(val)
+            else:
+                data = str(val).encode("utf-8")
+            out[name] = (None, data)
+
+    return out
 
 
 def _json_default(o: Any) -> Any:

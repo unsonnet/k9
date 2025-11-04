@@ -117,7 +117,6 @@ class DynamoProductDBProvider(ProductDBProvider):
             c.RequestLimitExceeded: DomainRateLimited,
             c.ResourceNotFoundException: DomainNotFound,
             c.TransactionConflictException: DomainConflict,
-            c.ValidationException: DomainInvariantViolation,
         }
         raise m.get(type(e), DomainInvariantViolation)(msg) from e
 

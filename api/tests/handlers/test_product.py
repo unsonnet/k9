@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import base64
-from tests.utils.events import make_event, parse_body
+from tests.utils.events import make_event, make_multipart_event, parse_body
 from tests.utils.handlers import call_handler
 
 
@@ -9,21 +8,12 @@ def _auth(token):
     return {"Authorization": f"Bearer {token}"}
 
 
-def test_create_product_ok(user_login):
-    resp = call_handler(
-        "product",
-        make_event(
-            "POST",
-            "/product",
-            headers=_auth(user_login["accessToken"]),
-            body={
-                "name": {"brand": "B", "model": "M"},
-                "category": {"type": "ceramic"},
-            },
-        ),
-    )
-    assert resp["statusCode"] == 201
-    assert set(parse_body(resp)) == {"id", "name", "category", "formats", "images"}
+def test_create_product_ok(managed_product):
+    prod = managed_product["product"]
+    assert set(prod) == {"id", "name", "category", "formats", "images"}
+    assert prod["name"]["brand"] == "Test"
+    assert prod["name"]["model"] == "Z"
+    assert prod["category"]["type"] == "ceramic"
 
 
 def test_get_product_ok(managed_product):
@@ -122,22 +112,8 @@ def test_update_vendor_ok(managed_vendor):
     assert resp["statusCode"] == 200
 
 
-def test_upload_image_ok(managed_product):
-    pid = managed_product["pid"]
-    resp = call_handler(
-        "product",
-        make_event(
-            "POST",
-            f"/product/{pid}/image",
-            headers=_auth(managed_product["userToken"]),
-            body={
-                "image": base64.b64encode(b"img").decode(),
-                "mask": managed_product.get("mask") or "",  # from fixtures if needed
-                "hom": managed_product.get("hom") or "",
-            },
-        ),
-    )
-    assert resp["statusCode"] == 201
+def test_upload_image_ok(managed_image):
+    assert managed_image["iid"]
 
 
 def test_update_image_ok(managed_image):
@@ -149,7 +125,7 @@ def test_update_image_ok(managed_image):
             "PATCH",
             f"/product/{pid}/image/{iid}",
             headers=_auth(managed_image["userToken"]),
-            body={"mask": base64.b64encode(b"xyz").decode()},
+            body={"mask": "eHkz"},
         ),
     )
     assert resp["statusCode"] == 200

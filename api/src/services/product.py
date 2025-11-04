@@ -119,8 +119,7 @@ class ProductService:
 
     @staticmethod
     def _touch(obj: T, **x) -> T:
-        """Apply update timestamp."""
-        # Pydantic v2 model_copy works on our Stored* models.
+        """Return a *new* object with fields updated and updatedAt set (no in-place mutation)."""
         return obj.model_copy(update={**x, "updatedAt": datetime.now(timezone.utc)})  # type: ignore
 
     # Public mappers to API schemas
@@ -145,13 +144,13 @@ class ProductService:
             length=f.length,
             width=f.width,
             thickness=f.thickness,
-            vendors=[self._public_vendor(v) for v in (f.vendors or [])],
+            vendors=[self._public_vendor(v) for v in f.vendors],
         )
 
     def _public_image(self, pid: UUID, i: StoredImage) -> Image:
         """Sanitize image to public view, resolving URL via image provider."""
         return Image(
-            id=i.id, url=self.images.get_url(pid=pid, iid=i.id, original=False)
+            id=i.id, url=self.images.get_url(pid=pid, iid=i.id, transformed=True)
         )
 
     def _public_product(self, p: StoredProduct) -> Product:
@@ -160,8 +159,8 @@ class ProductService:
             id=p.id,
             name=p.name,
             category=p.category,
-            formats=[self._public_format(f) for f in (p.formats or [])],
-            images=[self._public_image(p.id, i) for i in (p.images or [])],
+            formats=[self._public_format(f) for f in p.formats],
+            images=[self._public_image(p.id, i) for i in p.images],
         )
 
     # ─────────── Noncontract Methods ───────────
@@ -172,49 +171,35 @@ class ProductService:
             raise DomainForbidden("Request denied.")
 
     def _parse_mask(self, mask: str | None) -> ImageMask | None:
-        """
-        Decode base64-encoded compact 2D boolean mask.
-        """
+        """Decode base64-encoded compact 2D boolean mask."""
         if mask is None:
             return None
-
         try:
             raw = base64.b64decode(mask, validate=True)
         except Exception as e:
             raise DomainInvariantViolation("Invalid base64 for mask.") from e
-
         if len(raw) < 8:
             raise DomainInvariantViolation("Mask too short to contain shape header.")
-
-        # Parse header (big endian uint32)
         height, width = struct.unpack_from(">II", raw, 0)
         if height <= 0 or width <= 0:
             raise DomainInvariantViolation("Invalid mask shape.")
-
         nbits = height * width
         nbytes = (nbits + 7) // 8
         data = raw[8 : 8 + nbytes]
         if len(data) < nbytes:
             raise DomainInvariantViolation("Truncated mask payload.")
-
-        # Convert to bits efficiently
         bits = np.unpackbits(np.frombuffer(data, dtype=np.uint8))
         mask_arr = bits[:nbits].reshape((height, width))
         return mask_arr.astype(bool)
 
     def _parse_homography(self, hom: str | None) -> HomographyMatrix | None:
-        """
-        Decode base64-encoded binary 3x3 homography matrix.
-        """
+        """Decode base64-encoded binary 3x3 homography matrix."""
         if hom is None:
             return None
-
         try:
             raw = base64.b64decode(hom, validate=True)
         except Exception as e:
             raise DomainInvariantViolation("Invalid base64 for homography.") from e
-
-        # Accept only binary encodings
         for dtype in (
             np.dtype("<f4"),
             np.dtype(">f4"),
@@ -225,7 +210,6 @@ class ProductService:
             if len(raw) == nbytes:
                 arr = np.frombuffer(raw, dtype=dtype, count=9)
                 return arr.astype(np.float64).reshape((3, 3))
-
         raise DomainInvariantViolation(
             "Homography must be binary base64 of 9 float32/float64 values (row-major)."
         )
@@ -259,10 +243,12 @@ class ProductService:
         try:
             prod = self.db.get_product(pid=pid)
 
+            updates: dict = {}
+
             # Name partial patch (brand/series/model may be nullable)
             if p.name is not None:
                 patch = p.name.model_dump(exclude_unset=True)
-                prod.name = ProductName(
+                updates["name"] = ProductName(
                     brand=patch.get("brand", prod.name.brand),
                     series=patch.get("series", prod.name.series),
                     model=patch.get("model", prod.name.model),
@@ -270,15 +256,18 @@ class ProductService:
 
             # Category map merge; null removes the key
             if p.category is not None:
-                cat = dict(prod.category or {})
+                cat = dict(prod.category)
                 for k, v in p.category.items():
                     if v is None:
                         cat.pop(k, None)
                     else:
                         cat[k] = v
-                prod.category = cat
+                updates["category"] = cat
 
-            saved = self.db.put_product(product=self._touch(prod))
+            updated_prod = (
+                self._touch(prod, **updates) if updates else self._touch(prod)
+            )
+            saved = self.db.put_product(product=updated_prod)
             return OK(self._public_product(saved))
         except Exception as e:
             self._handle_error(e)
@@ -288,7 +277,9 @@ class ProductService:
         """Delete a product by id. Requires admin."""
         try:
             self._require_admin(ctx)
+            prod = self.db.get_product(pid=pid)
             self.db.delete_product(pid=pid)
+            self.images.delete_images(pid=pid, iids=[i.id for i in prod.images])
             return NoContent()
         except Exception as e:
             self._handle_error(e)
@@ -310,10 +301,8 @@ class ProductService:
                 vendors=[],
                 createdAt=self._now(),
             )
-            updated = self._touch(prod, formats=[*(prod.formats or []), fmt])
+            updated = self._touch(prod, formats=[*prod.formats, fmt])
             saved = self.db.put_product(product=updated)
-            # Return the created format as stored (IDs may be used by client immediately)
-            # Choose the one with fmt.id to avoid relying on order.
             created_fmt = next(f for f in saved.formats if f.id == fmt.id)
             return Created(self._public_format(created_fmt))
         except Exception as e:
@@ -323,28 +312,28 @@ class ProductService:
     def update_format(
         self, ctx: AuthContext, pid: UUID, fid: UUID, p: UpdateFormatRequest
     ) -> OK[Format]:
-        """Update a product format."""
+        """Update a product format (immutable models → copy on write)."""
         try:
             prod = self.db.get_product(pid=pid)
-            fmt = next((f for f in (prod.formats or []) if f.id == fid), None)
-            if not fmt:
+            current = next((f for f in prod.formats if f.id == fid), None)
+            if not current:
                 raise DomainNotFound("Format not found.")
 
-            # Aspect and dimensions: replace provided values; allow explicit nulls per OpenAPI
+            upd: dict = {}
             if p.aspect is not None:
-                fmt.aspect = p.aspect
+                upd["aspect"] = p.aspect
             if "length" in p.model_fields_set:
-                fmt.length = p.length  # may be None
+                upd["length"] = p.length
             if "width" in p.model_fields_set:
-                fmt.width = p.width  # may be None
+                upd["width"] = p.width
             if "thickness" in p.model_fields_set:
-                fmt.thickness = p.thickness  # may be None
+                upd["thickness"] = p.thickness
 
-            fmt = self._touch(fmt)
-            new_formats = [fmt if f.id == fid else f for f in (prod.formats or [])]
+            updated_fmt = self._touch(current, **upd) if upd else self._touch(current)
+            new_formats = [updated_fmt if f.id == fid else f for f in prod.formats]
             saved = self.db.put_product(product=self._touch(prod, formats=new_formats))
-            updated_fmt = next(f for f in saved.formats if f.id == fid)
-            return OK(self._public_format(updated_fmt))
+            final_fmt = next(f for f in saved.formats if f.id == fid)
+            return OK(self._public_format(final_fmt))
         except Exception as e:
             self._handle_error(e)
 
@@ -354,7 +343,7 @@ class ProductService:
         try:
             self._require_admin(ctx)
             prod = self.db.get_product(pid=pid)
-            if not any(f.id == fid for f in (prod.formats or [])):
+            if not any(f.id == fid for f in prod.formats):
                 raise DomainNotFound("Format not found.")
             new_formats = [f for f in prod.formats if f.id != fid]
             self.db.put_product(product=self._touch(prod, formats=new_formats))
@@ -370,7 +359,7 @@ class ProductService:
         """Create a vendor listing for a format."""
         try:
             prod = self.db.get_product(pid=pid)
-            fmt = next((f for f in (prod.formats or []) if f.id == fid), None)
+            fmt = next((f for f in prod.formats if f.id == fid), None)
             if not fmt:
                 raise DomainNotFound("Format not found.")
             ven = StoredVendor(
@@ -383,8 +372,8 @@ class ProductService:
                 url=p.url,
                 createdAt=self._now(),
             )
-            fmt = self._touch(fmt, vendors=[*(fmt.vendors or []), ven])
-            new_formats = [fmt if f.id == fid else f for f in (prod.formats or [])]
+            fmt_updated = self._touch(fmt, vendors=[*fmt.vendors, ven])
+            new_formats = [fmt_updated if f.id == fid else f for f in prod.formats]
             saved = self.db.put_product(product=self._touch(prod, formats=new_formats))
             created_ven = next(
                 v
@@ -401,43 +390,45 @@ class ProductService:
     def update_vendor(
         self, ctx: AuthContext, pid: UUID, fid: UUID, vid: UUID, p: UpdateVendorRequest
     ) -> OK[Vendor]:
-        """Update a vendor listing."""
+        """Update a vendor listing (immutable models → copy on write)."""
         try:
             prod = self.db.get_product(pid=pid)
-            fmt = next((f for f in (prod.formats or []) if f.id == fid), None)
+            fmt = next((f for f in prod.formats if f.id == fid), None)
             if not fmt:
                 raise DomainNotFound("Format not found.")
-            ven = next((v for v in (fmt.vendors or []) if v.id == vid), None)
-            if not ven:
+            current = next((v for v in fmt.vendors if v.id == vid), None)
+            if not current:
                 raise DomainNotFound("Vendor not found.")
 
-            # Replace provided fields; allow explicit nulls per OpenAPI (price/url/discontinued may be null)
+            upd: dict = {}
             if p.sku is not None:
-                ven.sku = p.sku
+                upd["sku"] = p.sku
             if p.store is not None:
-                ven.store = p.store
+                upd["store"] = p.store
             if p.name is not None:
-                ven.name = p.name
+                upd["name"] = p.name
             if "price" in p.model_fields_set:
-                ven.price = p.price
+                upd["price"] = p.price
             if "discontinued" in p.model_fields_set:
-                ven.discontinued = p.discontinued
+                upd["discontinued"] = p.discontinued
             if "url" in p.model_fields_set:
-                ven.url = p.url
+                upd["url"] = p.url
 
-            ven = self._touch(ven)
-            new_vendors = [ven if v.id == vid else v for v in (fmt.vendors or [])]
-            fmt = self._touch(fmt, vendors=new_vendors)
-            new_formats = [fmt if f.id == fid else f for f in (prod.formats or [])]
+            updated_vendor = (
+                self._touch(current, **upd) if upd else self._touch(current)
+            )
+            new_vendors = [updated_vendor if v.id == vid else v for v in fmt.vendors]
+            fmt_updated = self._touch(fmt, vendors=new_vendors)
+            new_formats = [fmt_updated if f.id == fid else f for f in prod.formats]
             saved = self.db.put_product(product=self._touch(prod, formats=new_formats))
-            updated_ven = next(
+            final_vendor = next(
                 v
                 for f in saved.formats
                 if f.id == fid
                 for v in f.vendors
                 if v.id == vid
             )
-            return OK(self._public_vendor(updated_ven))
+            return OK(self._public_vendor(final_vendor))
         except Exception as e:
             self._handle_error(e)
 
@@ -449,15 +440,15 @@ class ProductService:
         try:
             self._require_admin(ctx)
             prod = self.db.get_product(pid=pid)
-            fmt = next((f for f in (prod.formats or []) if f.id == fid), None)
+            fmt = next((f for f in prod.formats if f.id == fid), None)
             if not fmt:
                 raise DomainNotFound("Format not found.")
-            if not any(v.id == vid for v in (fmt.vendors or [])):
+            if not any(v.id == vid for v in fmt.vendors):
                 raise DomainNotFound("Vendor not found.")
 
             new_vendors = [v for v in fmt.vendors if v.id != vid]
-            fmt = self._touch(fmt, vendors=new_vendors)
-            new_formats = [fmt if f.id == fid else f for f in (prod.formats or [])]
+            fmt_updated = self._touch(fmt, vendors=new_vendors)
+            new_formats = [fmt_updated if f.id == fid else f for f in prod.formats]
             self.db.put_product(product=self._touch(prod, formats=new_formats))
             return NoContent()
         except Exception as e:
@@ -482,7 +473,7 @@ class ProductService:
 
             # Append minimal stored image record; provider owns the actual blobs/embeddings.
             img = StoredImage(id=iid, localEmbeddings=loc, createdAt=self._now())
-            new_images = [*(prod.images or []), img]
+            new_images = [*prod.images, img]
             saved = self.db.put_product(
                 product=self._touch(prod, images=new_images, globalEmbedding=glob)
             )
@@ -498,7 +489,7 @@ class ProductService:
         """Update image metadata, recomputing provider artifacts as needed."""
         try:
             prod = self.db.get_product(pid=pid)
-            img = next((i for i in (prod.images or []) if i.id == iid), None)
+            img = next((i for i in prod.images if i.id == iid), None)
             if not img:
                 raise DomainNotFound("Image not found.")
 
@@ -510,10 +501,10 @@ class ProductService:
                 homography=self._parse_homography(p.hom),
             )
 
-            # Touch stored image record for bookkeeping.
+            # Touch stored image record for bookkeeping (copy on write).
             new_images = [
                 self._touch(img, localEmbeddings=loc) if i.id == iid else i
-                for i in (prod.images or [])
+                for i in prod.images
             ]
             saved = self.db.put_product(
                 product=self._touch(prod, images=new_images, globalEmbedding=glob)
@@ -529,12 +520,12 @@ class ProductService:
         try:
             self._require_admin(ctx)
             prod = self.db.get_product(pid=pid)
-            if not any(i.id == iid for i in (prod.images or [])):
+            if not any(i.id == iid for i in prod.images):
                 raise DomainNotFound("Image not found.")
 
             # Remove provider artifacts first, then persist new product state.
-            self.images.delete_image(pid=pid, iid=iid)
-            new_images = [i for i in (prod.images or []) if i.id != iid]
+            self.images.delete_images(pid=pid, iids=[iid])
+            new_images = [i for i in prod.images if i.id != iid]
             self.db.put_product(product=self._touch(prod, images=new_images))
             return NoContent()
         except Exception as e:

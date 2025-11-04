@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Final, NoReturn
+from typing import Final, NoReturn, Sequence
 from uuid import UUID, uuid4
 
 import numpy as np
@@ -19,6 +19,7 @@ from models.product import (
     AnyUrl,
 )
 from utils.errors import (
+    DomainError,
     DomainForbidden,
     DomainInvariantViolation,
     DomainNotFound,
@@ -69,12 +70,14 @@ class ImageDBProvider(ABC):
         ...
 
     @abstractmethod
-    def get_url(self, *, pid: UUID, iid: UUID, original: bool) -> AnyUrl:
+    def get_url(self, *, pid: UUID, iid: UUID, transformed: bool) -> AnyUrl:
         """Retrieve a URL for the original or transformed image."""
         ...
 
     @abstractmethod
-    def delete_image(self, *, pid: UUID, iid: UUID) -> None:
+    def delete_images(
+        self, *, pid: UUID, iids: Sequence[UUID]
+    ) -> tuple[LocalEmbeddings, GlobalEmbedding]:
         """Delete image and any derived artifacts."""
         ...
 
@@ -99,7 +102,7 @@ class _NoopImageDBProvider(ImageDBProvider):
     def get_url(self, *_, **__) -> AnyUrl:
         self._raise()
 
-    def delete_image(self, *_, **__) -> None:
+    def delete_images(self, *_, **__) -> tuple[LocalEmbeddings, GlobalEmbedding]:
         self._raise()
 
 
@@ -113,41 +116,38 @@ class S3ImageDBProvider(ImageDBProvider):
         cfg = settings()
         if not cfg.images_bucket:
             raise DomainInvariantViolation("Failed to initialize image provider.")
-
         self.bucket: str = cfg.images_bucket
         self._s3 = boto3_client("s3")
 
-    # ─────────── Internal helpers ───────────
+    # ─────────── Helpers ───────────
     @staticmethod
     def _local_vectors_empty() -> LocalEmbeddings:
-        return np.zeros((0, 0), dtype=np.float32)
+        return np.zeros((1, 1), dtype=np.float32)
 
     @staticmethod
     def _global_vector_empty() -> GlobalEmbedding:
-        return np.zeros((0,), dtype=np.float32)
+        return np.zeros((1,), dtype=np.float32)
 
     @staticmethod
-    def _key(pid: UUID, iid: UUID, *, original: bool) -> str:
-        if original:
-            return f"products/{pid}/{iid}/original"
-        return f"products/{pid}/{iid}/transformed"
+    def _key(pid: UUID, iid: UUID, *, transformed: bool) -> str:
+        return (
+            f"products/{pid}/{iid}/transformed"
+            if transformed
+            else f"products/{pid}/{iid}/original"
+        )
 
-    def _handle_s3_error(self, e: Exception, msg: str) -> NoReturn:
-        from botocore.exceptions import ClientError, BotoCoreError
-
-        if isinstance(e, ClientError):
-            code = e.response.get("Error", {}).get("Code", "")
-            if code in ("NoSuchKey", "404"):
-                raise DomainNotFound(msg) from e
-            if code in ("Throttling", "ThrottlingException"):
-                raise DomainRateLimited(msg) from e
-            if code in ("AccessDenied", "Forbidden"):
-                raise DomainForbidden(msg) from e
-
-        elif isinstance(e, BotoCoreError):
-            raise DomainRateLimited(msg) from e
-
-        raise DomainInvariantViolation(msg) from e
+    def _handle_error(self, e: Exception, msg: str) -> NoReturn:
+        c = self._s3.exceptions
+        mapping: dict[type[Exception], type[DomainError]] = {
+            c.NoSuchKey: DomainNotFound,
+            c.NoSuchBucket: DomainNotFound,
+            c.AccessDenied: DomainForbidden,
+            c.InvalidObjectState: DomainForbidden,
+            c.Throttling: DomainRateLimited,
+            c.SlowDown: DomainRateLimited,
+            c.RequestTimeout: DomainRateLimited,
+        }
+        raise mapping.get(type(e), DomainInvariantViolation)(msg) from e
 
     # ─────────── Contract Methods ───────────
     def post_image(
@@ -160,27 +160,17 @@ class S3ImageDBProvider(ImageDBProvider):
     ) -> tuple[UUID, LocalEmbeddings, GlobalEmbedding]:
         iid = uuid4()
         try:
-            self._s3.put_object(
-                Bucket=self.bucket,
-                Key=self._key(pid, iid, original=True),
-                Body=image,
-                ContentType="image/jpeg",
-            )
-            self._s3.put_object(
-                Bucket=self.bucket,
-                Key=self._key(pid, iid, original=False),
-                Body=image,
-                ContentType="image/jpeg",
-            )
-
-            return (
-                iid,
-                self._local_vectors_empty(),
-                self._global_vector_empty(),
-            )
-
+            # Store original and transformed (placeholder) same as before
+            for transformed in (False, True):
+                self._s3.put_object(
+                    Bucket=self.bucket,
+                    Key=self._key(pid, iid, transformed=transformed),
+                    Body=image,
+                    ContentType="image/jpeg",
+                )
+            return (iid, self._local_vectors_empty(), self._global_vector_empty())
         except Exception as e:
-            self._handle_s3_error(e, "Failed to store product image.")
+            self._handle_error(e, "Failed to store product image.")
 
     def put_image(
         self,
@@ -191,30 +181,30 @@ class S3ImageDBProvider(ImageDBProvider):
         homography: HomographyMatrix | None,
     ) -> tuple[LocalEmbeddings, GlobalEmbedding]:
         try:
+            # Pull transformed -> re-store original
             obj = self._s3.get_object(
                 Bucket=self.bucket,
-                Key=self._key(pid, iid, original=True),
+                Key=self._key(pid, iid, transformed=True),
             )
             original_bytes = obj["Body"].read()
 
             self._s3.put_object(
                 Bucket=self.bucket,
-                Key=self._key(pid, iid, original=False),
+                Key=self._key(pid, iid, transformed=False),
                 Body=original_bytes,
                 ContentType="image/jpeg",
             )
 
-            return (
-                self._local_vectors_empty(),
-                self._global_vector_empty(),
-            )
-
+            return (self._local_vectors_empty(), self._global_vector_empty())
         except Exception as e:
-            self._handle_s3_error(e, "Failed to update product image.")
+            self._handle_error(e, "Failed to update product image.")
 
-    def get_url(self, *, pid: UUID, iid: UUID, original: bool) -> AnyUrl:
-        key = self._key(pid, iid, original=original)
+    def get_url(self, *, pid: UUID, iid: UUID, transformed: bool) -> AnyUrl:
+        key = self._key(pid, iid, transformed=transformed)
         try:
+            # Exactly one call: HEAD to enforce 404 correctness.
+            self._s3.head_object(Bucket=self.bucket, Key=key)
+
             url = self._s3.generate_presigned_url(
                 ClientMethod="get_object",
                 Params={"Bucket": self.bucket, "Key": key},
@@ -222,17 +212,22 @@ class S3ImageDBProvider(ImageDBProvider):
             )
             return AnyUrl(url)
         except Exception as e:
-            self._handle_s3_error(e, "Failed to generate image URL.")
+            self._handle_error(e, "Failed to generate image URL.")
 
-    def delete_image(self, *, pid: UUID, iid: UUID) -> None:
+    def delete_images(
+        self, *, pid: UUID, iids: Sequence[UUID]
+    ) -> tuple[LocalEmbeddings, GlobalEmbedding]:
         try:
-            self._s3.delete_object(
-                Bucket=self.bucket,
-                Key=self._key(pid, iid, original=True),
-            )
-            self._s3.delete_object(
-                Bucket=self.bucket,
-                Key=self._key(pid, iid, original=False),
-            )
+            objects = [
+                {"Key": self._key(pid, iid, transformed=t)}
+                for iid in iids
+                for t in (False, True)
+            ]
+            if objects:
+                self._s3.delete_objects(
+                    Bucket=self.bucket,
+                    Delete={"Objects": objects, "Quiet": True},
+                )
+            return (self._local_vectors_empty(), self._global_vector_empty())
         except Exception as e:
-            self._handle_s3_error(e, "Failed to delete product image.")
+            self._handle_error(e, "Failed to delete product image.")

@@ -303,7 +303,7 @@ paths:
           multipart/form-data:
             schema:
               type: object
-              required: [image, mask, hom]
+              required: [image]
               properties:
                 image: { type: string, format: binary }
                 mask: { type: string }

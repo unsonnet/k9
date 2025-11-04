@@ -31,15 +31,23 @@ class _S3Client(Protocol):
         Key: str,
     ) -> dict[str, Any]: ...
 
-    def delete_object(
+    def head_object(
         self,
         *,
         Bucket: str,
         Key: str,
     ) -> dict[str, Any]: ...
 
+    def delete_objects(
+        self,
+        *,
+        Bucket: str,
+        Delete: dict[str, Any],
+    ) -> dict[str, Any]: ...
+
     def generate_presigned_url(
         self,
+        *,
         ClientMethod: str,
         Params: dict[str, Any],
         ExpiresIn: int,

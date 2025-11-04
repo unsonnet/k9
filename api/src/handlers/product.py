@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-import base64
 from typing import Any, Mapping
 from uuid import UUID
 
 from utils.http import (
+    HttpResponse,
     BadRequest,
-    Created,
-    NoContent,
-    OK,
     read_bearer_token,
     read_json_body,
+    read_multipart_body,
 )
 from utils.routing import Router
 from models.auth import AuthContext
@@ -41,151 +39,175 @@ def _ctx(event: Mapping[str, Any]) -> AuthContext:
 
 
 @router.route("", method="POST")
-def create_product(event: Mapping[str, Any]) -> Created[Any]:
+def create_product(event: Mapping[str, Any]) -> HttpResponse[Any]:
     ctx = _ctx(event)
     data = read_json_body(event)
     req = CreateProductRequest.model_validate(data)
-    return Created(svc.create_product(ctx, req))
+    return svc.create_product(ctx, req)
 
 
 # --- /product/{productId}
 
 
 @router.route("/{productId}", method="GET")
-def get_product(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+def get_product(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     pid = UUID(params["productId"])
-    return OK(svc.get_product(ctx, pid))
+    return svc.get_product(ctx, pid)
 
 
 @router.route("/{productId}", method="PATCH")
-def update_product(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+def update_product(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     pid = UUID(params["productId"])
     data = read_json_body(event)
     req = UpdateProductRequest.model_validate(data)
-    return OK(svc.update_product(ctx, pid, req))
+    return svc.update_product(ctx, pid, req)
 
 
 @router.route("/{productId}", method="DELETE")
-def delete_product(event: Mapping[str, Any], params: Mapping[str, str]) -> NoContent:
+def delete_product(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     pid = UUID(params["productId"])
-    svc.delete_product(ctx, pid)
-    return NoContent()
+    return svc.delete_product(ctx, pid)
 
 
 # --- /product/{productId}/format
 
 
 @router.route("/{productId}/format", method="POST")
-def create_format(event: Mapping[str, Any], params: Mapping[str, str]) -> Created[Any]:
+def create_format(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     pid = UUID(params["productId"])
     data = read_json_body(event)
     req = CreateFormatRequest.model_validate(data)
-    return Created(svc.create_format(ctx, pid, req))
-
-
-# --- /product/{productId}/format/{formatId}
+    return svc.create_format(ctx, pid, req)
 
 
 @router.route("/{productId}/format/{formatId}", method="PATCH")
-def update_format(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+def update_format(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     pid = UUID(params["productId"])
     fid = UUID(params["formatId"])
     data = read_json_body(event)
     req = UpdateFormatRequest.model_validate(data)
-    return OK(svc.update_format(ctx, pid, fid, req))
+    return svc.update_format(ctx, pid, fid, req)
 
 
 @router.route("/{productId}/format/{formatId}", method="DELETE")
-def delete_format(event: Mapping[str, Any], params: Mapping[str, str]) -> NoContent:
+def delete_format(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     pid = UUID(params["productId"])
     fid = UUID(params["formatId"])
-    svc.delete_format(ctx, pid, fid)
-    return NoContent()
+    return svc.delete_format(ctx, pid, fid)
 
 
 # --- /product/{productId}/format/{formatId}/vendor
 
 
 @router.route("/{productId}/format/{formatId}/vendor", method="POST")
-def create_vendor(event: Mapping[str, Any], params: Mapping[str, str]) -> Created[Any]:
+def create_vendor(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     pid = UUID(params["productId"])
     fid = UUID(params["formatId"])
     data = read_json_body(event)
     req = CreateVendorRequest.model_validate(data)
-    return Created(svc.create_vendor(ctx, pid, fid, req))
-
-
-# --- /product/{productId}/format/{formatId}/vendor/{vendorId}
+    return svc.create_vendor(ctx, pid, fid, req)
 
 
 @router.route("/{productId}/format/{formatId}/vendor/{vendorId}", method="PATCH")
-def update_vendor(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+def update_vendor(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     pid = UUID(params["productId"])
     fid = UUID(params["formatId"])
     vid = UUID(params["vendorId"])
     data = read_json_body(event)
     req = UpdateVendorRequest.model_validate(data)
-    return OK(svc.update_vendor(ctx, pid, fid, vid, req))
+    return svc.update_vendor(ctx, pid, fid, vid, req)
 
 
 @router.route("/{productId}/format/{formatId}/vendor/{vendorId}", method="DELETE")
-def delete_vendor(event: Mapping[str, Any], params: Mapping[str, str]) -> NoContent:
+def delete_vendor(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     pid = UUID(params["productId"])
     fid = UUID(params["formatId"])
     vid = UUID(params["vendorId"])
-    svc.delete_vendor(ctx, pid, fid, vid)
-    return NoContent()
+    return svc.delete_vendor(ctx, pid, fid, vid)
 
 
 # --- /product/{productId}/image
 
 
 @router.route("/{productId}/image", method="POST")
-def upload_image(event: Mapping[str, Any], params: Mapping[str, str]) -> Created[Any]:
+def upload_image(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     pid = UUID(params["productId"])
-    data = read_json_body(event)
 
-    image_b64 = data.get("image")
-    mask_b64 = data.get("mask")
-    hom_b64 = data.get("hom")
-    if not image_b64 or not mask_b64 or not hom_b64:
-        raise BadRequest("image, mask, hom are required")
+    fields = read_multipart_body(event)
 
-    image_bytes = base64.b64decode(image_b64)
-    req = ImageUploadRequest(image=image_bytes, mask=mask_b64, hom=hom_b64)
-    return Created(svc.upload_image(ctx, pid, req))
+    # image is required per spec
+    if "image" not in fields:
+        raise BadRequest("image required")
 
+    _, image_bytes = fields["image"]
 
-# --- /product/{productId}/image/{imageId}
+    # mask and hom are optional
+    mask_bytes = fields.get("mask", (None, b""))[1]
+    hom_bytes = fields.get("hom", (None, b""))[1]
+
+    # Treat empty text as None
+    mask_str = mask_bytes.decode("utf-8") if mask_bytes else None
+    hom_str = hom_bytes.decode("utf-8") if hom_bytes else None
+
+    req = ImageUploadRequest(
+        image=image_bytes,
+        mask=mask_str,
+        hom=hom_str,
+    )
+
+    return svc.upload_image(ctx, pid, req)
 
 
 @router.route("/{productId}/image/{imageId}", method="PATCH")
-def update_image(event: Mapping[str, Any], params: Mapping[str, str]) -> OK[Any]:
+def update_image(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     pid = UUID(params["productId"])
     iid = UUID(params["imageId"])
     data = read_json_body(event)
     req = ImageUpdateRequest.model_validate(data)
-    return OK(svc.update_image(ctx, pid, iid, req))
+    return svc.update_image(ctx, pid, iid, req)
 
 
 @router.route("/{productId}/image/{imageId}", method="DELETE")
-def delete_image(event: Mapping[str, Any], params: Mapping[str, str]) -> NoContent:
+def delete_image(
+    event: Mapping[str, Any], params: Mapping[str, str]
+) -> HttpResponse[Any]:
     ctx = _ctx(event)
     pid = UUID(params["productId"])
     iid = UUID(params["imageId"])
-    svc.delete_image(ctx, pid, iid)
-    return NoContent()
+    return svc.delete_image(ctx, pid, iid)
 
 
 def lambda_handler(event, context):
