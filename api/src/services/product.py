@@ -56,8 +56,9 @@ from utils.errors import (
     DomainUserDisabled,
     DomainForbidden,
 )
-from services.user.service import UserService
-from .provider import ProductDBProvider, ImageDBProvider
+from services.user import UserService
+from providers.product import ProductDBProvider
+from providers.image import ImageDBProvider
 
 T = TypeVar("T")
 
@@ -74,7 +75,8 @@ class ProductService:
 
     def __init__(self) -> None:
         # For now, default to noop providers only. Concrete providers will be added later.
-        from .provider import _NoopProductDBProvider, _NoopImageDBProvider
+        from providers.product import _NoopProductDBProvider
+        from providers.image import _NoopImageDBProvider
 
         _ = settings()  # kept for parity with other services; not used yet
         self.db = _NoopProductDBProvider()

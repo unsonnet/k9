@@ -24,7 +24,7 @@ from models.product import (
     UpdateProductRequest,
     UpdateVendorRequest,
 )
-from services.product.service import ProductService
+from services.product import ProductService
 
 router = Router(prefix="/product")
 svc = ProductService()
@@ -162,7 +162,7 @@ def upload_image(event: Mapping[str, Any], params: Mapping[str, str]) -> Created
         raise BadRequest("image, mask, hom are required")
 
     image_bytes = base64.b64decode(image_b64)
-    req = ImageUploadRequest(image_bytes=image_bytes, mask=mask_b64, hom=hom_b64)
+    req = ImageUploadRequest(image=image_bytes, mask=mask_b64, hom=hom_b64)
     return Created(svc.upload_image(ctx, pid, req))
 
 

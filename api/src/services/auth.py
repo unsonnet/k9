@@ -39,7 +39,7 @@ from utils.errors import (
     DomainUnauthorized,
     DomainUserDisabled,
 )
-from .provider import AuthProvider
+from providers.auth import AuthProvider
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -51,7 +51,7 @@ class AuthService:
     provider: AuthProvider
 
     def __init__(self) -> None:
-        from .provider import CognitoAuthProvider, _NoopAuthProvider
+        from providers.auth import CognitoAuthProvider, _NoopAuthProvider
 
         cfg = settings()
         if (

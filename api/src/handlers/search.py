@@ -6,7 +6,7 @@ from utils.http import OK, BadRequest, read_bearer_token, read_json_body, read_q
 from utils.routing import Router
 from models.auth import AuthContext
 from models.search import SearchParams, SearchRequest
-from services.search.service import SearchService
+from services.search import SearchService
 
 router = Router(prefix="/search")
 svc = SearchService()

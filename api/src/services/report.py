@@ -35,7 +35,7 @@ from utils.errors import (
     DomainUnauthorized,
 )
 
-from .provider import ProductResolver, ReportDBProvider, UserResolver
+from providers.report import ProductResolver, ReportDBProvider, UserResolver
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -52,7 +52,7 @@ class ReportService:
     users: UserResolver
 
     def __init__(self):
-        from .provider import (
+        from providers.report import (
             _NoopProductResolver,
             _NoopReportDBProvider,
             _NoopUserResolver,

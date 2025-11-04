@@ -14,7 +14,7 @@ from models.auth import (
     RefreshRequest,
     ResetRequest,
 )
-from services.auth.service import AuthService
+from services.auth import AuthService
 
 router = Router(prefix="/auth")
 svc = AuthService()

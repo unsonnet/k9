@@ -41,8 +41,8 @@ from utils.errors import (
     DomainUserDisabled,
     DomainForbidden,
 )
-from services.auth.service import AuthService
-from .provider import UserDBProvider
+from services.auth import AuthService
+from providers.user import UserDBProvider
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ class UserService:
     auth: AuthService
 
     def __init__(self) -> None:
-        from .provider import CognitoUserDBProvider, _NoopUserDBProvider
+        from providers.user import CognitoUserDBProvider, _NoopUserDBProvider
 
         cfg = settings()
         if (

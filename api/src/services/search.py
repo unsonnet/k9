@@ -22,7 +22,7 @@ from utils.errors import (
     DomainUnauthorized,
 )
 
-from .provider import ProductSummaryProvider, SearchProvider
+from providers.search import ProductSummaryProvider, SearchProvider
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -39,7 +39,7 @@ class SearchService:
     products: ProductSummaryProvider
 
     def __init__(self):
-        from .provider import _NoopProductSummaryProvider, _NoopSearchProvider
+        from providers.search import _NoopProductSummaryProvider, _NoopSearchProvider
 
         self.provider = _NoopSearchProvider()
         self.products = _NoopProductSummaryProvider()

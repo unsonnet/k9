@@ -18,7 +18,7 @@ from models.user import (
     UpdatePasswordRequest,
     UpdateUserRequest,
 )
-from services.user.service import UserService
+from services.user import UserService
 
 router = Router(prefix="/user")
 svc = UserService()

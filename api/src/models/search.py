@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from pydantic.types import NonNegativeInt, PositiveInt
 
 from .common import NonEmptyStr
-from .product import Image, Name
+from .product import Image, ProductName
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -86,6 +86,6 @@ class SearchResult(BaseModel):
 
 class SearchProductSummary(BaseModel):
     id: UUID
-    name: Name
+    name: ProductName
     image: Image
     match: int

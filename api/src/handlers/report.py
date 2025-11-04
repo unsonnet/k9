@@ -15,7 +15,7 @@ from utils.http import (
 from utils.routing import Router
 from models.auth import AuthContext
 from models.report import CreateReportRequest, ListReportsParams, UpdateReportRequest
-from services.report.service import ReportService
+from services.report import ReportService
 
 router = Router(prefix="/report")
 svc = ReportService()
