@@ -12,14 +12,12 @@ from utils.aws import _CognitoIdP, _S3Client, _DynamoClient, _DynamoResource
 @dataclass(frozen=True)
 class Settings:
     platform: str = os.getenv("PLATFORM", "local")  # "local" | "aws"
-    aws_region: str = os.getenv(
-        "AWS_REGION", os.getenv("AWS_DEFAULT_REGION", "us-east-1")
-    )
+    aws_region: Optional[str] = os.getenv("AWS_REGION", os.getenv("AWS_DEFAULT_REGION"))
 
     # Data stores
     reports_table: str = os.getenv("REPORTS_TABLE", "k9_reports")
-    products_table: str = os.getenv("PRODUCTS_TABLE", "k9_products")
-    images_bucket: str = os.getenv("IMAGES_BUCKET", "k9-images")
+    products_table: Optional[str] = os.getenv("PRODUCTS_TABLE")
+    images_bucket: Optional[str] = os.getenv("IMAGES_BUCKET")
 
     # Search
     opensearch_endpoint: Optional[str] = os.getenv("OPENSEARCH_ENDPOINT")
@@ -62,7 +60,10 @@ def boto3_client(service: str) -> Any: ...
 
 
 def boto3_client(service: str) -> Any:
-    return boto3.client(service, region_name=settings().aws_region)  # type: ignore[call-overload]
+    cfg = settings()
+    if not cfg.aws_region:
+        raise RuntimeError("AWS region is not configured.")
+    return boto3.client(service, region_name=cfg.aws_region)  # type: ignore[call-overload]
 
 
 # -------- boto3_resource --------
@@ -75,4 +76,7 @@ def boto3_resource(service: str) -> Any: ...
 
 
 def boto3_resource(service: str) -> Any:
-    return boto3.resource(service, region_name=settings().aws_region)  # type: ignore[call-overload]
+    cfg = settings()
+    if not cfg.aws_region:
+        raise RuntimeError("AWS region is not configured.")
+    return boto3.resource(service, region_name=cfg.aws_region)  # type: ignore[call-overload]
