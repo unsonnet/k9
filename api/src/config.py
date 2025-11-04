@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Literal, Optional, overload
 
 import boto3
+
+from utils.aws import _CognitoIdP, _S3Client, _DynamoClient, _DynamoResource
 
 
 @dataclass(frozen=True)
@@ -15,8 +17,8 @@ class Settings:
     )
 
     # Data stores
-    products_table: str = os.getenv("PRODUCTS_TABLE", "k9_products")
     reports_table: str = os.getenv("REPORTS_TABLE", "k9_reports")
+    products_table: str = os.getenv("PRODUCTS_TABLE", "k9_products")
     images_bucket: str = os.getenv("IMAGES_BUCKET", "k9-images")
 
     # Search
@@ -46,10 +48,31 @@ def settings() -> Settings:
     return _settings
 
 
-def boto3_resource(name: str) -> Any:
-    # Return Any to avoid strict overload typing issues at call sites
-    return boto3.resource(name, region_name=settings().aws_region)  # type: ignore[call-overload]
+# -------- boto3_client --------
 
 
-def boto3_client(name: str) -> Any:
-    return boto3.client(name, region_name=settings().aws_region)  # type: ignore[call-overload]
+@overload
+def boto3_client(service: Literal["cognito-idp"]) -> _CognitoIdP: ...
+@overload
+def boto3_client(service: Literal["dynamodb"]) -> _DynamoClient: ...
+@overload
+def boto3_client(service: Literal["s3"]) -> _S3Client: ...
+@overload
+def boto3_client(service: str) -> Any: ...
+
+
+def boto3_client(service: str) -> Any:
+    return boto3.client(service, region_name=settings().aws_region)  # type: ignore[call-overload]
+
+
+# -------- boto3_resource --------
+
+
+@overload
+def boto3_resource(service: Literal["dynamodb"]) -> _DynamoResource: ...
+@overload
+def boto3_resource(service: str) -> Any: ...
+
+
+def boto3_resource(service: str) -> Any:
+    return boto3.resource(service, region_name=settings().aws_region)  # type: ignore[call-overload]

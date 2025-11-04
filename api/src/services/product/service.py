@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from typing import NoReturn, TypeVar
 from uuid import UUID, uuid4
 import base64
-import json
 import struct
 
 import numpy as np
@@ -232,7 +231,7 @@ class ProductService:
     def get_product(self, ctx: AuthContext, pid: UUID) -> OK[Product]:
         """Retrieve product by id."""
         try:
-            stored = self.db.get_product(pid=pid, embeddings=False)
+            stored = self.db.get_product(pid=pid)
             return OK(self._public_product(stored))
         except Exception as e:
             self._handle_error(e)
@@ -243,7 +242,7 @@ class ProductService:
     ) -> OK[Product]:
         """Update a product by id."""
         try:
-            prod = self.db.get_product(pid=pid, embeddings=False)
+            prod = self.db.get_product(pid=pid)
 
             # Name partial patch (brand/series/model may be nullable)
             if p.name is not None:
@@ -286,7 +285,7 @@ class ProductService:
     ) -> Created[Format]:
         """Create a new format for a product."""
         try:
-            prod = self.db.get_product(pid=pid, embeddings=False)
+            prod = self.db.get_product(pid=pid)
             fmt = StoredFormat(
                 id=uuid4(),
                 aspect=p.aspect,
@@ -311,7 +310,7 @@ class ProductService:
     ) -> OK[Format]:
         """Update a product format."""
         try:
-            prod = self.db.get_product(pid=pid, embeddings=False)
+            prod = self.db.get_product(pid=pid)
             fmt = next((f for f in (prod.formats or []) if f.id == fid), None)
             if not fmt:
                 raise DomainNotFound("Format not found.")
@@ -339,7 +338,7 @@ class ProductService:
         """Delete a product format. Requires admin."""
         try:
             self._require_admin(ctx)
-            prod = self.db.get_product(pid=pid, embeddings=False)
+            prod = self.db.get_product(pid=pid)
             if not any(f.id == fid for f in (prod.formats or [])):
                 raise DomainNotFound("Format not found.")
             new_formats = [f for f in prod.formats if f.id != fid]
@@ -355,7 +354,7 @@ class ProductService:
     ) -> Created[Vendor]:
         """Create a vendor listing for a format."""
         try:
-            prod = self.db.get_product(pid=pid, embeddings=False)
+            prod = self.db.get_product(pid=pid)
             fmt = next((f for f in (prod.formats or []) if f.id == fid), None)
             if not fmt:
                 raise DomainNotFound("Format not found.")
@@ -389,7 +388,7 @@ class ProductService:
     ) -> OK[Vendor]:
         """Update a vendor listing."""
         try:
-            prod = self.db.get_product(pid=pid, embeddings=False)
+            prod = self.db.get_product(pid=pid)
             fmt = next((f for f in (prod.formats or []) if f.id == fid), None)
             if not fmt:
                 raise DomainNotFound("Format not found.")
@@ -434,7 +433,7 @@ class ProductService:
         """Delete a vendor listing. Requires admin."""
         try:
             self._require_admin(ctx)
-            prod = self.db.get_product(pid=pid, embeddings=False)
+            prod = self.db.get_product(pid=pid)
             fmt = next((f for f in (prod.formats or []) if f.id == fid), None)
             if not fmt:
                 raise DomainNotFound("Format not found.")
@@ -456,7 +455,7 @@ class ProductService:
     ) -> Created[Image]:
         """Upload product image with mask and homography metadata."""
         try:
-            prod = self.db.get_product(pid=pid, embeddings=False)
+            prod = self.db.get_product(pid=pid)
 
             # Store original image and compute embeddings/ids at provider level.
             iid, loc, glob = self.images.post_image(
@@ -483,7 +482,7 @@ class ProductService:
     ) -> OK[Image]:
         """Update image metadata, recomputing provider artifacts as needed."""
         try:
-            prod = self.db.get_product(pid=pid, embeddings=False)
+            prod = self.db.get_product(pid=pid)
             img = next((i for i in (prod.images or []) if i.id == iid), None)
             if not img:
                 raise DomainNotFound("Image not found.")
@@ -514,12 +513,12 @@ class ProductService:
         """Delete product image. Requires admin."""
         try:
             self._require_admin(ctx)
-            prod = self.db.get_product(pid=pid, embeddings=False)
+            prod = self.db.get_product(pid=pid)
             if not any(i.id == iid for i in (prod.images or [])):
                 raise DomainNotFound("Image not found.")
 
             # Remove provider artifacts first, then persist new product state.
-            self.images.delete(pid=pid, iid=iid)
+            self.images.delete_image(pid=pid, iid=iid)
             new_images = [i for i in (prod.images or []) if i.id != iid]
             self.db.put_product(product=self._touch(prod, images=new_images))
             return NoContent()
