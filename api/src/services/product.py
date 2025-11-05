@@ -77,8 +77,8 @@ class ProductService:
     users: UserService
 
     def __init__(self) -> None:
-        from providers.product import DynamoProductDBProvider, _NoopProductDBProvider
-        from providers.image import S3ImageDBProvider, _NoopImageDBProvider
+        from providers.product import DynamoProductDBProvider, NoopProductDBProvider
+        from providers.image import S3ImageDBProvider, NoopImageDBProvider
 
         cfg = settings()
 
@@ -89,8 +89,8 @@ class ProductService:
 
         # Local / dev fallback
         elif cfg.platform in {"dev", "local"}:
-            self.db = _NoopProductDBProvider()
-            self.images = _NoopImageDBProvider()
+            self.db = NoopProductDBProvider()
+            self.images = NoopImageDBProvider()
 
         # Fail clearly if neither condition applies
         else:

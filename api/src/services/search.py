@@ -39,10 +39,10 @@ class SearchService:
     products: ProductSummaryProvider
 
     def __init__(self):
-        from providers.search import _NoopProductSummaryProvider, _NoopSearchProvider
+        from providers.search import NoopProductSummaryProvider, NoopSearchProvider
 
-        self.provider = _NoopSearchProvider()
-        self.products = _NoopProductSummaryProvider()
+        self.provider = NoopSearchProvider()
+        self.products = NoopProductSummaryProvider()
 
     # ─────────── Helpers ───────────
     @staticmethod

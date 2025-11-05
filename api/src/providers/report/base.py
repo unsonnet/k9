@@ -75,7 +75,7 @@ class UserResolver(ABC):
 
 
 # Default no-ops used by service constructors unless overridden
-class _NoopReportDBProvider(ReportDBProvider):  # pragma: no cover - placeholder
+class NoopReportDBProvider(ReportDBProvider):  # pragma: no cover - placeholder
     def get_report(self, *_, **__) -> StoredReport:  # type: ignore[override]
         raise NotImplementedError("ReportDBProvider not configured")
 
@@ -92,7 +92,7 @@ class _NoopReportDBProvider(ReportDBProvider):  # pragma: no cover - placeholder
         raise NotImplementedError("ReportDBProvider not configured")
 
 
-class _NoopProductResolver(ProductResolver):  # pragma: no cover - placeholder
+class NoopProductResolver(ProductResolver):  # pragma: no cover - placeholder
     def get_product(self, *_, **__) -> Product:  # type: ignore[override]
         raise NotImplementedError("ProductResolver not configured")
 
@@ -100,6 +100,6 @@ class _NoopProductResolver(ProductResolver):  # pragma: no cover - placeholder
         raise NotImplementedError("ProductResolver not configured")
 
 
-class _NoopUserResolver(UserResolver):  # pragma: no cover - placeholder
+class NoopUserResolver(UserResolver):  # pragma: no cover - placeholder
     def get_user_id(self, *_, **__) -> UUID:  # type: ignore[override]
         raise NotImplementedError("UserResolver not configured")

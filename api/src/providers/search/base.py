@@ -38,12 +38,12 @@ class ProductSummaryProvider(ABC):
 
 
 # Default no-op providers used by service constructors unless overridden
-class _NoopSearchProvider(SearchProvider):  # pragma: no cover - placeholder
+class NoopSearchProvider(SearchProvider):  # pragma: no cover - placeholder
     def search(self, *_, **__) -> SearchResult:  # type: ignore[override]
         raise NotImplementedError("SearchProvider not configured")
 
 
-class _NoopProductSummaryProvider(
+class NoopProductSummaryProvider(
     ProductSummaryProvider
 ):  # pragma: no cover - placeholder
     def get_summary(self, *_, **__) -> ProductSummary:  # type: ignore[override]

@@ -55,14 +55,14 @@ class ReportService:
 
     def __init__(self):
         from providers.report import (
-            _NoopProductResolver,
-            _NoopReportDBProvider,
-            _NoopUserResolver,
+            NoopProductResolver,
+            NoopReportDBProvider,
+            NoopUserResolver,
         )
 
-        self.provider = _NoopReportDBProvider()
-        self.products = _NoopProductResolver()
-        self.users = _NoopUserResolver()
+        self.provider = NoopReportDBProvider()
+        self.products = NoopProductResolver()
+        self.users = NoopUserResolver()
 
     # ─────────── Helpers ───────────
     @staticmethod

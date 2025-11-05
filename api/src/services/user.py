@@ -59,7 +59,7 @@ class UserService:
     auth: AuthService
 
     def __init__(self) -> None:
-        from providers.user import CognitoUserDBProvider, _NoopUserDBProvider
+        from providers.user import CognitoUserDBProvider, NoopUserDBProvider
 
         cfg = settings()
 
@@ -69,7 +69,7 @@ class UserService:
 
         # Local / dev fallback
         elif cfg.platform in {"dev", "local"}:
-            self.provider = _NoopUserDBProvider()
+            self.provider = NoopUserDBProvider()
 
         # Fail clearly if neither condition applies
         else:

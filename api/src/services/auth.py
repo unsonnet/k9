@@ -53,7 +53,7 @@ class AuthService:
     provider: AuthProvider
 
     def __init__(self) -> None:
-        from providers.auth import CognitoAuthProvider, _NoopAuthProvider
+        from providers.auth import CognitoAuthProvider, NoopAuthProvider
 
         cfg = settings()
 
@@ -63,7 +63,7 @@ class AuthService:
 
         # Local / dev fallback
         elif cfg.platform in {"dev", "local"}:
-            self.provider = _NoopAuthProvider()
+            self.provider = NoopAuthProvider()
 
         # Fail clearly if neither condition applies
         else:
