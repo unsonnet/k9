@@ -22,25 +22,25 @@ class DimensionRangeFilter(ApiModel):
     """Dimension range filter for product formats."""
 
     unit: NonEmptyStr
-    min_value: Optional[int] = None
-    max_value: Optional[int] = None
+    min: Optional[int] = None
+    max: Optional[int] = None
 
 
 class CurrencyRangeFilter(ApiModel):
     """Currency range filter for vendor pricing."""
 
     unit: NonEmptyStr
-    min_value: Optional[int] = None
-    max_value: Optional[int] = None
+    min: Optional[int] = None
+    max: Optional[int] = None
 
 
 class VendorFilter(ApiModel):
     """Vendor-specific search filters."""
 
     sku: Optional[NonEmptyStr] = None
-    stores: Optional[Sequence[NonEmptyStr]] = None
+    store: Optional[Sequence[NonEmptyStr]] = None
     name: Optional[NonEmptyStr] = None
-    price_range: Optional[CurrencyRangeFilter] = None
+    price: Optional[CurrencyRangeFilter] = None
     discontinued: Optional[bool] = None
 
 
@@ -48,9 +48,9 @@ class FormatFilter(ApiModel):
     """Format-specific search filters."""
 
     aspect: Optional[NonEmptyStr] = None
-    length_range: Optional[DimensionRangeFilter] = None
-    width_range: Optional[DimensionRangeFilter] = None
-    thickness_range: Optional[DimensionRangeFilter] = None
+    length: Optional[DimensionRangeFilter] = None
+    width: Optional[DimensionRangeFilter] = None
+    thickness: Optional[DimensionRangeFilter] = None
 
 
 class NameFilter(ApiModel):
@@ -69,20 +69,20 @@ class NameFilter(ApiModel):
 class SearchRequest(ApiModel):
     """Product search request with comprehensive filters."""
 
-    name_filter: Optional[NameFilter] = None
-    category_filter: Optional[Mapping[str, Sequence[str]]] = None
-    format_filter: Optional[FormatFilter] = None
-    vendor_filter: Optional[VendorFilter] = None
-    colors: Optional[Sequence[str]] = None
-    reference_ids: Optional[Sequence[UUID]] = None
+    name: Optional[NameFilter] = None
+    category: Optional[Mapping[str, Sequence[str]]] = None
+    format: Optional[FormatFilter] = None
+    vendor: Optional[VendorFilter] = None
+    color: Optional[Sequence[str]] = None
+    reference: Optional[Sequence[UUID]] = None
 
 
 class SearchParams(ApiModel):
     """Search request parameters for pagination and options."""
 
     limit: Optional[PositiveInt] = None
-    next_token: Optional[NonEmptyStr] = None
-    include_partial_matches: Optional[bool] = None
+    nextToken: Optional[NonEmptyStr] = None
+    partial: Optional[bool] = None
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -95,8 +95,8 @@ class SearchResultItem(ApiModel):
 
     id: UUID
     name: Name
-    image_url: str
-    match_score: int
+    image: str
+    match: int
 
 
 class SearchResponse(ApiModel):
@@ -104,4 +104,4 @@ class SearchResponse(ApiModel):
 
     total: NonNegativeInt
     results: Sequence[SearchResultItem]
-    next_token: Optional[NonEmptyStr] = None
+    nextToken: Optional[NonEmptyStr] = None

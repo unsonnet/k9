@@ -84,10 +84,10 @@ class ReportService:
     ) -> ReportSummaryResponse:
         return ReportSummaryResponse(
             id=s.id,
-            author_id=s.author_id,
+            author=s.author_id,
             title=s.title,
-            created_at=s.created_at,
-            reference_product=s.reference_product.model_dump(),
+            date=s.created_at,
+            reference=s.reference_product.model_dump(),
         )
 
     def _public_report(self, ctx: AuthContext, r: ReportEntity) -> Report:
@@ -135,7 +135,7 @@ class ReportService:
                 ctx,
                 author=self.users.get_user_id(ctx),
                 title=payload.title,
-                reference=payload.reference_product_id,
+                reference=payload.reference,
             )
             return Created(self._public_report(ctx, rep))
         except Exception as e:
@@ -156,7 +156,7 @@ class ReportService:
         try:
             rep = self.provider.get_report(ctx, rid=rid)
             title = payload.title or rep.title
-            reference_id = payload.reference_product_id or rep.reference_product_id
+            reference_id = payload.reference or rep.reference_product_id
             updated = self._touch(rep, title=title, referenceId=reference_id)
             stored = self.provider.put_report(ctx, report=updated)
             return OK(self._public_report(ctx, stored))

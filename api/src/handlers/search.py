@@ -27,8 +27,8 @@ def search(event: Mapping[str, Any]) -> OK[Any]:
     filters = SearchRequest.model_validate(data)
     params = SearchParams(
         limit=int(qp["limit"]) if qp.get("limit") else None,
-        next_token=qp.get("nextToken"),
-        include_partial_matches=(qp.get("partial", "false").lower() == "true"),
+        nextToken=qp.get("nextToken"),
+        partial=(qp.get("partial", "false").lower() == "true"),
     )
     return OK(svc.search(ctx, params, filters))
 

@@ -29,7 +29,7 @@ def _ctx(event: Mapping[str, Any]) -> AuthContext:
     token = read_bearer_token(event)
     if not token:
         raise BadRequest("Missing Authorization header")
-    return AuthContext(bearerToken=token)
+    return AuthContext(bearer_token=token)
 
 
 @router.route("", method="GET")
