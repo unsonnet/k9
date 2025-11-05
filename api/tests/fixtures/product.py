@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-import base64
-import numpy as np
 import os
 import struct
-import pytest
 from typing import Generator, Any
+
+import numpy as np
+import pytest
+from PIL import Image
+
 from tests.utils.events import make_event, make_multipart_event, parse_body
 from tests.utils.handlers import call_handler
 
@@ -14,14 +16,45 @@ def _auth_header(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
-def _dummy_mask():
-    raw = struct.pack(">II", 1, 1) + bytes([0b10000000])
-    return base64.b64encode(raw).decode()
+# ──────────────────────────────────────────────────────────────────────────────
+# Binary helpers (mask/hom) that match the actual dummy image dimensions
+# ──────────────────────────────────────────────────────────────────────────────
 
 
-def _dummy_hom():
-    arr = np.eye(3, dtype="<f4")
-    return base64.b64encode(arr.tobytes()).decode()
+def _image_size(img_path: str) -> tuple[int, int]:
+    """
+    Return (height, width) for the image at img_path using Pillow.
+    """
+    with Image.open(img_path) as im:
+        w, h = im.size
+    return h, w
+
+
+def _dummy_mask(img_path: str) -> bytes:
+    """
+    Produce a bit-packed boolean mask that matches the image at img_path.
+    Encoded as [>uint32 height][>uint32 width][packbits].
+    """
+    h, w = _image_size(img_path)
+    mask = np.ones((h, w), dtype=np.uint8)
+    packed = np.packbits(mask.ravel(order="C"))
+    header = struct.pack(">II", h, w)
+    return header + packed.tobytes()
+
+
+def _dummy_hom(dtype: str = ">f4") -> bytes:
+    """
+    3x3 identity homography serialized as floats (default big-endian f32).
+    Accepts dtype in { '>f4', '>f8' }.
+    """
+    dt = np.dtype(dtype)
+    H = np.eye(3, dtype=dt)
+    return H.astype(dt).tobytes()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Fixtures
+# ──────────────────────────────────────────────────────────────────────────────
 
 
 @pytest.fixture
@@ -124,12 +157,8 @@ def managed_vendor(managed_format) -> Generator[dict[str, Any], None, None]:
 def managed_image(managed_product) -> Generator[dict[str, Any], None, None]:
     """
     Upload a test image for a product, yield pid + iid, and always clean up afterwards.
-    Mask and hom are intentionally empty (no transformations).
+    Mask and hom are intentionally omitted here (no transformations on upload).
     """
-    from tests.utils.events import make_multipart_event, make_event, parse_body
-    from tests.utils.handlers import call_handler
-    import os
-
     pid = managed_product["pid"]
     user_token = managed_product["userToken"]
     admin_token = managed_product["adminToken"]
@@ -141,15 +170,14 @@ def managed_image(managed_product) -> Generator[dict[str, Any], None, None]:
     with open(img_path, "rb") as f:
         img_bytes = f.read()
 
-    # Upload (POST /product/{pid}/image)
     event = make_multipart_event(
         "POST",
         f"/product/{pid}/image",
         headers=_auth_header(user_token),
         fields={
             "image": ("dummy.jpg", img_bytes),
-            "mask": (None, None),
-            "hom": (None, None),
+            "mask": None,  # omitted
+            "hom": None,  # omitted
         },
     )
     resp = call_handler("product", event)
@@ -157,7 +185,6 @@ def managed_image(managed_product) -> Generator[dict[str, Any], None, None]:
 
     body = parse_body(resp)
     assert isinstance(body, dict)
-    assert "id" in body, "Expected POST /product/{pid}/image to return Image.id"
     iid = body["id"]
 
     yield {**managed_product, "iid": iid}

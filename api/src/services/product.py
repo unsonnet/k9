@@ -170,36 +170,38 @@ class ProductService:
         if not self.users.is_admin(ctx):
             raise DomainForbidden("Request denied.")
 
-    def _parse_mask(self, mask: str | None) -> ImageMask | None:
-        """Decode base64-encoded compact 2D boolean mask."""
+    def _parse_mask(self, mask: bytes | None) -> ImageMask | None:
+        """Decode compact binary 2D boolean mask from raw bytes.
+
+        Layout:
+        [0:8]   big-endian uint32 height, uint32 width
+        [8:..]  packed bits row-major (MSB-first per byte)
+        """
         if mask is None:
             return None
-        try:
-            raw = base64.b64decode(mask, validate=True)
-        except Exception as e:
-            raise DomainInvariantViolation("Invalid base64 for mask.") from e
+        raw = bytes(mask)
+
         if len(raw) < 8:
-            raise DomainInvariantViolation("Mask too short to contain shape header.")
+            raise DomainInvariantViolation("mask header truncated")
         height, width = struct.unpack_from(">II", raw, 0)
         if height <= 0 or width <= 0:
-            raise DomainInvariantViolation("Invalid mask shape.")
+            raise DomainInvariantViolation("invalid mask shape")
+
         nbits = height * width
         nbytes = (nbits + 7) // 8
-        data = raw[8 : 8 + nbytes]
-        if len(data) < nbytes:
-            raise DomainInvariantViolation("Truncated mask payload.")
-        bits = np.unpackbits(np.frombuffer(data, dtype=np.uint8))
-        mask_arr = bits[:nbits].reshape((height, width))
-        return mask_arr.astype(bool)
+        payload = raw[8 : 8 + nbytes]
+        if len(payload) < nbytes:
+            raise DomainInvariantViolation("mask payload truncated")
 
-    def _parse_homography(self, hom: str | None) -> HomographyMatrix | None:
-        """Decode base64-encoded binary 3x3 homography matrix."""
+        bits = np.unpackbits(np.frombuffer(payload, dtype=np.uint8))
+        return bits[:nbits].reshape((height, width)).astype(bool)
+
+    def _parse_homography(self, hom: bytes | None) -> HomographyMatrix | None:
+        """Decode 3x3 homography matrix from raw bytes (row-major floats)."""
         if hom is None:
             return None
-        try:
-            raw = base64.b64decode(hom, validate=True)
-        except Exception as e:
-            raise DomainInvariantViolation("Invalid base64 for homography.") from e
+        raw = bytes(hom)
+
         for dtype in (
             np.dtype("<f4"),
             np.dtype(">f4"),
@@ -210,8 +212,9 @@ class ProductService:
             if len(raw) == nbytes:
                 arr = np.frombuffer(raw, dtype=dtype, count=9)
                 return arr.astype(np.float64).reshape((3, 3))
+
         raise DomainInvariantViolation(
-            "Homography must be binary base64 of 9 float32/float64 values (row-major)."
+            "hom must be 9 float32/float64 values (row-major)"
         )
 
     # ─────────── Contract Methods ───────────

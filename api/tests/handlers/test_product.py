@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import os
 from tests.utils.events import make_event, make_multipart_event, parse_body
 from tests.utils.handlers import call_handler
+from tests.fixtures.product import _dummy_mask, _dummy_hom  # helpers kept, now binary
 
 
 def _auth(token):
@@ -113,19 +115,32 @@ def test_update_vendor_ok(managed_vendor):
 
 
 def test_upload_image_ok(managed_image):
+    # fixture already performed an upload and validated 201 response
     assert managed_image["iid"]
 
 
 def test_update_image_ok(managed_image):
+    """
+    Update mask via multipart using a bit-packed mask that matches the actual dummy image dimensions.
+    """
     pid = managed_image["pid"]
     iid = managed_image["iid"]
-    resp = call_handler(
-        "product",
-        make_event(
-            "PATCH",
-            f"/product/{pid}/image/{iid}",
-            headers=_auth(managed_image["userToken"]),
-            body={"mask": "eHkz"},
-        ),
+    token = managed_image["userToken"]
+
+    img_path = os.getenv("PYTEST_DUMMY_IMAGE")
+    assert img_path, "PYTEST_DUMMY_IMAGE not set"
+
+    mask_bytes = _dummy_mask(img_path)  # binary payload: [>II][packbits]
+    hom_bytes = _dummy_hom()  # binary payload: [>9f]
+
+    event = make_multipart_event(
+        "PATCH",
+        f"/product/{pid}/image/{iid}",
+        headers=_auth(token),
+        fields={
+            "mask": ("mask.bin", mask_bytes),
+            "hom": ("hom.bin", hom_bytes),
+        },
     )
+    resp = call_handler("product", event)
     assert resp["statusCode"] == 200

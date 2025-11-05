@@ -205,12 +205,12 @@ class UpdateVendorRequest(BaseModel):
 class ImageUploadRequest(BaseModel):
     model_config = ConfigDict(frozen=True)
     image: bytes
-    mask: Optional[NonEmptyStr] = None
-    hom: Optional[NonEmptyStr] = None
+    mask: Optional[bytes] = None
+    hom: Optional[bytes] = None
 
 
 class ImageUpdateRequest(BaseModel):
     model_config = ConfigDict(frozen=True)
     reset: bool = False
-    mask: Optional[NonEmptyStr] = None
-    hom: Optional[NonEmptyStr] = None
+    mask: Optional[bytes] = None
+    hom: Optional[bytes] = None

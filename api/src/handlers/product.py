@@ -163,28 +163,24 @@ def upload_image(
     ctx = _ctx(event)
     pid = UUID(params["productId"])
 
-    fields = read_multipart_body(event)
+    parts = read_multipart_body(event)
+    if parts is None:
+        raise BadRequest("multipart/form-data required")
 
-    # image is required per spec
-    if "image" not in fields:
+    # required
+    if "image" not in parts:
         raise BadRequest("image required")
+    _, image_bytes = parts["image"]
 
-    _, image_bytes = fields["image"]
-
-    # mask and hom are optional
-    mask_bytes = fields.get("mask", (None, b""))[1]
-    hom_bytes = fields.get("hom", (None, b""))[1]
-
-    # Treat empty text as None
-    mask_str = mask_bytes.decode("utf-8") if mask_bytes else None
-    hom_str = hom_bytes.decode("utf-8") if hom_bytes else None
+    # optional binary fields (raw bytes, no decoding)
+    _, mask_bytes = parts.get("mask", (None, None))
+    _, hom_bytes = parts.get("hom", (None, None))
 
     req = ImageUploadRequest(
         image=image_bytes,
-        mask=mask_str,
-        hom=hom_str,
+        mask=mask_bytes,
+        hom=hom_bytes,
     )
-
     return svc.upload_image(ctx, pid, req)
 
 
@@ -195,8 +191,32 @@ def update_image(
     ctx = _ctx(event)
     pid = UUID(params["productId"])
     iid = UUID(params["imageId"])
-    data = read_json_body(event)
-    req = ImageUpdateRequest.model_validate(data)
+
+    parts = read_multipart_body(event)
+    if parts is None:
+        raise BadRequest("multipart/form-data required")
+
+    _, mask_bytes = parts.get("mask", (None, None))
+    _, hom_bytes = parts.get("hom", (None, None))
+
+    reset = False
+    if "reset" in parts:
+        _, raw = parts["reset"]
+        if raw is None:
+            raise BadRequest("reset provided but empty")
+        val = raw.decode("utf-8").strip().lower()
+        if val == "true":
+            reset = True
+        elif val == "false":
+            reset = False
+        else:
+            raise BadRequest("reset must be 'true' or 'false'")
+
+    req = ImageUpdateRequest(
+        reset=reset,
+        mask=mask_bytes,
+        hom=hom_bytes,
+    )
     return svc.update_image(ctx, pid, iid, req)
 
 

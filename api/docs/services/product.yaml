@@ -306,8 +306,8 @@ paths:
               required: [image]
               properties:
                 image: { type: string, format: binary }
-                mask: { type: string }
-                hom: { type: string }
+                mask: { type: string, format: binary }
+                hom: { type: string, format: binary }
       responses:
         '201':
           description: Created — image uploaded.
@@ -335,12 +335,13 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
               type: object
               properties:
-                mask: { type: string }
-                hom: { type: string }
+                reset: { type: boolean }
+                mask: { type: string, format: binary }
+                hom: { type: string, format: binary }
       responses:
         '200':
           description: OK — image metadata updated.

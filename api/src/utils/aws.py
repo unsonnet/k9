@@ -4,6 +4,11 @@
 from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable
+from uuid import UUID
+from decimal import Decimal
+from datetime import datetime
+
+import numpy as np
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -78,6 +83,61 @@ class _DynamoClient(Protocol):
 @runtime_checkable
 class _DynamoResource(Protocol):
     def Table(self, name: str) -> _DynamoTable: ...
+
+
+def _for_dynamo(value: Any) -> Any:
+    """
+    Convert model_dump(mode="python") output to Dynamo-safe objects:
+      - numpy arrays    -> lists
+      - float           -> Decimal
+      - datetime        -> ISO8601 string
+      - UUID            -> string
+      - recursive dicts/lists
+    """
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+
+    if isinstance(value, dict):
+        return {k: _for_dynamo(v) for k, v in value.items()}
+
+    if isinstance(value, list):
+        return [_for_dynamo(v) for v in value]
+
+    if isinstance(value, float):
+        return Decimal(str(value))
+
+    if isinstance(value, datetime):
+        return value.isoformat()
+
+    if isinstance(value, UUID):
+        return str(value)
+
+    return value
+
+
+def _from_dynamo(value: Any) -> Any:
+    """
+    Converts DynamoDB output to standard Python types:
+      - Decimal -> float
+      - ISO8601 string -> datetime (only when parsing StoredProduct)
+    """
+    if isinstance(value, dict):
+        return {k: _from_dynamo(v) for k, v in value.items()}
+
+    if isinstance(value, list):
+        return [_from_dynamo(v) for v in value]
+
+    if isinstance(value, Decimal):
+        return float(value)
+
+    # detect ISO8601 timestamp
+    if isinstance(value, str) and len(value) >= 20 and value[10] == "T":
+        try:
+            return datetime.fromisoformat(value)
+        except Exception:
+            return value
+
+    return value
 
 
 # ──────────────────────────────────────────────────────────────────────────────

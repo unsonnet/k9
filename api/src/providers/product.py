@@ -14,6 +14,7 @@ from config import boto3_client, boto3_resource, settings
 
 from models.common import CategoryMap
 from models.product import ProductName, StoredProduct
+from utils.aws import _for_dynamo, _from_dynamo
 from utils.errors import (
     DomainError,
     DomainConflict,
@@ -100,13 +101,11 @@ class DynamoProductDBProvider(ProductDBProvider):
 
     @staticmethod
     def _to_item(model: StoredProduct) -> dict[str, Any]:
-        # json-mode yields str(UUID), ISO datetimes, str(AnyUrl), and lists for np arrays
-        return model.model_dump(mode="json")
+        return _for_dynamo(model.model_dump(mode="python"))
 
     @staticmethod
     def _from_item(ddb_item: dict[str, Any]) -> StoredProduct:
-        # validators reconstruct numpy arrays and enforce shapes/dtypes
-        return StoredProduct.model_validate(ddb_item)
+        return StoredProduct.model_validate(_from_dynamo(ddb_item))
 
     def _handle_error(self, e: Exception, msg: str) -> NoReturn:
         c = self._client.exceptions
