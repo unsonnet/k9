@@ -13,13 +13,13 @@ from PIL import Image
 
 from config import boto3_client, settings
 
-from models.product import (
+from models.domain.product import (
     ImageMask,
     HomographyMatrix,
     LocalEmbeddings,
     GlobalEmbedding,
-    AnyUrl,
 )
+from pydantic import AnyUrl
 from utils.errors import (
     DomainError,
     DomainForbidden,

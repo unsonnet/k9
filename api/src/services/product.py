@@ -24,25 +24,28 @@ from utils.http import (
     Unauthorized,
     Gone,
 )
-from models.auth import AuthContext
-from models.product import (
+from models.domain.auth import AuthContext
+from models.api.product import (
     CreateProductRequest,
     UpdateProductRequest,
     CreateFormatRequest,
     UpdateFormatRequest,
     CreateVendorRequest,
     UpdateVendorRequest,
-    ImageUploadRequest,
-    ImageUpdateRequest,
-    ProductName,
+    UploadImageRequest,
+    UpdateImageRequest,
+)
+from models.domain.product import (
+    Name,
     Product,
-    Format,
-    Vendor,
-    Image,
-    StoredProduct,
-    StoredFormat,
-    StoredVendor,
-    StoredImage,
+    ProductSummary,
+    ProductEntity,
+    FormatInfo,
+    FormatEntity,
+    VendorInfo,
+    VendorEntity,
+    ImageInfo,
+    ImageEntity,
     HomographyMatrix,
     ImageMask,
 )
@@ -124,21 +127,20 @@ class ProductService:
 
     # Public mappers to API schemas
     @staticmethod
-    def _public_vendor(v: StoredVendor) -> Vendor:
-        """Sanitize vendor to public view."""
-        return Vendor(
+    def _public_vendor(v: VendorEntity) -> VendorInfo:
+        """Convert stored vendor to public vendor."""
+        return VendorInfo(
             id=v.id,
             sku=v.sku,
             store=v.store,
             name=v.name,
             price=v.price,
             discontinued=v.discontinued,
-            url=v.url,
         )
 
-    def _public_format(self, f: StoredFormat) -> Format:
-        """Sanitize format to public view."""
-        return Format(
+    def _public_format(self, f: FormatEntity) -> FormatInfo:
+        """Convert stored format to public format."""
+        return FormatInfo(
             id=f.id,
             aspect=f.aspect,
             length=f.length,
@@ -147,13 +149,13 @@ class ProductService:
             vendors=[self._public_vendor(v) for v in f.vendors],
         )
 
-    def _public_image(self, pid: UUID, i: StoredImage) -> Image:
-        """Sanitize image to public view, resolving URL via image provider."""
-        return Image(
-            id=i.id, url=self.images.get_url(pid=pid, iid=i.id, transformed=True)
+    def _public_image(self, pid: UUID, i: ImageEntity) -> ImageInfo:
+        """Convert stored image to public image."""
+        return ImageInfo(
+            id=i.id, url=self.images.get_url(pid=pid, iid=i.id, transformed=False)
         )
 
-    def _public_product(self, p: StoredProduct) -> Product:
+    def _public_product(self, p: ProductEntity) -> Product:
         """Sanitize product to public view."""
         return Product(
             id=p.id,
@@ -251,7 +253,7 @@ class ProductService:
             # Name partial patch (brand/series/model may be nullable)
             if p.name is not None:
                 patch = p.name.model_dump(exclude_unset=True)
-                updates["name"] = ProductName(
+                updates["name"] = Name(
                     brand=patch.get("brand", prod.name.brand),
                     series=patch.get("series", prod.name.series),
                     model=patch.get("model", prod.name.model),
@@ -291,18 +293,18 @@ class ProductService:
     # POST /product/{pid}/format → 201 | 400 | 401 | 404 | 409 | 429 | 500
     def create_format(
         self, ctx: AuthContext, pid: UUID, p: CreateFormatRequest
-    ) -> Created[Format]:
+    ) -> Created[FormatInfo]:
         """Create a new format for a product."""
         try:
             prod = self.db.get_product(pid=pid)
-            fmt = StoredFormat(
+            fmt = FormatEntity(
                 id=uuid4(),
                 aspect=p.aspect,
                 length=p.length,
                 width=p.width,
                 thickness=p.thickness,
                 vendors=[],
-                createdAt=self._now(),
+                created_at=self._now(),
             )
             updated = self._touch(prod, formats=[*prod.formats, fmt])
             saved = self.db.put_product(product=updated)
@@ -314,7 +316,7 @@ class ProductService:
     # PATCH /product/{pid}/format/{fid} → 200 | 400 | 401 | 404 | 429 | 500
     def update_format(
         self, ctx: AuthContext, pid: UUID, fid: UUID, p: UpdateFormatRequest
-    ) -> OK[Format]:
+    ) -> OK[FormatInfo]:
         """Update a product format (immutable models → copy on write)."""
         try:
             prod = self.db.get_product(pid=pid)
@@ -358,22 +360,21 @@ class ProductService:
     # POST /product/{pid}/format/{fid}/vendor → 201 | 400 | 401 | 404 | 409 | 429 | 500
     def create_vendor(
         self, ctx: AuthContext, pid: UUID, fid: UUID, p: CreateVendorRequest
-    ) -> Created[Vendor]:
+    ) -> Created[VendorInfo]:
         """Create a vendor listing for a format."""
         try:
             prod = self.db.get_product(pid=pid)
             fmt = next((f for f in prod.formats if f.id == fid), None)
             if not fmt:
                 raise DomainNotFound("Format not found.")
-            ven = StoredVendor(
+            ven = VendorEntity(
                 id=uuid4(),
                 sku=p.sku,
                 store=p.store,
                 name=p.name,
                 price=p.price,
                 discontinued=p.discontinued,
-                url=p.url,
-                createdAt=self._now(),
+                created_at=self._now(),
             )
             fmt_updated = self._touch(fmt, vendors=[*fmt.vendors, ven])
             new_formats = [fmt_updated if f.id == fid else f for f in prod.formats]
@@ -392,7 +393,7 @@ class ProductService:
     # PATCH /product/{pid}/format/{fid}/vendor/{vid} → 200 | 400 | 401 | 404 | 429 | 500
     def update_vendor(
         self, ctx: AuthContext, pid: UUID, fid: UUID, vid: UUID, p: UpdateVendorRequest
-    ) -> OK[Vendor]:
+    ) -> OK[VendorInfo]:
         """Update a vendor listing (immutable models → copy on write)."""
         try:
             prod = self.db.get_product(pid=pid)
@@ -460,8 +461,8 @@ class ProductService:
     # ─────────── Image ───────────
     # POST /product/{pid}/image → 201 | 400 | 401 | 404 | 429 | 500
     def upload_image(
-        self, ctx: AuthContext, pid: UUID, p: ImageUploadRequest
-    ) -> Created[Image]:
+        self, ctx: AuthContext, pid: UUID, p: UploadImageRequest
+    ) -> Created[ImageInfo]:
         """Upload product image with mask and homography metadata."""
         try:
             prod = self.db.get_product(pid=pid)
@@ -471,11 +472,11 @@ class ProductService:
                 pid=pid,
                 image=p.image,
                 mask=self._parse_mask(p.mask),
-                homography=self._parse_homography(p.hom),
+                homography=self._parse_homography(p.homography),
             )
 
             # Append minimal stored image record; provider owns the actual blobs/embeddings.
-            img = StoredImage(id=iid, localEmbeddings=loc, createdAt=self._now())
+            img = ImageEntity(id=iid, local_embeddings=loc, created_at=self._now())
             new_images = [*prod.images, img]
             saved = self.db.put_product(
                 product=self._touch(prod, images=new_images, globalEmbedding=glob)
@@ -487,8 +488,8 @@ class ProductService:
 
     # PATCH /product/{pid}/image/{iid} → 200 | 400 | 401 | 404 | 429 | 500
     def update_image(
-        self, ctx: AuthContext, pid: UUID, iid: UUID, p: ImageUpdateRequest
-    ) -> OK[Image]:
+        self, ctx: AuthContext, pid: UUID, iid: UUID, p: UpdateImageRequest
+    ) -> OK[ImageInfo]:
         """Update image metadata, recomputing provider artifacts as needed."""
         try:
             prod = self.db.get_product(pid=pid)
@@ -502,12 +503,12 @@ class ProductService:
                 iid=iid,
                 reset=p.reset,
                 mask=self._parse_mask(p.mask),
-                homography=self._parse_homography(p.hom),
+                homography=self._parse_homography(p.homography),
             )
 
             # Touch stored image record for bookkeeping (copy on write).
             new_images = [
-                self._touch(img, localEmbeddings=loc) if i.id == iid else i
+                self._touch(img, local_embeddings=loc) if i.id == iid else i
                 for i in prod.images
             ]
             saved = self.db.put_product(

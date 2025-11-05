@@ -7,12 +7,12 @@ from utils.http import (
     read_json_body,
 )
 from utils.routing import Router
-from models.auth import (
-    ForgetRequest,
+from models.api.auth import (
+    ForgetPasswordRequest,
     LoginRequest,
     LogoutRequest,
-    RefreshRequest,
-    ResetRequest,
+    RefreshTokenRequest,
+    ResetPasswordRequest,
 )
 from services.auth import AuthService
 
@@ -30,21 +30,21 @@ def login(event: Mapping[str, Any]) -> HttpResponse[Any]:
 @router.route("/refresh", method="POST")
 def refresh(event: Mapping[str, Any]) -> HttpResponse[Any]:
     data = read_json_body(event)
-    req = RefreshRequest.model_validate(data)
+    req = RefreshTokenRequest.model_validate(data)
     return svc.refresh(req)
 
 
 @router.route("/forget", method="POST")
 def forget(event: Mapping[str, Any]) -> HttpResponse[Any]:
     data = read_json_body(event)
-    req = ForgetRequest.model_validate(data)
+    req = ForgetPasswordRequest.model_validate(data)
     return svc.forget(req)
 
 
 @router.route("/reset", method="POST")
 def reset(event: Mapping[str, Any]) -> HttpResponse[Any]:
     data = read_json_body(event)
-    req = ResetRequest.model_validate(data)
+    req = ResetPasswordRequest.model_validate(data)
     return svc.reset(req)
 
 

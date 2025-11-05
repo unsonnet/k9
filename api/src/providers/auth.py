@@ -12,8 +12,8 @@ from typing import Final, NoReturn
 from uuid import UUID
 
 from config import boto3_client, settings
-from models.auth import AuthChallenge, AuthTokens
-from models.common import PasswordStr, SessionStr, TokenStr, UsernameStr
+from models.domain.auth import AuthChallenge, AuthTokens
+from models.shared.types import PasswordStr, SessionStr, TokenStr, UsernameStr
 from utils.errors import (
     DomainError,
     DomainExpiredToken,

@@ -7,8 +7,8 @@ from typing import NoReturn
 
 from utils.http import Forbidden, InternalServerError, NotFound, OK, Unauthorized
 
-from models.auth import AuthContext
-from models.search import (
+from models.domain.auth import AuthContext
+from models.domain.search import (
     SearchOKBody,
     SearchParams,
     SearchProductSummary,

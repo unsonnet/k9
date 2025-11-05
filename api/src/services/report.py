@@ -16,16 +16,18 @@ from utils.http import (
     Unauthorized,
 )
 
-from models.auth import AuthContext
-from models.report import (
+from models.domain.auth import AuthContext
+from models.api.report import (
     CreateReportRequest,
-    ListReportsOKBody,
-    ListReportsParams,
+    ListReportsRequest,
+    ListReportsResponse,
+    ReportSummaryResponse,
+    UpdateReportRequest,
+)
+from models.domain.report import (
     Report,
     ReportSummary,
-    StoredReport,
-    StoredReportSummary,
-    UpdateReportRequest,
+    ReportEntity,
 )
 
 from utils.errors import (
@@ -74,49 +76,51 @@ class ReportService:
         raise mapping.get(type(e), lambda: InternalServerError(str(e)))()
 
     @staticmethod
-    def _touch(r: StoredReport, **updates) -> StoredReport:
+    def _touch(r: ReportEntity, **updates) -> ReportEntity:
         return r.model_copy(update={**updates, "updatedAt": datetime.now(timezone.utc)})
 
-    def _public_summary(
-        self, ctx: AuthContext, s: StoredReportSummary
-    ) -> ReportSummary:
-        ref = self.products.get_summary(ctx, pid=s.referenceId)
-        return ReportSummary(
+    def _public_summary_to_api(
+        self, ctx: AuthContext, s: ReportSummary
+    ) -> ReportSummaryResponse:
+        return ReportSummaryResponse(
             id=s.id,
-            author=s.author,
+            author_id=s.author_id,
             title=s.title,
-            date=s.createdAt,
-            reference=ref,
+            created_at=s.created_at,
+            reference_product=s.reference_product.model_dump(),
         )
 
-    def _public_report(self, ctx: AuthContext, r: StoredReport) -> Report:
-        ref = self.products.get_product(ctx, pid=r.referenceId)
-        favs = [self.products.get_product(ctx, pid=pid) for pid in r.favoriteIds]
+    def _public_report(self, ctx: AuthContext, r: ReportEntity) -> Report:
+        ref = self.products.get_product(ctx=ctx, pid=r.reference_product_id)
+        favs = [
+            self.products.get_product(ctx=ctx, pid=fid)
+            for fid in r.favorite_product_ids
+        ]
         return Report(
             id=r.id,
-            author=r.author,
+            author_id=r.author_id,
             title=r.title,
-            date=r.createdAt,
-            reference=ref,
-            favorites=favs,
+            created_at=r.created_at,
+            reference_product=ref,
+            favorite_products=favs,
         )
 
     # ─────────── Endpoints ───────────
     # GET /report → 200 | 401 | 403 | 500
     def list_reports(
-        self, ctx: AuthContext, params: ListReportsParams
-    ) -> OK[ListReportsOKBody]:
+        self, ctx: AuthContext, params: ListReportsRequest
+    ) -> OK[ListReportsResponse]:
         try:
             res = self.provider.list_reports(
                 ctx,
                 limit=params.limit,
-                next_token=params.nextToken,
-                everyone=params.everyone,
+                next_token=params.next_token,
+                everyone=params.include_all_users,
             )
-            body = ListReportsOKBody(
+            body = ListReportsResponse(
                 total=res.total,
-                reports=[self._public_summary(ctx, s) for s in res.reports],
-                nextToken=res.nextToken,
+                reports=[self._public_summary_to_api(ctx, s) for s in res.reports],
+                next_token=res.nextToken,
             )
             return OK(body)
         except Exception as e:
@@ -127,14 +131,13 @@ class ReportService:
         self, ctx: AuthContext, payload: CreateReportRequest
     ) -> Created[Report]:
         try:
-            author_id = self.users.get_user_id(ctx)
-            stored = self.provider.post_report(
+            rep = self.provider.post_report(
                 ctx,
-                author=author_id,
+                author=self.users.get_user_id(ctx),
                 title=payload.title,
-                reference=payload.reference,
+                reference=payload.reference_product_id,
             )
-            return Created(self._public_report(ctx, stored))
+            return Created(self._public_report(ctx, rep))
         except Exception as e:
             self._handle_error(e, "Failed to create report.")
 
@@ -153,7 +156,7 @@ class ReportService:
         try:
             rep = self.provider.get_report(ctx, rid=rid)
             title = payload.title or rep.title
-            reference_id = payload.reference or rep.referenceId
+            reference_id = payload.reference_product_id or rep.reference_product_id
             updated = self._touch(rep, title=title, referenceId=reference_id)
             stored = self.provider.put_report(ctx, report=updated)
             return OK(self._public_report(ctx, stored))
@@ -172,8 +175,10 @@ class ReportService:
     def favorite_product(self, ctx: AuthContext, rid: UUID, pid: UUID) -> NoContent:
         try:
             rep = self.provider.get_report(ctx, rid=rid)
-            if pid not in rep.favoriteIds:
-                rep = self._touch(rep, favoriteIds=[*rep.favoriteIds, pid])
+            if pid not in rep.favorite_product_ids:
+                rep = self._touch(
+                    rep, favorite_product_ids=[*rep.favorite_product_ids, pid]
+                )
                 self.provider.put_report(ctx, report=rep)
             return NoContent()
         except Exception as e:
@@ -183,9 +188,9 @@ class ReportService:
     def unfavorite_product(self, ctx: AuthContext, rid: UUID, pid: UUID) -> NoContent:
         try:
             rep = self.provider.get_report(ctx, rid=rid)
-            new_ids = [i for i in rep.favoriteIds if i != pid]
-            if len(new_ids) != len(rep.favoriteIds):
-                rep = self._touch(rep, favoriteIds=new_ids)
+            new_ids = [i for i in rep.favorite_product_ids if i != pid]
+            if len(new_ids) != len(rep.favorite_product_ids):
+                rep = self._touch(rep, favorite_product_ids=new_ids)
                 self.provider.put_report(ctx, report=rep)
             return NoContent()
         except Exception as e:

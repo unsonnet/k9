@@ -34,7 +34,7 @@ def managed_user(admin_login) -> Generator[dict[str, Any], None, None]:
     assert resp["statusCode"] == 201
     created = parse_body(resp)
 
-    result = force_user_established(created["username"], created["tempPassword"])
+    result = force_user_established(created["username"], created["temporaryPassword"])
     uid = result["user"]
     token = result["token"]
 

@@ -10,7 +10,7 @@ from typing import Any, Final, Mapping, NoReturn
 from uuid import UUID
 
 from config import boto3_client, settings
-from models.common import (
+from models.shared.types import (
     NonEmptyStr,
     PasswordStr,
     PrefValueStr,
@@ -18,8 +18,9 @@ from models.common import (
     UsernameStr,
     PhoneStr,
 )
-from models.auth import AuthContext
-from models.user import StoredProfile, ListUsersResult, CreateUserResult
+from models.shared.base import TimeStamped
+from models.domain.auth import AuthContext
+from models.domain.user import UserEntity, UserCreationResult, ListUsersResult
 from utils.errors import (
     DomainError,
     DomainConflict,
@@ -48,8 +49,8 @@ class UserDBProvider(ABC):
         ...
 
     @abstractmethod
-    def get_user(self, *, uid: UUID) -> StoredProfile:
-        """Retrieve user by id."""
+    def get_user(self, *, uid: UUID) -> UserEntity:
+        """Get user by ID."""
         ...
 
     @abstractmethod
@@ -60,13 +61,13 @@ class UserDBProvider(ABC):
         name: NonEmptyStr,
         phone: PhoneStr,
         role: RoleStr,
-        preferences: Mapping[str, PrefValueStr] | None,
-    ) -> CreateUserResult:
-        """Create user record."""
+        preferences: Mapping[str, str] | None = None,
+    ) -> UserCreationResult:
+        """Create new user."""
         ...
 
     @abstractmethod
-    def put_user(self, *, user: StoredProfile) -> StoredProfile:
+    def put_user(self, *, user: UserEntity) -> UserEntity:
         """Replace user record."""
         ...
 
@@ -105,13 +106,13 @@ class _NoopUserDBProvider(UserDBProvider):
     def is_self(self, *_, **__) -> bool:
         self._raise()
 
-    def get_user(self, *_, **__) -> StoredProfile:
+    def get_user(self, *_, **__) -> UserEntity:
         self._raise()
 
-    def post_user(self, *_, **__) -> CreateUserResult:
+    def post_user(self, *_, **__) -> UserCreationResult:
         self._raise()
 
-    def put_user(self, *_, **__) -> StoredProfile:
+    def put_user(self, *_, **__) -> UserEntity:
         self._raise()
 
     def delete_user(self, *_, **__) -> None:
@@ -159,12 +160,12 @@ class CognitoUserDBProvider(UserDBProvider):
 
     def _attrs_from_ctx(self, ctx: AuthContext) -> dict[str, str]:
         return self._attrs_from_user(
-            self._cognito.get_user(AccessToken=str(ctx.bearerToken))
+            self._cognito.get_user(AccessToken=str(ctx.bearer_token))
         )
 
-    def _to_profile(self, u: Mapping[str, Any]) -> StoredProfile:
+    def _to_profile(self, u: Mapping[str, Any]) -> UserEntity:
         attrs = self._attrs_from_user(u)
-        return StoredProfile(
+        return UserEntity(
             id=self._decode_sub(attrs),
             username=str(u["Username"]),
             name=attrs[self.NAME_ATTR],
@@ -175,8 +176,8 @@ class CognitoUserDBProvider(UserDBProvider):
                 for k, v in attrs.items()
                 if k.startswith(self.PREF_PREFIX)
             },
-            createdAt=u["UserCreateDate"],
-            updatedAt=u.get("UserLastModifiedDate"),
+            created_at=u["UserCreateDate"],
+            updated_at=u.get("UserLastModifiedDate"),
         )
 
     def _username_for(self, uid: UUID) -> str:
@@ -246,7 +247,7 @@ class CognitoUserDBProvider(UserDBProvider):
         except Exception as e:
             self._handle_error(e, "Failed to check role.")
 
-    def get_user(self, *, uid: UUID) -> StoredProfile:
+    def get_user(self, *, uid: UUID) -> UserEntity:
         """Retrieve user by id."""
         return self._to_profile(self._get_user(uid))
 
@@ -257,8 +258,8 @@ class CognitoUserDBProvider(UserDBProvider):
         name: NonEmptyStr,
         phone: PhoneStr,
         role: RoleStr,
-        preferences: Mapping[str, PrefValueStr] | None,
-    ) -> CreateUserResult:
+        preferences: Mapping[str, PrefValueStr] | None = None,
+    ) -> UserCreationResult:
         """Create user record."""
         try:
             attrs = [
@@ -278,11 +279,11 @@ class CognitoUserDBProvider(UserDBProvider):
                 TemporaryPassword=p,
                 MessageAction="SUPPRESS",
             )
-            return CreateUserResult(username=username, tempPassword=p)
+            return UserCreationResult(username=username, temporary_password=p)
         except Exception as e:
             self._handle_error(e, "Failed to create user.")
 
-    def put_user(self, *, user: StoredProfile) -> StoredProfile:
+    def put_user(self, *, user: UserEntity) -> UserEntity:
         """Replace user record."""
         try:
             u = self._get_user(user.id)
@@ -328,9 +329,9 @@ class CognitoUserDBProvider(UserDBProvider):
                 params["PaginationToken"] = next_token
             r = self._cognito.list_users(**params)
             return ListUsersResult(
-                total=total,
+                total=r.get("total", 0),
                 users=[self._to_profile(u) for u in r.get("Users", [])],
-                nextToken=r.get("PaginationToken"),
+                next_token=r.get("PaginationToken"),
             )
         except Exception as e:
             self._handle_error(e, "Failed to list users.")

@@ -11,13 +11,13 @@ from utils.http import (
     read_multipart_body,
 )
 from utils.routing import Router
-from models.auth import AuthContext
-from models.product import (
+from models.domain.auth import AuthContext
+from models.api.product import (
     CreateFormatRequest,
     CreateProductRequest,
     CreateVendorRequest,
-    ImageUpdateRequest,
-    ImageUploadRequest,
+    UpdateImageRequest,
+    UploadImageRequest,
     UpdateFormatRequest,
     UpdateProductRequest,
     UpdateVendorRequest,
@@ -32,7 +32,7 @@ def _ctx(event: Mapping[str, Any]) -> AuthContext:
     token = read_bearer_token(event)
     if not token:
         raise BadRequest("Missing Authorization header")
-    return AuthContext(bearerToken=token)
+    return AuthContext(bearer_token=token)
 
 
 # --- /product
@@ -176,10 +176,10 @@ def upload_image(
     _, mask_bytes = parts.get("mask", (None, None))
     _, hom_bytes = parts.get("hom", (None, None))
 
-    req = ImageUploadRequest(
+    req = UploadImageRequest(
         image=image_bytes,
         mask=mask_bytes,
-        hom=hom_bytes,
+        homography=hom_bytes,
     )
     return svc.upload_image(ctx, pid, req)
 
@@ -212,10 +212,10 @@ def update_image(
         else:
             raise BadRequest("reset must be 'true' or 'false'")
 
-    req = ImageUpdateRequest(
+    req = UpdateImageRequest(
         reset=reset,
         mask=mask_bytes,
-        hom=hom_bytes,
+        homography=hom_bytes,
     )
     return svc.update_image(ctx, pid, iid, req)
 

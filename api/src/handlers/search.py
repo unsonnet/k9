@@ -4,8 +4,8 @@ from typing import Any, Mapping
 
 from utils.http import OK, BadRequest, read_bearer_token, read_json_body, read_query
 from utils.routing import Router
-from models.auth import AuthContext
-from models.search import SearchParams, SearchRequest
+from models.domain.auth import AuthContext
+from models.api.search import SearchParams, SearchRequest
 from services.search import SearchService
 
 router = Router(prefix="/search")
@@ -16,7 +16,7 @@ def _ctx(event: Mapping[str, Any]) -> AuthContext:
     token = read_bearer_token(event)
     if not token:
         raise BadRequest("Missing Authorization header")
-    return AuthContext(bearerToken=token)
+    return AuthContext(bearer_token=token)
 
 
 @router.route("", method="POST")
@@ -27,8 +27,8 @@ def search(event: Mapping[str, Any]) -> OK[Any]:
     filters = SearchRequest.model_validate(data)
     params = SearchParams(
         limit=int(qp["limit"]) if qp.get("limit") else None,
-        nextToken=qp.get("nextToken"),
-        partial=(qp.get("partial", "false").lower() == "true"),
+        next_token=qp.get("nextToken"),
+        include_partial_matches=(qp.get("partial", "false").lower() == "true"),
     )
     return OK(svc.search(ctx, params, filters))
 

@@ -9,10 +9,10 @@ from uuid import UUID
 from pydantic import BaseModel
 from pydantic.types import NonNegativeInt
 
-from models.auth import AuthContext
-from models.common import NonEmptyStr
-from models.product import Product, ProductSummary
-from models.report import StoredReport, StoredReportSummary
+from models.domain.auth import AuthContext
+from models.shared.types import NonEmptyStr
+from models.domain.product import Product, ProductSummary
+from models.domain.report import ReportEntity, ReportSummary
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -20,7 +20,7 @@ from models.report import StoredReport, StoredReportSummary
 # ──────────────────────────────────────────────────────────────────────────────
 class ListReportsResult(BaseModel):
     total: NonNegativeInt
-    reports: Sequence[StoredReportSummary]
+    reports: Sequence[ReportSummary]
     nextToken: NonEmptyStr | None = None
 
 
@@ -28,7 +28,7 @@ class ReportDBProvider(ABC):
     """Backend contract for report persistence."""
 
     @abstractmethod
-    def get_report(self, ctx: AuthContext, *, rid: UUID) -> StoredReport: ...
+    def get_report(self, ctx: AuthContext, *, rid: UUID) -> ReportEntity: ...
 
     @abstractmethod
     def post_report(
@@ -38,10 +38,10 @@ class ReportDBProvider(ABC):
         author: UUID,
         title: NonEmptyStr,
         reference: UUID,
-    ) -> StoredReport: ...
+    ) -> ReportEntity: ...
 
     @abstractmethod
-    def put_report(self, ctx: AuthContext, *, report: StoredReport) -> StoredReport: ...
+    def put_report(self, ctx: AuthContext, *, report: ReportEntity) -> ReportEntity: ...
 
     @abstractmethod
     def delete_report(self, ctx: AuthContext, *, rid: UUID) -> None: ...

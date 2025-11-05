@@ -12,8 +12,9 @@ import numpy as np
 
 from config import boto3_client, boto3_resource, settings
 
-from models.common import CategoryMap
-from models.product import ProductName, StoredProduct
+from models.shared.types import CategoryMap
+from models.shared.values import Name
+from models.domain.product import ProductEntity
 from utils.aws import _for_dynamo, _from_dynamo
 from utils.errors import (
     DomainError,
@@ -31,7 +32,7 @@ class ProductDBProvider(ABC):
     """Manage product data contracts for backends."""
 
     @abstractmethod
-    def get_product(self, *, pid: UUID) -> StoredProduct:
+    def get_product(self, *, pid: UUID) -> ProductEntity:
         """Retrieve product by id."""
         ...
 
@@ -39,14 +40,14 @@ class ProductDBProvider(ABC):
     def post_product(
         self,
         *,
-        name: ProductName,
+        name: Name,
         category: CategoryMap,
-    ) -> StoredProduct:
+    ) -> ProductEntity:
         """Create product record."""
         ...
 
     @abstractmethod
-    def put_product(self, *, product: StoredProduct) -> StoredProduct:
+    def put_product(self, *, product: ProductEntity) -> ProductEntity:
         """Replace product record."""
         ...
 
@@ -67,13 +68,13 @@ class _NoopProductDBProvider(ProductDBProvider):
     def _raise(self) -> NoReturn:
         raise DomainInvariantViolation(self._MSG)
 
-    def get_product(self, *_, **__) -> StoredProduct:
+    def get_product(self, *_, **__) -> ProductEntity:
         self._raise()
 
-    def post_product(self, *_, **__) -> StoredProduct:
+    def post_product(self, *_, **__) -> ProductEntity:
         self._raise()
 
-    def put_product(self, *_, **__) -> StoredProduct:
+    def put_product(self, *_, **__) -> ProductEntity:
         self._raise()
 
     def delete_product(self, *_, **__) -> None:
@@ -100,12 +101,12 @@ class DynamoProductDBProvider(ProductDBProvider):
         return datetime.now(timezone.utc)
 
     @staticmethod
-    def _to_item(model: StoredProduct) -> dict[str, Any]:
+    def _to_item(model: ProductEntity) -> dict[str, Any]:
         return _for_dynamo(model.model_dump(mode="python"))
 
     @staticmethod
-    def _from_item(ddb_item: dict[str, Any]) -> StoredProduct:
-        return StoredProduct.model_validate(_from_dynamo(ddb_item))
+    def _from_item(ddb_item: dict[str, Any]) -> ProductEntity:
+        return ProductEntity.model_validate(_from_dynamo(ddb_item))
 
     def _handle_error(self, e: Exception, msg: str) -> NoReturn:
         c = self._client.exceptions
@@ -120,7 +121,7 @@ class DynamoProductDBProvider(ProductDBProvider):
         raise m.get(type(e), DomainInvariantViolation)(msg) from e
 
     # ─────────── Contract Methods ───────────
-    def get_product(self, *, pid: UUID) -> StoredProduct:
+    def get_product(self, *, pid: UUID) -> ProductEntity:
         try:
             resp = self._table.get_item(Key={"id": str(pid)})
             item = resp.get("Item")
@@ -130,18 +131,16 @@ class DynamoProductDBProvider(ProductDBProvider):
         except Exception as e:
             self._handle_error(e, "Failed to fetch product.")
 
-    def post_product(
-        self, *, name: ProductName, category: CategoryMap
-    ) -> StoredProduct:
+    def post_product(self, *, name: Name, category: CategoryMap) -> ProductEntity:
         try:
-            p = StoredProduct(
+            p = ProductEntity(
                 id=uuid4(),
                 name=name,
                 category=category,
                 formats=[],
                 images=[],
-                globalEmbedding=np.zeros((0,), dtype=np.float32),
-                createdAt=self._now(),
+                global_embedding=np.zeros((0,), dtype=np.float32),
+                created_at=self._now(),
             )
             self._table.put_item(
                 Item=self._to_item(p),
@@ -151,7 +150,7 @@ class DynamoProductDBProvider(ProductDBProvider):
         except Exception as e:
             self._handle_error(e, "Failed to create product.")
 
-    def put_product(self, *, product: StoredProduct) -> StoredProduct:
+    def put_product(self, *, product: ProductEntity) -> ProductEntity:
         try:
             self._table.put_item(
                 Item=self._to_item(product),

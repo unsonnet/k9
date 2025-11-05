@@ -17,18 +17,20 @@ from utils.http import (
     TooManyRequests,
     Unauthorized,
 )
-from models.auth import (
+from models.api.auth import (
+    ForgetPasswordRequest,
+    LoginChallengeResponse,
+    LoginRequest,
+    LoginSuccessResponse,
+    LogoutRequest,
+    RefreshTokenRequest,
+    RefreshTokenResponse,
+    ResetPasswordRequest,
+    ChallengeType,
+)
+from models.domain.auth import (
     AuthChallenge,
     AuthTokens,
-    LogoutRequest,
-    ForgetRequest,
-    LoginAcceptedBody,
-    LoginOKBody,
-    LoginRequest,
-    RefreshOKBody,
-    RefreshRequest,
-    ResetRequest,
-    ChallengeType,
 )
 from utils.errors import (
     DomainExpiredToken,
@@ -85,7 +87,7 @@ class AuthService:
     # ─────────── Contract Methods ───────────
 
     # POST /auth/forget → 204 | 400 | 404 | 429 | 500
-    def forget(self, payload: ForgetRequest) -> NoContent:
+    def forget(self, payload: ForgetPasswordRequest) -> NoContent:
         """Initiate password reset flow."""
         try:
             self.provider.start_password_reset(username=payload.username)
@@ -96,7 +98,7 @@ class AuthService:
     # POST /auth/login → 200 | 202 | 400 | 401 | 403 | 404 | 429 | 500
     def login(
         self, payload: LoginRequest
-    ) -> OK[LoginOKBody] | Accepted[LoginAcceptedBody]:
+    ) -> OK[LoginSuccessResponse] | Accepted[LoginChallengeResponse]:
         """Authenticate user and issue tokens or challenge."""
         try:
             result = self.provider.authenticate(
@@ -104,7 +106,7 @@ class AuthService:
             )
             if isinstance(result, AuthChallenge):
                 return Accepted(
-                    LoginAcceptedBody(
+                    LoginChallengeResponse(
                         username=result.username,
                         session=result.session,
                         challenge=ChallengeType.NEW_PASSWORD_REQUIRED,
@@ -112,7 +114,7 @@ class AuthService:
                 )
             if isinstance(result, AuthTokens):
                 return OK(
-                    LoginOKBody(
+                    LoginSuccessResponse(
                         user=result.user,
                         accessToken=result.access_token,
                         refreshToken=result.refresh_token,
@@ -133,14 +135,14 @@ class AuthService:
             self._handle_error(e)
 
     # POST /auth/refresh → 200 | 400 | 401 | 410 | 500
-    def refresh(self, payload: RefreshRequest) -> OK[RefreshOKBody]:
+    def refresh(self, payload: RefreshTokenRequest) -> OK[RefreshTokenResponse]:
         """Refresh access token using a valid refresh token."""
         try:
             tokens = self.provider.refresh(
                 username=payload.username, refresh_token=payload.refreshToken
             )
             return OK(
-                RefreshOKBody(
+                RefreshTokenResponse(
                     user=tokens.user,
                     accessToken=tokens.access_token,
                     refreshToken=tokens.refresh_token,
@@ -151,7 +153,7 @@ class AuthService:
             self._handle_error(e)
 
     # POST /auth/reset → 204 | 400 | 404 | 410 | 429 | 500
-    def reset(self, payload: ResetRequest) -> NoContent:
+    def reset(self, payload: ResetPasswordRequest) -> NoContent:
         """Complete password reset."""
         try:
             self.provider.reset_password(

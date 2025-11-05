@@ -13,8 +13,12 @@ from utils.http import (
     read_query,
 )
 from utils.routing import Router
-from models.auth import AuthContext
-from models.report import CreateReportRequest, ListReportsParams, UpdateReportRequest
+from models.domain.auth import AuthContext
+from models.api.report import (
+    CreateReportRequest,
+    ListReportsRequest,
+    UpdateReportRequest,
+)
 from services.report import ReportService
 
 router = Router(prefix="/report")
@@ -32,7 +36,7 @@ def _ctx(event: Mapping[str, Any]) -> AuthContext:
 def list_reports(event: Mapping[str, Any]) -> OK[Any]:
     ctx = _ctx(event)
     qp = read_query(event)
-    params = ListReportsParams(
+    params = ListReportsRequest(
         limit=int(qp["limit"]) if qp.get("limit") else None,
         nextToken=qp.get("nextToken"),
         everyone=(qp.get("everyone", "false").lower() == "true"),

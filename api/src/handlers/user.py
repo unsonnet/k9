@@ -11,10 +11,10 @@ from utils.http import (
     read_query,
 )
 from utils.routing import Router
-from models.auth import AuthContext
-from models.user import (
+from models.domain.auth import AuthContext
+from models.api.user import (
     CreateUserRequest,
-    ListUsersParams,
+    ListUsersRequest,
     UpdatePasswordRequest,
     UpdateUserRequest,
 )
@@ -28,14 +28,14 @@ def _ctx(event: Mapping[str, Any]) -> AuthContext:
     token = read_bearer_token(event)
     if not token:
         raise BadRequest("Missing Authorization header")
-    return AuthContext(bearerToken=token)
+    return AuthContext(bearer_token=token)
 
 
 @router.route("", method="GET")
 def list_users(event: Mapping[str, Any]) -> HttpResponse[Any]:
     ctx = _ctx(event)
     qp = read_query(event)
-    params = ListUsersParams(
+    params = ListUsersRequest(
         limit=int(qp["limit"]) if qp.get("limit") else None,
         nextToken=qp.get("nextToken"),
     )

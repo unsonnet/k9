@@ -6,9 +6,10 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from uuid import UUID
 
-from models.auth import AuthContext
-from models.product import ProductSummary
-from models.search import SearchRequest, SearchResult
+from models.domain.auth import AuthContext
+from models.domain.product import ProductSummary
+from models.api.search import SearchRequest
+from models.domain.search import SearchResults
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -26,7 +27,7 @@ class SearchProvider(ABC):
         limit: int | None,
         next_token: str | None,
         partial: bool | None,
-    ) -> SearchResult: ...
+    ) -> SearchResults: ...
 
 
 class ProductSummaryProvider(ABC):

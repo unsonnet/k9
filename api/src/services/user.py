@@ -20,16 +20,20 @@ from utils.http import (
     Unauthorized,
     Gone,
 )
-from models.auth import AuthContext, LoginRequest
-from models.user import (
+from models.domain.auth import AuthContext
+from models.api.auth import LoginRequest
+from models.api.user import (
     CreateUserRequest,
-    CreateUserResult,
-    ListUsersOKBody,
-    ListUsersParams,
-    Profile,
-    StoredProfile,
+    CreateUserResponse,
+    ListUsersRequest,
+    ListUsersResponse,
     UpdatePasswordRequest,
     UpdateUserRequest,
+    UserProfileResponse,
+)
+from models.domain.user import (
+    UserEntity,
+    UserProfile,
 )
 from utils.errors import (
     DomainConflict,
@@ -91,9 +95,9 @@ class UserService:
         raise m.get(type(e), InternalServerError).from_exception(e)
 
     @staticmethod
-    def _public(u: StoredProfile) -> Profile:
-        """Sanitize private user attributes."""
-        return Profile(
+    def _public(u: UserEntity) -> UserProfile:
+        """Convert stored user to public profile."""
+        return UserProfile(
             id=u.id,
             username=u.username,
             name=u.name,
@@ -103,7 +107,7 @@ class UserService:
         )
 
     @staticmethod
-    def _touch(u: StoredProfile, **x) -> StoredProfile:
+    def _touch(u: UserEntity, **x) -> UserEntity:
         """Apply update timestamp."""
         return u.model_copy(update={**x, "updatedAt": datetime.now(timezone.utc)})
 
@@ -120,56 +124,81 @@ class UserService:
     # ─────────── Contract Methods ───────────
 
     # GET /user → 200 | 401 | 403 | 429 | 500
-    def list_users(self, ctx: AuthContext, p: ListUsersParams) -> OK[ListUsersOKBody]:
+    def list_users(
+        self, ctx: AuthContext, p: ListUsersRequest
+    ) -> OK[ListUsersResponse]:
         """List users."""
         try:
             if not self.provider.is_admin(ctx):
                 raise DomainForbidden("Request denied.")
             r = self.provider.list_users(limit=p.limit, next_token=p.nextToken)
-            return OK(
-                ListUsersOKBody(
-                    total=r.total,
-                    users=[self._public(u) for u in r.users],
-                    nextToken=r.nextToken,
-                )
+            body = ListUsersResponse(
+                total=r.total,
+                users=[
+                    UserProfileResponse(
+                        id=self._public(u).id,
+                        username=self._public(u).username,
+                        name=self._public(u).name,
+                        phone=self._public(u).phone,
+                        role=self._public(u).role,
+                        preferences=self._public(u).preferences,
+                    )
+                    for u in r.users
+                ],
+                nextToken=r.next_token,
             )
+            return OK(body)
         except Exception as e:
             self._handle_error(e)
 
     # POST /user → 201 | 401 | 403 | 409 | 429 | 500
     def create_user(
         self, ctx: AuthContext, p: CreateUserRequest
-    ) -> Created[CreateUserResult]:
+    ) -> Created[CreateUserResponse]:
         """Create a new user."""
         try:
             if not self.provider.is_admin(ctx):
                 raise DomainForbidden("Request denied.")
+            result = self.provider.post_user(
+                username=p.username,
+                name=p.name,
+                phone=p.phone,
+                role=p.role,
+                preferences=p.preferences,
+            )
             return Created(
-                self.provider.post_user(
-                    username=p.username,
-                    name=p.name,
-                    phone=p.phone,
-                    role=p.role,
-                    preferences=p.preferences,
+                CreateUserResponse(
+                    username=result.username,
+                    temporaryPassword=result.temporary_password,
                 )
             )
         except Exception as e:
             self._handle_error(e)
 
     # GET /user/{uid} → 200 | 401 | 403 | 404 | 429 | 500
-    def get_user(self, ctx: AuthContext, uid: UUID) -> OK[Profile]:
+    def get_user(self, ctx: AuthContext, uid: UUID) -> OK[UserProfileResponse]:
         """Retrieve a user by id."""
         try:
             if not (self.provider.is_admin(ctx) or self.provider.is_self(ctx, uid=uid)):
                 raise DomainForbidden("Request denied.")
-            return OK(self._public(self.provider.get_user(uid=uid)))
+            profile = self._public(self.provider.get_user(uid=uid))
+            return OK(
+                UserProfileResponse(
+                    id=profile.id,
+                    username=profile.username,
+                    name=profile.name,
+                    phone=profile.phone,
+                    role=profile.role,
+                    preferences=profile.preferences,
+                )
+            )
         except Exception as e:
             self._handle_error(e)
 
     # PATCH /user/{uid} → 200 | 401 | 403 | 404 | 409 | 429 | 500
     def update_user(
         self, ctx: AuthContext, uid: UUID, p: UpdateUserRequest
-    ) -> OK[Profile]:
+    ) -> OK[UserProfileResponse]:
         """Update a user by id."""
         try:
             a = self.provider.is_admin(ctx)
@@ -193,7 +222,17 @@ class UserService:
                     prefs.pop(k, None) if v is None else prefs.__setitem__(k, v)
                 u.preferences = prefs
             r = self.provider.put_user(user=self._touch(u))
-            return OK(self._public(r))
+            profile = self._public(r)
+            return OK(
+                UserProfileResponse(
+                    id=profile.id,
+                    username=profile.username,
+                    name=profile.name,
+                    phone=profile.phone,
+                    role=profile.role,
+                    preferences=profile.preferences,
+                )
+            )
         except Exception as e:
             self._handle_error(e)
 
