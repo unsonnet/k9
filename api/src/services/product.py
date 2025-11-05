@@ -500,6 +500,7 @@ class ProductService:
             loc, glob = self.images.put_image(
                 pid=pid,
                 iid=iid,
+                reset=p.reset,
                 mask=self._parse_mask(p.mask),
                 homography=self._parse_homography(p.hom),
             )

@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from io import BytesIO
 from typing import Final, NoReturn, Sequence
 from uuid import UUID, uuid4
 
 import numpy as np
+from PIL import Image
 
 from config import boto3_client, settings
 
@@ -57,16 +59,11 @@ class ImageDBProvider(ABC):
         *,
         pid: UUID,
         iid: UUID,
+        reset: bool,
         mask: ImageMask | None,
         homography: HomographyMatrix | None,
     ) -> tuple[LocalEmbeddings, GlobalEmbedding]:
-        """
-        Update image transformation metadata (mask/homography) and recompute
-        embeddings for the image and product.
-
-        Returns:
-            (local_vectors, global_vector)
-        """
+        """Update image transformation metadata and recompute embeddings."""
         ...
 
     @abstractmethod
@@ -136,6 +133,62 @@ class S3ImageDBProvider(ImageDBProvider):
             else f"products/{pid}/{iid}/original"
         )
 
+    @staticmethod
+    def _infer_mime(image_bytes: bytes) -> str:
+        try:
+            with Image.open(BytesIO(image_bytes)) as im:
+                fmt = (im.format or "").upper()
+            mapping = {
+                "JPEG": "image/jpeg",
+                "JPG": "image/jpeg",
+                "PNG": "image/png",
+                "WEBP": "image/webp",
+                "GIF": "image/gif",
+                "TIFF": "image/tiff",
+                "BMP": "image/bmp",
+            }
+            return mapping.get(fmt, "application/octet-stream")
+        except Exception:
+            return "application/octet-stream"
+
+    @staticmethod
+    def _apply_mask_as_alpha(base_bytes: bytes, mask: ImageMask | None) -> bytes:
+        """
+        Return a PNG bytes where the alpha channel is:
+          - 255 everywhere if mask is None
+          - 255 for True, 0 for False if mask provided
+        Homography is intentionally ignored for now.
+        """
+        try:
+            with Image.open(BytesIO(base_bytes)) as im:
+                im = im.convert("RGBA")
+                w, h = im.size
+
+                if mask is None:
+                    alpha = Image.new("L", (w, h), 255)
+                else:
+                    # Validate mask shape (H, W)
+                    if mask.ndim != 2:
+                        raise DomainInvariantViolation("Mask must be 2D (H, W).")
+                    mh, mw = mask.shape
+                    if (mw, mh) != (w, h):
+                        raise DomainInvariantViolation(
+                            f"Mask shape {(mh, mw)} does not match image size {(h, w)}."
+                        )
+                    alpha_arr = mask.astype(np.uint8) * 255
+                    alpha = Image.fromarray(alpha_arr, mode="L")
+
+                r, g, b, _ = im.split()
+                out = Image.merge("RGBA", (r, g, b, alpha))
+
+                buf = BytesIO()
+                out.save(buf, format="PNG")
+                return buf.getvalue()
+        except DomainInvariantViolation:
+            raise
+        except Exception as e:
+            raise DomainInvariantViolation("Failed to transform image.") from e
+
     def _handle_error(self, e: Exception, msg: str) -> NoReturn:
         c = self._s3.exceptions
         mapping: dict[type[Exception], type[DomainError]] = {
@@ -156,18 +209,28 @@ class S3ImageDBProvider(ImageDBProvider):
         pid: UUID,
         image: bytes,
         mask: ImageMask | None,
-        homography: HomographyMatrix | None,
+        homography: HomographyMatrix | None,  # ignored for now
     ) -> tuple[UUID, LocalEmbeddings, GlobalEmbedding]:
         iid = uuid4()
         try:
-            # Store original and transformed (placeholder) same as before
-            for transformed in (False, True):
-                self._s3.put_object(
-                    Bucket=self.bucket,
-                    Key=self._key(pid, iid, transformed=transformed),
-                    Body=image,
-                    ContentType="image/jpeg",
-                )
+            # 1) Store ORIGINAL exactly as provided.
+            orig_ct = self._infer_mime(image)
+            self._s3.put_object(
+                Bucket=self.bucket,
+                Key=self._key(pid, iid, transformed=False),
+                Body=image,
+                ContentType=orig_ct,
+            )
+
+            # 2) Store TRANSFORMED as PNG with mask as alpha (or fully opaque).
+            transformed_png = self._apply_mask_as_alpha(image, mask)
+            self._s3.put_object(
+                Bucket=self.bucket,
+                Key=self._key(pid, iid, transformed=True),
+                Body=transformed_png,
+                ContentType="image/png",
+            )
+
             return (iid, self._local_vectors_empty(), self._global_vector_empty())
         except Exception as e:
             self._handle_error(e, "Failed to store product image.")
@@ -177,22 +240,27 @@ class S3ImageDBProvider(ImageDBProvider):
         *,
         pid: UUID,
         iid: UUID,
+        reset: bool,
         mask: ImageMask | None,
-        homography: HomographyMatrix | None,
+        homography: HomographyMatrix | None,  # ignored for now
     ) -> tuple[LocalEmbeddings, GlobalEmbedding]:
+        """
+        Replace the transformed image.
+        - If reset=True: use ORIGINAL as the base, then apply mask -> store TRANSFORMED (PNG).
+        - If reset=False: use current TRANSFORMED as the base, then apply mask -> store TRANSFORMED (PNG).
+        """
         try:
-            # Pull transformed -> re-store original
-            obj = self._s3.get_object(
-                Bucket=self.bucket,
-                Key=self._key(pid, iid, transformed=True),
-            )
-            original_bytes = obj["Body"].read()
+            base_key = self._key(pid, iid, transformed=not reset)
+            obj = self._s3.get_object(Bucket=self.bucket, Key=base_key)
+            base_bytes = obj["Body"].read()
+
+            new_png = self._apply_mask_as_alpha(base_bytes, mask)
 
             self._s3.put_object(
                 Bucket=self.bucket,
-                Key=self._key(pid, iid, transformed=False),
-                Body=original_bytes,
-                ContentType="image/jpeg",
+                Key=self._key(pid, iid, transformed=True),
+                Body=new_png,
+                ContentType="image/png",
             )
 
             return (self._local_vectors_empty(), self._global_vector_empty())
