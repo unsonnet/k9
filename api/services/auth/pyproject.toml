@@ -1,29 +1,18 @@
 [project]
-name = "k9-api"
+name = "auth"
 version = "0.1.0"
+description = "Add your description here"
 readme = "README.md"
-authors = [
-    { name = "Rodriguez, Santiago", email = "srodvasquez@gmail.com" }
-]
 requires-python = ">=3.12"
 dependencies = [
     "aws-lambda-powertools>=3.26.0",
+    "boto3>=1.42.85",
     "shared",
+    "types-boto3[cognito-idp]>=1.42.85",
 ]
 
 [tool.uv]
 package = false
 
-[tool.uv.workspace]
-members = [
-    "shared",
-    "services/*",
-]
-
 [tool.uv.sources]
 shared = { workspace = true }
-
-[dependency-groups]
-dev = [
-    "ruff>=0.15.8",
-]
