@@ -73,9 +73,14 @@ export function SearchResults({ results, isLoading, hasSearched, reportId }: Sea
   };
 
   const getSimilarity = (product: ProductIndex) => {
-    return product.analysis?.similarity ? 
-      Math.round(product.analysis.similarity * 100) : 
-      0; // Products without similarity data go to bottom
+    const rawMatch = product.match ?? product.analysis?.similarity;
+    if (rawMatch === undefined || rawMatch === null || Number.isNaN(rawMatch)) {
+      return 0;
+    }
+
+    // API match is a distance score (0 best, 1 worst); invert for UX percentage.
+    const clamped = Math.max(0, Math.min(1, rawMatch));
+    return Math.round((1 - clamped) * 100);
   };
 
   const getSimilarityColorClass = (similarity: number) => {
@@ -84,23 +89,6 @@ export function SearchResults({ results, isLoading, hasSearched, reportId }: Sea
     if (similarity >= 70) return "similarity-fair";
     if (similarity >= 60) return "similarity-poor";
     return "similarity-very-poor";
-  };
-
-  const sortProducts = (products: ProductIndex[]) => {
-    return [...products].sort((a, b) => {
-      // First sort by similarity (descending)
-      const aSimilarity = getSimilarity(a);
-      const bSimilarity = getSimilarity(b);
-      
-      if (aSimilarity !== bSimilarity) {
-        return bSimilarity - aSimilarity;
-      }
-      
-      // Then sort alphabetically by formatted name
-      const aName = getProductNameText(a);
-      const bName = getProductNameText(b);
-      return aName.localeCompare(bName);
-    });
   };
 
       const handleProductClick = useCallback((productId: string) => {
@@ -170,24 +158,24 @@ export function SearchResults({ results, isLoading, hasSearched, reportId }: Sea
   };
 
   // Get the current products to display based on view mode
-  const displayProducts = sortProducts(
-    viewMode === "favorites" 
-      ? favorites.map(fav => {
-          // Try to find similarity from current results, fallback to stored analysis
-          const resultMatch = results.find(r => r.id === fav.id);
+  const displayProducts =
+    viewMode === "favorites"
+      ? favorites.map((fav) => {
+          // Keep API order for result-backed values and reuse API match when available.
+          const resultMatch = results.find((r) => r.id === fav.id);
           const finalAnalysis = resultMatch?.analysis || fav.analysis;
-          
+
           return {
             id: fav.id,
             brand: fav.brand,
             series: fav.series,
             model: fav.model,
             image: fav.image,
-            analysis: finalAnalysis
+            match: resultMatch?.match ?? fav.match,
+            analysis: finalAnalysis,
           } as ProductIndex;
         })
-      : results
-  );
+      : results;
 
   if (isLoading) {
     return (

@@ -63,6 +63,7 @@ export type ProductIndex = {
   series?: string;
   model: string;
   image: string;
+  match?: number;
   analysis?: {
     color: { primary: MiniEmbedding; secondary: MiniEmbedding };
     pattern: { primary: MiniEmbedding; secondary: MiniEmbedding };

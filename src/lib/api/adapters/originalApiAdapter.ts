@@ -23,6 +23,7 @@ interface OriginalApiMaterial {
 }
 
 interface OriginalApiSearchRequest {
+  select_mode: 'color' | 'pattern';
   type_: {
     type: number;
     material: number;
@@ -230,6 +231,7 @@ function transformSearchResultToProduct(result: OriginalApiSearchResult): Produc
     brand: result.description?.store || 'Unknown',
     model: result.description?.name || `Material ${result.id}`,
     image: result.images[0] || '',
+    match: result.match,
     analysis: {
       color: {
         primary: {
@@ -263,16 +265,8 @@ function transformSearchResultToProduct(result: OriginalApiSearchResult): Produc
           similarity: 1 - (result.scores.pattern.secondary || 0) // Convert similarity to distance
         }
       },
-      // Calculate similarity as average of color and pattern primary/secondary scores
-      // Note: API returns similarity scale (1=perfect, 0=imperfect), convert to distance scale (0=perfect, 1=imperfect)
-      similarity: (() => {
-        const colorPrimary = result.scores.color.primary || 0;
-        const colorSecondary = result.scores.color.secondary || 0;
-        const patternPrimary = result.scores.pattern.primary || 0;
-        const patternSecondary = result.scores.pattern.secondary || 0;
-        const avgSimilarity = (colorPrimary + colorSecondary + patternPrimary + patternSecondary) / 4;
-        return 1 - avgSimilarity; // Convert similarity to distance metric
-      })()
+      // Preserve API-provided match value directly.
+      similarity: result.match
     }
   };
 }
@@ -346,16 +340,8 @@ function transformSearchResultToFullProduct(result: OriginalApiSearchResult): Pr
           similarity: 1 - (result.scores.pattern.secondary || 0) // Convert similarity to distance
         }
       },
-      // Calculate similarity as average of color and pattern primary/secondary scores
-      // Note: API returns similarity scale (1=perfect, 0=imperfect), convert to distance scale (0=perfect, 1=imperfect)
-      similarity: (() => {
-        const colorPrimary = result.scores.color.primary || 0;
-        const colorSecondary = result.scores.color.secondary || 0;
-        const patternPrimary = result.scores.pattern.primary || 0;
-        const patternSecondary = result.scores.pattern.secondary || 0;
-        const avgSimilarity = (colorPrimary + colorSecondary + patternPrimary + patternSecondary) / 4;
-        return 1 - avgSimilarity; // Convert similarity to distance metric
-      })()
+      // Preserve API-provided match value directly.
+      similarity: result.match
     }
   };
 }
@@ -429,8 +415,8 @@ function transformFavoriteToProduct(favorite: OriginalApiFavoriteProduct): Produ
           similarity: 1 - (favorite.scores.pattern.secondary || 0) // Convert similarity to distance
         }
       },
-      // Use the match score from the favorites API response
-      similarity: 1 - favorite.match // Convert similarity to distance metric
+      // Use the match score from the API response directly.
+      similarity: favorite.match
     }
   };
 }
@@ -606,6 +592,7 @@ export class OriginalApiAdapter {
     // These are distance metrics where lower values mean more similar
     // For example: 90% similarity = 0.1 threshold, 80% similarity = 0.2 threshold
     const searchRequest: OriginalApiSearchRequest = {
+      select_mode: filters?.similarity?.selectMode === 'pattern' ? 'pattern' : 'color',
       type_: {
         type: 0.2,  // 80% similarity for type matching
         material: 0.2,  // 80% similarity for material matching
@@ -631,22 +618,6 @@ export class OriginalApiAdapter {
     }
     if (filters?.shape?.thickness) {
       searchRequest.shape.thickness = filters.shape.thickness;
-    }
-
-    // Add color properties only if they have values
-    if (filters?.similarity?.threshold !== undefined) {
-      searchRequest.color.primary = filters.similarity.threshold;
-    }
-    if (filters?.similarity?.colorSecondary !== undefined) {
-      searchRequest.color.secondary = filters.similarity.colorSecondary;
-    }
-
-    // Add pattern properties only if they have values
-    if (filters?.similarity?.patternPrimary !== undefined) {
-      searchRequest.pattern.primary = filters.similarity.patternPrimary;
-    }
-    if (filters?.similarity?.patternSecondary !== undefined) {
-      searchRequest.pattern.secondary = filters.similarity.patternSecondary;
     }
 
     // Include start parameter in the request if provided

@@ -45,10 +45,7 @@ export interface SearchFilters {
     max?: number;
   };
   similarity?: {
-    threshold?: number;
-    colorSecondary?: number;
-    patternPrimary?: number;
-    patternSecondary?: number;
+    selectMode: 'color' | 'pattern';
   };
   shape?: {
     length?: number;

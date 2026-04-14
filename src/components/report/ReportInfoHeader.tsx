@@ -57,10 +57,6 @@ export function ReportInfoHeader({ report }: ReportInfoHeaderProps) {
     return [
       { label: "Type", value: capitalize(reference.category.type) },
       { label: "Material", value: capitalize(reference.category.material) },
-      { label: "Look", value: capitalize(reference.category.look) },
-      { label: "Texture", value: capitalize(reference.category.texture) },
-      { label: "Finish", value: capitalize(reference.category.finish) },
-      { label: "Edge", value: capitalize(reference.category.edge) }
     ];
   };
 

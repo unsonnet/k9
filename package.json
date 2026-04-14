@@ -20,6 +20,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@tailwindcss/oxide": "^4.1.18",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -27,6 +28,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "gh-pages": "^6.3.0",
+    "lightningcss": "^1.32.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

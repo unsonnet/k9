@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
+import { decodeReportId } from "@/lib/utils/jobIdentifiers";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 
@@ -48,8 +49,7 @@ export function AppHeader() {
       const reportId = reportParam || idParam;
       
       if (reportId) {
-        // Just use the reportId as the title - no API call needed
-        setReportTitle(reportId);
+        setReportTitle(decodeReportId(reportId));
         
         // For product comparison, just use the product ID as title for now
         // The actual product name will be loaded by the main component

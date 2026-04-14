@@ -9,10 +9,7 @@ export interface SearchFilters {
   maxWidthDiff?: number;
   maxThicknessDiff?: number;
   aspectRatioTolerance?: number;
-  colorPrimarySimilarity?: number;
-  colorSecondarySimilarity?: number;
-  patternPrimarySimilarity?: number;
-  patternSecondarySimilarity?: number;
+  selectMode: 'color' | 'pattern';
   categories: {
     type?: string[];
     material?: string[];
@@ -60,10 +57,7 @@ export function SearchFilters({ referenceProduct, onSearch, isSearching, filters
     // Only include thickness default if reference product has thickness
     maxThicknessDiff: hasThickness ? 1 : undefined,
     aspectRatioTolerance: 2,
-    colorPrimarySimilarity: 50,
-    colorSecondarySimilarity: 50,
-    patternPrimarySimilarity: 50,
-    patternSecondarySimilarity: 50,
+    selectMode: 'color',
     categories: {
       // Pre-populate with reference product categories for convenience
       type: referenceProduct.category.type ? [referenceProduct.category.type] : [],
@@ -92,38 +86,10 @@ export function SearchFilters({ referenceProduct, onSearch, isSearching, filters
     return null;
   };
 
-  // Mock category options - in real app, these would come from your database
-  const categoryOptions = {
-    type: ["Hardwood", "Laminate", "Vinyl", "Tile", "Carpet"],
-    material: ["Oak", "Maple", "Cherry", "Pine", "Bamboo", "Ceramic", "Porcelain"],
-    look: ["Traditional", "Modern", "Rustic", "Contemporary", "Industrial"],
-    texture: ["Smooth", "Textured", "Embossed", "Hand-scraped", "Wire-brushed"],
-    finish: ["Matte", "Satin", "Gloss", "Semi-gloss", "Natural"],
-    edge: ["Square", "Beveled", "Micro-beveled", "Eased", "Pillowed"]
-  };
-
   const handleFilterChange = (key: keyof SearchFilters, value: unknown) => {
     const newFilters = {
       ...filters,
       [key]: value
-    };
-    
-    if (onFiltersChange) {
-      onFiltersChange(newFilters);
-    } else {
-      setLocalFilters(newFilters);
-    }
-  };
-
-  const handleCategoryChange = (category: keyof SearchFilters["categories"], option: string, checked: boolean) => {
-    const newFilters = {
-      ...filters,
-      categories: {
-        ...filters.categories,
-        [category]: checked 
-          ? [...(filters.categories[category] || []), option]
-          : (filters.categories[category] || []).filter((item: string) => item !== option)
-      }
     };
     
     if (onFiltersChange) {
@@ -302,102 +268,39 @@ export function SearchFilters({ referenceProduct, onSearch, isSearching, filters
           )}
         </div>
 
-        {/* Color Similarity */}
+        {/* Image Similarity */}
         <div className="search-filters__section">
-          <h4 className="search-filters__section-title">Color Similarity</h4>
-          
-          <div className="search-filters__field search-filters__field--vertical">
-            <div className="slider-label-row">
-              <label className="search-filters__label">Primary</label>
-              <span className="slider-value">{filters.colorPrimarySimilarity}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={filters.colorPrimarySimilarity}
-              onChange={(e) => handleFilterChange('colorPrimarySimilarity', parseInt(e.target.value))}
-              className="slider-control"
-            />
-          </div>
+          <h4 className="search-filters__section-title">Image Similarity</h4>
 
           <div className="search-filters__field search-filters__field--vertical">
-            <div className="slider-label-row">
-              <label className="search-filters__label">Secondary</label>
-              <span className="slider-value">{filters.colorSecondarySimilarity}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={filters.colorSecondarySimilarity}
-              onChange={(e) => handleFilterChange('colorSecondarySimilarity', parseInt(e.target.value))}
-              className="slider-control"
-            />
-          </div>
-        </div>
-
-        {/* Pattern Similarity */}
-        <div className="search-filters__section">
-          <h4 className="search-filters__section-title">Pattern Similarity</h4>
-          
-          <div className="search-filters__field search-filters__field--vertical">
-            <div className="slider-label-row">
-              <label className="search-filters__label">Primary</label>
-              <span className="slider-value">{filters.patternPrimarySimilarity}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={filters.patternPrimarySimilarity}
-              onChange={(e) => handleFilterChange('patternPrimarySimilarity', parseInt(e.target.value))}
-              className="slider-control"
-            />
-          </div>
-
-          <div className="search-filters__field search-filters__field--vertical">
-            <div className="slider-label-row">
-              <label className="search-filters__label">Secondary</label>
-              <span className="slider-value">{filters.patternSecondarySimilarity}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={filters.patternSecondarySimilarity}
-              onChange={(e) => handleFilterChange('patternSecondarySimilarity', parseInt(e.target.value))}
-              className="slider-control"
-            />
-          </div>
-        </div>
-
-        {/* Category Filters */}
-        <div className="search-filters__section">
-          <h4 className="search-filters__section-title">Categories</h4>
-          
-          {Object.entries(categoryOptions).map(([category, options]) => (
-            <div key={category} className="search-filters__field search-filters__field--vertical">
-              <label className="search-filters__label">
-                {category.charAt(0).toUpperCase() + category.slice(1)}
+            <label className="search-filters__label">Select Mode</label>
+            <div className="checkbox-group">
+              <label className="checkbox-label">
+                <input
+                  type="radio"
+                  name="image-similarity-mode"
+                  checked={filters.selectMode === 'color'}
+                  onChange={() => handleFilterChange('selectMode', 'color')}
+                  className="checkbox-input"
+                />
+                <span className="checkbox-custom"></span>
+                Color
               </label>
-              <div className="checkbox-group">
-                {options.map(option => (
-                  <label key={option} className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={(filters.categories[category as keyof SearchFilters["categories"]] || []).includes(option)}
-                      onChange={(e) => handleCategoryChange(category as keyof SearchFilters["categories"], option, e.target.checked)}
-                      className="checkbox-input"
-                    />
-                    <span className="checkbox-custom"></span>
-                    {option}
-                  </label>
-                ))}
-              </div>
+              <label className="checkbox-label">
+                <input
+                  type="radio"
+                  name="image-similarity-mode"
+                  checked={filters.selectMode === 'pattern'}
+                  onChange={() => handleFilterChange('selectMode', 'pattern')}
+                  className="checkbox-input"
+                />
+                <span className="checkbox-custom"></span>
+                Pattern
+              </label>
             </div>
-          ))}
+          </div>
         </div>
+
       </div>
 
       {/* Search Button */}
