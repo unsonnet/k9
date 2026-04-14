@@ -822,6 +822,7 @@ export class OriginalApiAdapter {
   static async getProductFromSearch(reportId: string, productId: string): Promise<K9Response<Product>> {
     // Search with very permissive filters to get all results
     const searchRequest: OriginalApiSearchRequest = {
+      select_mode: 'color',
       type_: { type: 0.1, material: 0.1, missing: true },
       shape: { length: 0.1, width: 0.1, thickness: 0.1, missing: true },
       color: { primary: 0.1, secondary: 0.1, tertiary: 0.1, missing: true },
