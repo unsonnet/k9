@@ -1,35 +1,35 @@
 from typing import overload
 
 from shared.abc import ApiModel, BaseService, public_api
-from shared.errors import DomainError, assert_unreachable
+from shared.errors import assert_unreachable
 
-from .provider import AuthProvider, Challenge, Tokens
+from .provider import AuthProvider, Challenge, ChallengeKey, Tokens
 
 # ──── Request Payloads ────────────────────────────────────────────────────────────────
 
 
 class AuthRequest:
-    class Login(ApiModel):
+    class Login(ApiModel, frozen=True):
         username: str
         password: str
 
-    class Challenge(ApiModel):
-        challengeName: str
+    class Challenge(ApiModel, frozen=True):
         session: str
-        challengeResponses: dict[str, str]
+        challenge: ChallengeKey
+        response: dict[str, str]
 
-    class Forgot(ApiModel):
+    class Forgot(ApiModel, frozen=True):
         username: str
 
-    class Reset(ApiModel):
+    class Reset(ApiModel, frozen=True):
         username: str
         confirmationCode: str
         newPassword: str
 
-    class Refresh(ApiModel):
+    class Refresh(ApiModel, frozen=True):
         refreshToken: str
 
-    class Logout(ApiModel):
+    class Logout(ApiModel, frozen=True):
         accessToken: str | None = None
         refreshToken: str | None = None
 
@@ -38,19 +38,44 @@ class AuthRequest:
 
 
 class AuthResponse:
-    class Tokens(ApiModel):
+    class Tokens(ApiModel, frozen=True):
         accessToken: str
         expiresIn: int
         refreshToken: str | None = None
         idToken: str | None = None
 
-    class Challenge(ApiModel):
-        challengeName: str
+    class Challenge(ApiModel, frozen=True):
         session: str
-        challengeParameters: dict[str, str] | None = None
-        availableChallenges: list[str] | None = None
+        challenge: ChallengeKey
+        parameters: list[str]
 
-    class Failed(ApiModel): ...
+
+# ──── Helper Methods ──────────────────────────────────────────────────────────────────
+
+
+@overload
+def _response(result: Tokens) -> AuthResponse.Tokens: ...
+@overload
+def _response(result: Challenge) -> AuthResponse.Challenge: ...
+def _response(
+    result: Tokens | Challenge,
+) -> AuthResponse.Tokens | AuthResponse.Challenge:
+    match result:
+        case Tokens() as tokens:
+            return AuthResponse.Tokens(
+                accessToken=tokens.access_token,
+                expiresIn=tokens.expires_in,
+                refreshToken=tokens.refresh_token,
+                idToken=tokens.id_token,
+            )
+        case Challenge() as challenge:
+            return AuthResponse.Challenge(
+                session=challenge.session,
+                challenge=challenge.challenge,
+                parameters=challenge.parameters,
+            )
+        case _ as never:
+            assert_unreachable(never)
 
 
 # ──── Authentication Service ──────────────────────────────────────────────────────────
@@ -59,124 +84,50 @@ class AuthResponse:
 class AuthService(BaseService):
     provider: AuthProvider
 
-    # ──── Helper Methods ────
-
-    @overload
-    @staticmethod
-    def _result(x: Tokens) -> AuthResponse.Tokens: ...
-    @overload
-    @staticmethod
-    def _result(x: Challenge) -> AuthResponse.Challenge: ...
-    @overload
-    @staticmethod
-    def _result(x: None) -> None: ...
-
-    @staticmethod
-    def _result(
-        x: Tokens | Challenge | None,
-    ) -> AuthResponse.Tokens | AuthResponse.Challenge | None:
-        match x:
-            case Tokens() as tokens:
-                return AuthResponse.Tokens(
-                    accessToken=tokens.access_token,
-                    expiresIn=tokens.expires_in,
-                    refreshToken=tokens.refresh_token,
-                    idToken=tokens.id_token,
-                )
-            case Challenge() as challenge:
-                return AuthResponse.Challenge(
-                    challengeName=challenge.challenge,
-                    session=challenge.session,
-                    challengeParameters=challenge.parameters,
-                    availableChallenges=challenge.branches,
-                )
-            case None:
-                return None
-            case _ as never:
-                assert_unreachable(never)
-
     # ──── Public APIs ────
 
     @public_api
     def login(
         self,
-        payload: AuthRequest.Login,
-    ) -> AuthResponse.Tokens | AuthResponse.Challenge | AuthResponse.Failed:
-        try:
-            x = self.provider.authenticate(
-                username=payload.username,
-                password=payload.password,
+        request: AuthRequest.Login,
+    ) -> AuthResponse.Tokens | AuthResponse.Challenge:
+        return _response(
+            self.provider.authenticate(
+                username=request.username,
+                password=request.password,
             )
-        except DomainError:
-            return AuthResponse.Failed()
-        return self._result(x)
+        )
 
     @public_api
     def challenge(
         self,
-        payload: AuthRequest.Challenge,
-    ) -> AuthResponse.Tokens | AuthResponse.Challenge | AuthResponse.Failed:
-        try:
-            x = self.provider.respond_to_challenge(
-                session=payload.session,
-                challenge=payload.challengeName,
-                response=payload.challengeResponses,
+        request: AuthRequest.Challenge,
+    ) -> AuthResponse.Tokens | AuthResponse.Challenge:
+        return _response(
+            self.provider.respond_to_challenge(
+                session=request.session,
+                challenge=request.challenge,
+                response=request.response,
             )
-        except DomainError:
-            return AuthResponse.Failed()
-        return self._result(x)
-
-    @public_api
-    def forgot(
-        self,
-        payload: AuthRequest.Forgot,
-    ) -> None | AuthResponse.Failed:
-        try:
-            x = self.provider.forgot_password(
-                username=payload.username,
-            )
-        except DomainError:
-            return AuthResponse.Failed()
-        return self._result(x)
-
-    @public_api
-    def reset(
-        self,
-        payload: AuthRequest.Reset,
-    ) -> None | AuthResponse.Failed:
-        try:
-            x = self.provider.reset_password(
-                username=payload.username,
-                confirmation_code=payload.confirmationCode,
-                new_password=payload.newPassword,
-            )
-        except DomainError:
-            return AuthResponse.Failed()
-        return self._result(x)
+        )
 
     @public_api
     def refresh(
         self,
-        payload: AuthRequest.Refresh,
-    ) -> AuthResponse.Tokens | AuthResponse.Failed:
-        try:
-            x = self.provider.refresh_tokens(
-                refresh_token=payload.refreshToken,
+        request: AuthRequest.Refresh,
+    ) -> AuthResponse.Tokens:
+        return _response(
+            self.provider.refresh_tokens(
+                refresh_token=request.refreshToken,
             )
-        except DomainError:
-            return AuthResponse.Failed()
-        return self._result(x)
+        )
 
     @public_api
     def logout(
         self,
-        payload: AuthRequest.Logout,
-    ) -> None | AuthResponse.Failed:
-        try:
-            x = self.provider.revoke_tokens(
-                access_token=payload.accessToken,
-                refresh_token=payload.refreshToken,
-            )
-        except DomainError:
-            return AuthResponse.Failed()
-        return self._result(x)
+        request: AuthRequest.Logout,
+    ) -> None:
+        return self.provider.revoke_tokens(
+            access_token=request.accessToken,
+            refresh_token=request.refreshToken,
+        )

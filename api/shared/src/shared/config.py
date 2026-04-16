@@ -29,6 +29,10 @@ class Settings:
         return self.require("COGNITO_CLIENT_ID")
 
     @cached_property
+    def cognito_client_secret(self) -> str:
+        return self.require("COGNITO_CLIENT_SECRET")
+
+    @cached_property
     def cognito_user_pool_id(self) -> str:
         return self.require("COGNITO_USER_POOL_ID")
 

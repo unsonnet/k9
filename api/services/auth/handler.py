@@ -21,15 +21,13 @@ svc = AuthService()
     },
 )
 def login(
-    payload: Body[AuthRequest.Login],
+    request: Body[AuthRequest.Login],
 ) -> OK[AuthResponse.Tokens] | Accepted[AuthResponse.Challenge] | Unauthorized:
-    match svc.login(payload):
+    match svc.login(request):
         case AuthResponse.Tokens() as tokens:
             return OK(tokens)
         case AuthResponse.Challenge() as challenge:
             return Accepted(challenge)
-        case AuthResponse.Failed():
-            return Unauthorized("Invalid credentials")
         case _ as never:
             assert_unreachable(never)
 
@@ -46,56 +44,13 @@ def login(
     },
 )
 def challenge(
-    payload: Body[AuthRequest.Challenge],
+    request: Body[AuthRequest.Challenge],
 ) -> OK[AuthResponse.Tokens] | Accepted[AuthResponse.Challenge] | Unauthorized:
-    match svc.challenge(payload):
+    match svc.challenge(request):
         case AuthResponse.Tokens() as tokens:
             return OK(tokens)
         case AuthResponse.Challenge() as challenge:
             return Accepted(challenge)
-        case AuthResponse.Failed():
-            return Unauthorized("Invalid challenge response")
-        case _ as never:
-            assert_unreachable(never)
-
-
-@app.post(
-    "/auth/forgot",
-    summary="Forgot password",
-    description="Send password reset instructions to user's email.",
-    tags=["auth"],
-    responses={
-        204: "Password reset instructions sent",
-    },
-)
-def forgot(
-    payload: Body[AuthRequest.Forgot],
-) -> NoContent:
-    match svc.forgot(payload):
-        case None | AuthResponse.Failed():
-            return NoContent()
-        case _ as never:
-            assert_unreachable(never)
-
-
-@app.post(
-    "/auth/reset",
-    summary="Reset password",
-    description="Reset user's password using confirmation code.",
-    tags=["auth"],
-    responses={
-        204: "Password reset successfully",
-        401: "Invalid reset token",
-    },
-)
-def reset(
-    payload: Body[AuthRequest.Reset],
-) -> NoContent | Unauthorized:
-    match svc.reset(payload):
-        case None:
-            return NoContent()
-        case AuthResponse.Failed():
-            return Unauthorized("Invalid reset token")
         case _ as never:
             assert_unreachable(never)
 
@@ -111,13 +66,11 @@ def reset(
     },
 )
 def refresh(
-    payload: Body[AuthRequest.Refresh],
+    request: Body[AuthRequest.Refresh],
 ) -> OK[AuthResponse.Tokens] | Unauthorized:
-    match svc.refresh(payload):
+    match svc.refresh(request):
         case AuthResponse.Tokens() as tokens:
             return OK(tokens)
-        case AuthResponse.Failed():
-            return Unauthorized("Invalid refresh token")
         case _ as never:
             assert_unreachable(never)
 
@@ -132,10 +85,10 @@ def refresh(
     },
 )
 def logout(
-    payload: Body[AuthRequest.Logout],
+    request: Body[AuthRequest.Logout],
 ) -> NoContent:
-    match svc.logout(payload):
-        case None | AuthResponse.Failed():
+    match svc.logout(request):
+        case None:
             return NoContent()
         case _ as never:
             assert_unreachable(never)
