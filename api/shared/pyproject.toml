@@ -1,11 +1,7 @@
 [project]
 name = "shared"
 version = "0.1.0"
-description = "Add your description here"
-readme = "README.md"
-authors = [
-    { name = "Rodriguez, Santiago", email = "srodvasquez@gmail.com" }
-]
+description = "Shared utilities and types for K9 API"
 requires-python = ">=3.12"
 dependencies = [
     "aws-lambda-powertools>=3.26.0",

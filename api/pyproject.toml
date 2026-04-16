@@ -1,10 +1,6 @@
 [project]
 name = "k9-api"
 version = "0.1.0"
-readme = "README.md"
-authors = [
-    { name = "Rodriguez, Santiago", email = "srodvasquez@gmail.com" }
-]
 requires-python = ">=3.12"
 dependencies = [
     "aws-lambda-powertools>=3.26.0",

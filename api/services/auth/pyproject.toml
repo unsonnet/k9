@@ -10,8 +10,9 @@ dependencies = [
     "types-boto3[cognito-idp]>=1.42.85",
 ]
 
-[tool.uv]
-package = false
-
 [tool.uv.sources]
 shared = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"

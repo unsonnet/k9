@@ -22,7 +22,7 @@ wheels = [
 [[package]]
 name = "auth"
 version = "0.1.0"
-source = { virtual = "services/auth" }
+source = { editable = "services/auth" }
 dependencies = [
     { name = "aws-lambda-powertools" },
     { name = "boto3" },

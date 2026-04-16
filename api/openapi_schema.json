@@ -1,0 +1,657 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Powertools for AWS Lambda (Python) API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Authenticate user",
+        "description": "Authenticate user with username and password.",
+        "operationId": "login_auth_login_post",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Body_Login_"
+            },
+            "name": "request",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "User logged in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "title": "Accesstoken"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "title": "Expiresin"
+                    },
+                    "refreshToken": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Refreshtoken"
+                    },
+                    "idToken": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Idtoken"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "accessToken",
+                    "expiresIn"
+                  ],
+                  "title": "Tokens"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Authentication challenge required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$defs": {
+                    "ChallengeKey": {
+                      "type": "string",
+                      "enum": [
+                        "NEW_PASSWORD",
+                        "NEW_MFA",
+                        "MFA"
+                      ],
+                      "title": "ChallengeKey"
+                    }
+                  },
+                  "properties": {
+                    "session": {
+                      "type": "string",
+                      "title": "Session"
+                    },
+                    "challenge": {
+                      "$ref": "#/$defs/ChallengeKey"
+                    },
+                    "parameters": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array",
+                      "title": "Parameters"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "session",
+                    "challenge",
+                    "parameters"
+                  ],
+                  "title": "Challenge"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials",
+            "content": {}
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {}
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {}
+          }
+        }
+      }
+    },
+    "/auth/challenge": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Respond to auth challenge",
+        "description": "Submit challenge response and continue authentication flow.",
+        "operationId": "challenge_auth_challenge_post",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Body_Challenge_"
+            },
+            "name": "request",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Authentication completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "title": "Accesstoken"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "title": "Expiresin"
+                    },
+                    "refreshToken": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Refreshtoken"
+                    },
+                    "idToken": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Idtoken"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "accessToken",
+                    "expiresIn"
+                  ],
+                  "title": "Tokens"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Further authentication challenge required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$defs": {
+                    "ChallengeKey": {
+                      "type": "string",
+                      "enum": [
+                        "NEW_PASSWORD",
+                        "NEW_MFA",
+                        "MFA"
+                      ],
+                      "title": "ChallengeKey"
+                    }
+                  },
+                  "properties": {
+                    "session": {
+                      "type": "string",
+                      "title": "Session"
+                    },
+                    "challenge": {
+                      "$ref": "#/$defs/ChallengeKey"
+                    },
+                    "parameters": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array",
+                      "title": "Parameters"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "session",
+                    "challenge",
+                    "parameters"
+                  ],
+                  "title": "Challenge"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid challenge response",
+            "content": {}
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {}
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {}
+          }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Refresh tokens",
+        "description": "Refresh access token using refresh token.",
+        "operationId": "refresh_auth_refresh_post",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Body_Refresh_"
+            },
+            "name": "request",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "Tokens refreshed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "accessToken": {
+                      "type": "string",
+                      "title": "Accesstoken"
+                    },
+                    "expiresIn": {
+                      "type": "integer",
+                      "title": "Expiresin"
+                    },
+                    "refreshToken": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Refreshtoken"
+                    },
+                    "idToken": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "title": "Idtoken"
+                    }
+                  },
+                  "additionalProperties": false,
+                  "type": "object",
+                  "required": [
+                    "accessToken",
+                    "expiresIn"
+                  ],
+                  "title": "Tokens"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid refresh token",
+            "content": {}
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {}
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {}
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logout user",
+        "description": "Logout user by invalidating their tokens.",
+        "operationId": "logout_auth_logout_post",
+        "parameters": [
+          {
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/Body_Logout_"
+            },
+            "name": "request",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "User logged out",
+            "content": {}
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {}
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {}
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_Challenge_": {
+        "$ref": "#/components/schemas/services__auth__service__AuthRequest__Challenge"
+      },
+      "Body_Login_": {
+        "$ref": "#/components/schemas/Login"
+      },
+      "Body_Logout_": {
+        "$ref": "#/components/schemas/Logout"
+      },
+      "Body_Refresh_": {
+        "$ref": "#/components/schemas/Refresh"
+      },
+      "ChallengeKey": {
+        "type": "string",
+        "enum": [
+          "NEW_PASSWORD",
+          "NEW_MFA",
+          "MFA"
+        ],
+        "title": "ChallengeKey"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Login": {
+        "properties": {
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Login"
+      },
+      "Logout": {
+        "properties": {
+          "accessToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Accesstoken"
+          },
+          "refreshToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refreshtoken"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "Logout"
+      },
+      "Refresh": {
+        "properties": {
+          "refreshToken": {
+            "type": "string",
+            "title": "Refreshtoken"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "refreshToken"
+        ],
+        "title": "Refresh"
+      },
+      "Tokens": {
+        "properties": {
+          "accessToken": {
+            "type": "string",
+            "title": "Accesstoken"
+          },
+          "expiresIn": {
+            "type": "integer",
+            "title": "Expiresin"
+          },
+          "refreshToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Refreshtoken"
+          },
+          "idToken": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idtoken"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "accessToken",
+          "expiresIn"
+        ],
+        "title": "Tokens"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "services__auth__service__AuthRequest__Challenge": {
+        "properties": {
+          "session": {
+            "type": "string",
+            "title": "Session"
+          },
+          "challenge": {
+            "$ref": "#/components/schemas/ChallengeKey"
+          },
+          "response": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Response"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "session",
+          "challenge",
+          "response"
+        ],
+        "title": "Challenge"
+      },
+      "services__auth__service__AuthResponse__Challenge": {
+        "properties": {
+          "session": {
+            "type": "string",
+            "title": "Session"
+          },
+          "challenge": {
+            "$ref": "#/components/schemas/ChallengeKey"
+          },
+          "parameters": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Parameters"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "session",
+          "challenge",
+          "parameters"
+        ],
+        "title": "Challenge"
+      },
+      "ResponseValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "ResponseValidationError"
+      }
+    }
+  }
+}
