@@ -5,7 +5,9 @@ from shared.abc import ExceptionMap, private_api
 from shared.config import settings
 from shared.errors import (
     DomainExpiredToken,
+    DomainForbidden,
     DomainInvalidCredentials,
+    DomainInvalidTokens,
     DomainInvariantViolation,
     DomainRateLimited,
     DomainUserNotConfirmed,
@@ -94,24 +96,32 @@ class CognitoAuthProvider(AuthProvider):
     def _exception_map(self) -> ExceptionMap:
         cx = self._client.exceptions
         return {
-            DomainRateLimited: [
-                cx.TooManyRequestsException,
-                cx.LimitExceededException,
-            ],
-            DomainUserNotFound: [
-                cx.UserNotFoundException,
-            ],
-            DomainUserNotConfirmed: [
-                cx.UserNotConfirmedException,
-            ],
             DomainExpiredToken: [
                 cx.ExpiredCodeException,
                 cx.PasswordResetRequiredException,
+            ],
+            DomainForbidden: [
+                cx.ForbiddenException,
+                cx.UnauthorizedException,
             ],
             DomainInvalidCredentials: [
                 cx.NotAuthorizedException,
                 cx.InvalidPasswordException,
                 cx.CodeMismatchException,
+            ],
+            DomainInvalidTokens: [
+                cx.RefreshTokenReuseException,
+                cx.UnsupportedTokenTypeException,
+            ],
+            DomainRateLimited: [
+                cx.TooManyRequestsException,
+                cx.LimitExceededException,
+            ],
+            DomainUserNotConfirmed: [
+                cx.UserNotConfirmedException,
+            ],
+            DomainUserNotFound: [
+                cx.UserNotFoundException,
             ],
         }
 

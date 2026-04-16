@@ -106,6 +106,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "aws-lambda-powertools" },
+    { name = "boto3" },
     { name = "shared" },
 ]
 
@@ -117,6 +118,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aws-lambda-powertools", specifier = ">=3.26.0" },
+    { name = "boto3", specifier = ">=1.42.85" },
     { name = "shared", editable = "shared" },
 ]
 

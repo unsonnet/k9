@@ -8,6 +8,8 @@ from .responses import Response
 __all__ = [
     "ClientError",
     "Unauthorized",
+    "Forbidden",
+    "TooManyRequests",
     "ServerError",
     "InternalServerError",
 ]
@@ -51,6 +53,14 @@ class ClientError(Response[Problem]):
 
 class Unauthorized(ClientError):
     status_code = HTTPStatus.UNAUTHORIZED
+
+
+class Forbidden(ClientError):
+    status_code = HTTPStatus.FORBIDDEN
+
+
+class TooManyRequests(ClientError):
+    status_code = HTTPStatus.TOO_MANY_REQUESTS
 
 
 # 5xx Server Errors
