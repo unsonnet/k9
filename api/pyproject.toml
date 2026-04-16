@@ -3,6 +3,7 @@ name = "k9-api"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
+    "auth",
     "aws-lambda-powertools>=3.26.0",
     "boto3>=1.42.85",
     "shared",
@@ -19,6 +20,7 @@ members = [
 
 [tool.uv.sources]
 shared = { workspace = true }
+auth = { workspace = true }
 
 [dependency-groups]
 dev = [
