@@ -70,6 +70,7 @@ venv.bak/
 
 # mkdocs documentation
 /site
+/openapi
 
 # mypy
 .mypy_cache/
@@ -87,3 +88,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# AWS stuff:
+cdk.out/
+.aws-sam/

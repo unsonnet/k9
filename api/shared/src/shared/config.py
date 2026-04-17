@@ -1,12 +1,16 @@
 import os
 from functools import cached_property
 
+import boto3
+from types_boto3_ssm import SSMClient
+
 
 class MissingSettingError(RuntimeError):
     def __init__(self, *keys: str):
+        super().__init__(
+            f"Missing required environment setting. Checked: {', '.join(keys)}"
+        )
         self.keys = keys
-        joined = ", ".join(keys)
-        super().__init__(f"Missing required environment setting. Checked: {joined}")
 
 
 class Settings:
@@ -15,26 +19,41 @@ class Settings:
 
     def require(self, *keys: str) -> str:
         for key in keys:
-            value = os.getenv(key)
-            if value:
+            if value := os.getenv(key):
                 return value
         raise MissingSettingError(*keys)
+
+    def from_parameter(self, key: str) -> str | None:
+        if not (name := os.getenv(key)):
+            return None
+        return self._ssm.get_parameter(Name=name, WithDecryption=True)["Parameter"].get(
+            "Value"
+        )
+
+    def env_or_parameter(self, key: str) -> str:
+        if value := self.get(key) or self.from_parameter(f"{key}_PARAMETER"):
+            return value
+        raise MissingSettingError(key, f"{key}_PARAMETER")
 
     @cached_property
     def aws_region(self) -> str:
         return self.require("AWS_REGION", "AWS_DEFAULT_REGION")
 
     @cached_property
+    def _ssm(self) -> SSMClient:
+        return boto3.client("ssm", region_name=self.aws_region)
+
+    @cached_property
     def cognito_client_id(self) -> str:
-        return self.require("COGNITO_CLIENT_ID")
+        return self.env_or_parameter("COGNITO_CLIENT_ID")
 
     @cached_property
     def cognito_client_secret(self) -> str:
-        return self.require("COGNITO_CLIENT_SECRET")
+        return self.env_or_parameter("COGNITO_CLIENT_SECRET")
 
     @cached_property
     def cognito_user_pool_id(self) -> str:
-        return self.require("COGNITO_USER_POOL_ID")
+        return self.env_or_parameter("COGNITO_USER_POOL_ID")
 
 
 settings = Settings()

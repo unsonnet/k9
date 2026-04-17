@@ -84,6 +84,11 @@ def _response(
 class AuthService(BaseService):
     provider: AuthProvider
 
+    def __init__(self) -> None:
+        from .provider import CognitoAuthProvider
+
+        self.provider = CognitoAuthProvider()
+
     # ──── Public APIs ────
 
     @public_api

@@ -1,5 +1,5 @@
 [project]
-name = "k9-api"
+name = "k9"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
@@ -16,6 +16,7 @@ package = false
 members = [
     "shared",
     "services/*",
+    "infra/cdk",
 ]
 
 [tool.uv.sources]
@@ -24,5 +25,7 @@ auth = { workspace = true }
 
 [dependency-groups]
 dev = [
+    "aws-cdk-lib>=2.250.0",
+    "constructs>=10.6.0",
     "ruff>=0.15.8",
 ]

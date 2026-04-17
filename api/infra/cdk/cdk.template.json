@@ -1,0 +1,31 @@
+{
+  "app": "uv run app.py",
+  "context": {
+    "<stage>": {
+      "account": "<aws-account-id>",
+      "region": "us-east-1",
+      "lambdaArchitecture": "arm64",
+      "shared": {
+        "identity": {
+          "parameterEnv": {
+            "<ENV_VAR_NAME>": "<ssm-parameter-path>"
+          }
+        }
+      },
+      "services": {
+        "<service-name>": {
+          "routePrefix": "/<route>",
+          "dockerfile": "services/<service>/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "usesCognito": false,
+          "localEnvFile": ".env",
+          "environment": {
+            "APP_STAGE": "<stage>"
+          },
+          "readableParameterNames": []
+        }
+      }
+    }
+  }
+}

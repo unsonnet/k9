@@ -1,0 +1,15 @@
+# ignore everything
+**
+
+# include only what we need
+!services/**
+!shared/**
+!.python-version
+!pyproject.toml
+!uv.lock
+
+# re-exclude junk inside included dirs
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
