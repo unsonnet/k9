@@ -16,9 +16,12 @@ from aws_lambda_powertools.event_handler import Response as BaseResponse
 from aws_lambda_powertools.event_handler.api_gateway import (
     _DEFAULT_OPENAPI_RESPONSE_DESCRIPTION,
 )
+from aws_lambda_powertools.event_handler.openapi.exceptions import (
+    RequestValidationError,
+)
 from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
 
-from .errors import InternalServerError
+from .errors import BadRequest, InternalServerError, ServerError
 from .responses import Response
 
 
@@ -26,7 +29,9 @@ class HttpResolver(APIGatewayHttpResolver):
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("enable_validation", True)
         super().__init__(*args, **kwargs)
-        super().exception_handler(Exception)(lambda e: InternalServerError(str(e)))
+        super().exception_handler(RequestValidationError)(lambda e: BadRequest(cause=e))
+        super().exception_handler(ServerError)(lambda e: e)
+        super().exception_handler(Exception)(lambda e: InternalServerError(cause=e))
 
     def route[T: Callable[..., Any]](  # type: ignore[override]
         self,
@@ -101,6 +106,35 @@ class HttpResolver(APIGatewayHttpResolver):
         return result or None
 
     @classmethod
+    def _body(cls, response_cls: type[Response[Any]]) -> type[Any]:
+        meta = getattr(response_cls, "__pydantic_generic_metadata__", None)
+        args = meta.get("args", ()) if meta else ()
+        if args:
+            return args[0]
+
+        for candidate in (response_cls, *response_cls.__mro__[1:]):
+            if not isinstance(candidate, type):
+                continue
+
+            for base in getattr(candidate, "__orig_bases__", ()):
+                origin = get_origin(base)
+                if origin is None or not isinstance(origin, type):
+                    continue
+                if not issubclass(origin, Response):
+                    continue
+
+                args = get_args(base)
+                if args:
+                    return args[0]
+
+            meta = getattr(candidate, "__pydantic_generic_metadata__", None)
+            args = meta.get("args", ()) if meta else ()
+            if args:
+                return args[0]
+
+        return NoneType
+
+    @classmethod
     def _extract(
         cls,
         annotation: Any,
@@ -126,14 +160,7 @@ class HttpResolver(APIGatewayHttpResolver):
             return [(origin, body_type)]
 
         if isinstance(annotation, type) and issubclass(annotation, Response):
-            meta = getattr(annotation, "__pydantic_generic_metadata__", None)
-            if meta:
-                args = meta.get("args", ())
-                origin = meta.get("origin") or annotation
-                body_type = args[0] if args else NoneType
-                return [(origin, body_type)]
-
-            return [(annotation, NoneType)]
+            return [(annotation, cls._body(annotation))]
 
         return []
 

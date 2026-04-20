@@ -1,18 +1,23 @@
 from http import HTTPStatus
 from typing import Any
 
+from aws_lambda_powertools import Logger
 from pydantic import BaseModel
 
 from .responses import Response
 
 __all__ = [
     "ClientError",
+    "BadRequest",
     "Unauthorized",
     "Forbidden",
     "TooManyRequests",
     "ServerError",
     "InternalServerError",
 ]
+
+
+LOG = Logger()
 
 
 class Problem(BaseModel):
@@ -34,14 +39,15 @@ class ClientError(Response[Problem]):
         self,
         detail: str | None = None,
         *,
-        type: str | None = None,
+        cause: Exception | None = None,
+        type_: str | None = None,
         title: str | None = None,
         instance: str | None = None,
         **parameters,
     ):
         super().__init__(
-            Problem(
-                type=type or "about:blank",
+            payload := Problem(
+                type=type_ or "about:blank",
                 title=title or self.status_code.phrase,
                 status=self.status_code.value,
                 detail=detail,
@@ -49,6 +55,16 @@ class ClientError(Response[Problem]):
                 parameters=parameters,
             )
         )
+
+        if cause is not None:
+            LOG.error(
+                payload.title,
+                exc_info=(type(cause), cause, cause.__traceback__),
+            )
+
+
+class BadRequest(ClientError):
+    status_code = HTTPStatus.BAD_REQUEST
 
 
 class Unauthorized(ClientError):
@@ -66,21 +82,22 @@ class TooManyRequests(ClientError):
 # 5xx Server Errors
 
 
-class ServerError(Exception, Response[Problem]):
+class ServerError(Response[Problem], Exception):
     status_code = HTTPStatus.INTERNAL_SERVER_ERROR
 
     def __init__(
         self,
         detail: str | None = None,
         *,
-        type: str | None = None,
+        cause: Exception | None = None,
+        type_: str | None = None,
         title: str | None = None,
         instance: str | None = None,
         **parameters,
     ):
         super().__init__(
-            Problem(
-                type=type or "about:blank",
+            payload := Problem(
+                type=type_ or "about:blank",
                 title=title or self.status_code.phrase,
                 status=self.status_code.value,
                 detail=detail,
@@ -88,6 +105,12 @@ class ServerError(Exception, Response[Problem]):
                 parameters=parameters,
             )
         )
+
+        if cause is not None:
+            LOG.error(
+                payload.title,
+                exc_info=(type(cause), cause, cause.__traceback__),
+            )
 
 
 class InternalServerError(ServerError):

@@ -50,7 +50,7 @@ def private_api(fn: Callable[Concatenate[T, P], R]) -> Callable[Concatenate[T, P
         except DomainError:
             raise
         except Exception as exc:
-            raise self._exc_map[type(exc)](str(exc)) from exc
+            raise self._exc_map[type(exc)]() from exc
 
     if getattr(fn, "__isabstractmethod__", False):
         wrapped.__isabstractmethod__ = True  # type: ignore[attr-defined]

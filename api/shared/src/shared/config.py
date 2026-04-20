@@ -37,7 +37,7 @@ class Settings:
 
     @cached_property
     def aws_region(self) -> str:
-        return self.require("AWS_REGION", "AWS_DEFAULT_REGION")
+        return self.require("APP_AWS_REGION", "AWS_REGION", "AWS_DEFAULT_REGION")
 
     @cached_property
     def _ssm(self) -> SSMClient:
