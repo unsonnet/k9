@@ -4,32 +4,35 @@
     "dev": {
       "account": "425688663965",
       "region": "us-east-2",
-      "lambdaArchitecture": "x86_64",
+      "architecture": "x86_64",
+      "shared": {
+        "identity": {
+          "COGNITO_CLIENT_ID": "",
+          "COGNITO_USER_POOL_ID": "",
+          "COGNITO_CLIENT_SECRET": ""
+        }
+      },
       "services": {
         "auth": {
           "routePrefix": "/auth",
           "dockerfile": "services/auth/Dockerfile",
           "timeout": 20,
           "memory": 512,
-          "usesCognito": true,
-          "localEnvFile": ".env",
-          "environment": {
-            "APP_STAGE": "dev"
-          }
+          "shared": [
+            "identity"
+          ]
         }
       }
     },
     "stage": {
       "account": "425688663965",
       "region": "us-east-2",
-      "lambdaArchitecture": "arm64",
+      "architecture": "arm64",
       "shared": {
         "identity": {
-          "parameterEnv": {
-            "COGNITO_CLIENT_ID_PARAMETER": "/k9/stage/identity/cognito/client-id",
-            "COGNITO_USER_POOL_ID_PARAMETER": "/k9/stage/identity/cognito/user-pool-id",
-            "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/stage/identity/cognito/client-secret"
-          }
+          "COGNITO_CLIENT_ID_PARAMETER": "/k9/stage/identity/cognito/client-id",
+          "COGNITO_USER_POOL_ID_PARAMETER": "/k9/stage/identity/cognito/user-pool-id",
+          "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/stage/identity/cognito/client-secret"
         }
       },
       "services": {
@@ -38,24 +41,21 @@
           "dockerfile": "services/auth/Dockerfile",
           "timeout": 20,
           "memory": 512,
-          "usesCognito": true,
-          "environment": {
-            "APP_STAGE": "stage"
-          }
+          "shared": [
+            "identity"
+          ]
         }
       }
     },
     "prod": {
       "account": "425688663965",
       "region": "us-east-2",
-      "lambdaArchitecture": "arm64",
+      "architecture": "arm64",
       "shared": {
         "identity": {
-          "parameterEnv": {
-            "COGNITO_CLIENT_ID_PARAMETER": "/k9/prod/identity/cognito/client-id",
-            "COGNITO_USER_POOL_ID_PARAMETER": "/k9/prod/identity/cognito/user-pool-id",
-            "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/prod/identity/cognito/client-secret"
-          }
+          "COGNITO_CLIENT_ID_PARAMETER": "/k9/prod/identity/cognito/client-id",
+          "COGNITO_USER_POOL_ID_PARAMETER": "/k9/prod/identity/cognito/user-pool-id",
+          "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/prod/identity/cognito/client-secret"
         }
       },
       "services": {
@@ -64,10 +64,9 @@
           "dockerfile": "services/auth/Dockerfile",
           "timeout": 20,
           "memory": 512,
-          "usesCognito": true,
-          "environment": {
-            "APP_STAGE": "prod"
-          }
+          "shared": [
+            "identity"
+          ]
         }
       }
     },

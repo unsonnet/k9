@@ -1,12 +1,10 @@
 from aws_cdk import App
-from k9.config import load_stage_config
-from k9.stack import K9ApiStack
+from k9.config import StageConfig
+from k9.stack import create_stack
 
-app = App()
-
-stage = app.node.try_get_context("stage") or "dev"
-config = load_stage_config(app, stage)
-
-K9ApiStack(app, f"K9Api{stage.capitalize()}Stack", config=config)
-
-app.synth()
+if __name__ == "__main__":
+    app = App()
+    stage = str(app.node.get_context("stage"))
+    config = StageConfig.model_validate(app.node.get_context(stage) | {"stage": stage})
+    create_stack(app, config)
+    app.synth()

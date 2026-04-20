@@ -6,10 +6,8 @@
       "region": "us-east-1",
       "lambdaArchitecture": "arm64",
       "shared": {
-        "identity": {
-          "parameterEnv": {
-            "<ENV_VAR_NAME>": "<ssm-parameter-path>"
-          }
+        "<param-group>": {
+          "<ENV_VAR_NAME>": "<env-var-value>"
         }
       },
       "services": {
@@ -18,10 +16,11 @@
           "dockerfile": "services/<service>/Dockerfile",
           "timeout": 20,
           "memory": 512,
-          "usesCognito": false,
-          "localEnvFile": ".env",
+          "shared": [
+            "<param-group>"
+          ],
           "environment": {
-            "APP_STAGE": "<stage>"
+            "<ENV_VAR_NAME>": "<env-var-value>"
           },
           "readableParameterNames": []
         }
