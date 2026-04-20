@@ -1,3 +1,6 @@
+import base64
+import hashlib
+import hmac
 from typing import Any, Mapping
 
 import boto3
@@ -92,6 +95,12 @@ class CognitoAuthProvider(AuthProvider):
 
     # ──── Helper Methods ────
 
+    def _secret_hash(self, username: str) -> str:
+        message = f"{username}{self._client_id}".encode("utf-8")
+        key = self._client_secret.encode("utf-8")
+        digest = hmac.new(key, message, hashlib.sha256).digest()
+        return base64.b64encode(digest).decode("utf-8")
+
     @property
     def _exception_map(self) -> ExceptionMap:
         cx = self._client.exceptions
@@ -136,7 +145,7 @@ class CognitoAuthProvider(AuthProvider):
                 Session=session,
                 ChallengeName="NEW_PASSWORD_REQUIRED",
                 ChallengeResponses={
-                    "SECRET_HASH": self._client_secret,
+                    "SECRET_HASH": self._secret_hash(response["username"]),
                     "USERNAME": response["username"],
                     "NEW_PASSWORD": response["password"],
                 },
@@ -157,7 +166,7 @@ class CognitoAuthProvider(AuthProvider):
                 )["Session"],
                 ChallengeName="MFA_SETUP",
                 ChallengeResponses={
-                    "SECRET_HASH": self._client_secret,
+                    "SECRET_HASH": self._secret_hash(response["username"]),
                     "USERNAME": response["username"],
                 },
             )
@@ -174,7 +183,7 @@ class CognitoAuthProvider(AuthProvider):
                 Session=session,
                 ChallengeName="SOFTWARE_TOKEN_MFA",
                 ChallengeResponses={
-                    "SECRET_HASH": self._client_secret,
+                    "SECRET_HASH": self._secret_hash(response["username"]),
                     "USERNAME": response["username"],
                     "SOFTWARE_TOKEN_MFA_CODE": response["code"],
                 },
@@ -195,7 +204,7 @@ class CognitoAuthProvider(AuthProvider):
                 ClientId=self._client_id,
                 AuthFlow="USER_PASSWORD_AUTH",
                 AuthParameters={
-                    "SECRET_HASH": self._client_secret,
+                    "SECRET_HASH": self._secret_hash(username),
                     "USERNAME": username,
                     "PASSWORD": password,
                 },

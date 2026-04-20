@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from shared.errors import (
     DomainForbidden,
     DomainRateLimited,
@@ -28,7 +30,7 @@ svc = AuthService()
     },
 )
 def login(
-    request: Body[AuthRequest.Login],
+    request: Annotated[AuthRequest.Login, Body()],
 ) -> (
     OK[AuthResponse.Tokens]
     | Accepted[AuthResponse.Challenge]
@@ -45,11 +47,11 @@ def login(
             case _ as never:
                 assert_unreachable(never)
     except DomainUnauthorized as exc:
-        return Unauthorized(str(exc))
+        return Unauthorized("Invalid credentials", cause=exc)
     except DomainForbidden as exc:
-        return Forbidden(str(exc))
+        return Forbidden(cause=exc)
     except DomainRateLimited as exc:
-        return TooManyRequests(str(exc))
+        return TooManyRequests(cause=exc)
 
 
 @app.post(
@@ -66,7 +68,7 @@ def login(
     },
 )
 def challenge(
-    request: Body[AuthRequest.Challenge],
+    request: Annotated[AuthRequest.Challenge, Body()],
 ) -> (
     OK[AuthResponse.Tokens]
     | Accepted[AuthResponse.Challenge]
@@ -83,11 +85,11 @@ def challenge(
             case _ as never:
                 assert_unreachable(never)
     except DomainUnauthorized as exc:
-        return Unauthorized(str(exc))
+        return Unauthorized("Invalid challenge response", cause=exc)
     except DomainForbidden as exc:
-        return Forbidden(str(exc))
+        return Forbidden(cause=exc)
     except DomainRateLimited as exc:
-        return TooManyRequests(str(exc))
+        return TooManyRequests(cause=exc)
 
 
 @app.post(
@@ -103,7 +105,7 @@ def challenge(
     },
 )
 def refresh(
-    request: Body[AuthRequest.Refresh],
+    request: Annotated[AuthRequest.Refresh, Body()],
 ) -> OK[AuthResponse.Tokens] | Unauthorized | Forbidden | TooManyRequests:
     try:
         match svc.refresh(request):
@@ -112,11 +114,11 @@ def refresh(
             case _ as never:
                 assert_unreachable(never)
     except DomainUnauthorized as exc:
-        return Unauthorized(str(exc))
+        return Unauthorized("Invalid refresh token", cause=exc)
     except DomainForbidden as exc:
-        return Forbidden(str(exc))
+        return Forbidden(cause=exc)
     except DomainRateLimited as exc:
-        return TooManyRequests(str(exc))
+        return TooManyRequests(cause=exc)
 
 
 @app.post(
@@ -131,7 +133,7 @@ def refresh(
     },
 )
 def logout(
-    request: Body[AuthRequest.Logout],
+    request: Annotated[AuthRequest.Logout, Body()],
 ) -> NoContent | Forbidden | TooManyRequests:
     try:
         match svc.logout(request):
@@ -142,9 +144,9 @@ def logout(
     except DomainUnauthorized:
         return NoContent()
     except DomainForbidden as exc:
-        return Forbidden(str(exc))
+        return Forbidden(cause=exc)
     except DomainRateLimited as exc:
-        return TooManyRequests(str(exc))
+        return TooManyRequests(cause=exc)
 
 
 def lambda_handler(event, context):
