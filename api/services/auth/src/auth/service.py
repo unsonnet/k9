@@ -1,9 +1,9 @@
-from typing import overload
+from typing import Mapping
 
 from shared.abc import ApiModel, BaseService, public_api
 from shared.errors import assert_unreachable
 
-from .provider import AuthProvider, Challenge, ChallengeKey, Tokens
+from .provider import AuthProvider, Challenge, Tokens
 
 # ──── Request Payloads ────────────────────────────────────────────────────────────────
 
@@ -15,16 +15,8 @@ class AuthRequest:
 
     class Challenge(ApiModel, frozen=True):
         session: str
-        challenge: ChallengeKey
-        response: dict[str, str]
-
-    class Forgot(ApiModel, frozen=True):
-        username: str
-
-    class Reset(ApiModel, frozen=True):
-        username: str
-        confirmationCode: str
-        newPassword: str
+        challenge: Challenge.Key
+        response: Mapping[str, str]
 
     class Refresh(ApiModel, frozen=True):
         refreshToken: str
@@ -44,38 +36,27 @@ class AuthResponse:
         refreshToken: str | None = None
         idToken: str | None = None
 
-    class Challenge(ApiModel, frozen=True):
-        session: str
-        challenge: ChallengeKey
-        parameters: list[str]
-
-
-# ──── Helper Methods ──────────────────────────────────────────────────────────────────
-
-
-@overload
-def _response(result: Tokens) -> AuthResponse.Tokens: ...
-@overload
-def _response(result: Challenge) -> AuthResponse.Challenge: ...
-def _response(
-    result: Tokens | Challenge,
-) -> AuthResponse.Tokens | AuthResponse.Challenge:
-    match result:
-        case Tokens() as tokens:
-            return AuthResponse.Tokens(
+        @classmethod
+        def from_provider(cls, tokens: Tokens):
+            return cls(
                 accessToken=tokens.access_token,
                 expiresIn=tokens.expires_in,
                 refreshToken=tokens.refresh_token,
                 idToken=tokens.id_token,
             )
-        case Challenge() as challenge:
-            return AuthResponse.Challenge(
+
+    class Challenge(ApiModel, frozen=True):
+        session: str
+        challenge: Challenge.Key
+        parameters: Mapping[str, str]
+
+        @classmethod
+        def from_provider(cls, challenge: Challenge):
+            return cls(
                 session=challenge.session,
                 challenge=challenge.challenge,
                 parameters=challenge.parameters,
             )
-        case _ as never:
-            assert_unreachable(never)
 
 
 # ──── Authentication Service ──────────────────────────────────────────────────────────
@@ -96,32 +77,40 @@ class AuthService(BaseService):
         self,
         request: AuthRequest.Login,
     ) -> AuthResponse.Tokens | AuthResponse.Challenge:
-        return _response(
-            self.provider.authenticate(
-                username=request.username,
-                password=request.password,
-            )
-        )
+        match self.provider.authenticate(
+            username=request.username,
+            password=request.password,
+        ):
+            case Tokens() as tokens:
+                return AuthResponse.Tokens.from_provider(tokens)
+            case Challenge() as challenge:
+                return AuthResponse.Challenge.from_provider(challenge)
+            case _ as never:
+                assert_unreachable(never)
 
     @public_api
     def challenge(
         self,
         request: AuthRequest.Challenge,
     ) -> AuthResponse.Tokens | AuthResponse.Challenge:
-        return _response(
-            self.provider.respond_to_challenge(
-                session=request.session,
-                challenge=request.challenge,
-                response=request.response,
-            )
-        )
+        match self.provider.respond_to_challenge(
+            session=request.session,
+            challenge=request.challenge,
+            response=request.response,
+        ):
+            case Tokens() as tokens:
+                return AuthResponse.Tokens.from_provider(tokens)
+            case Challenge() as challenge:
+                return AuthResponse.Challenge.from_provider(challenge)
+            case _ as never:
+                assert_unreachable(never)
 
     @public_api
     def refresh(
         self,
         request: AuthRequest.Refresh,
     ) -> AuthResponse.Tokens:
-        return _response(
+        return AuthResponse.Tokens.from_provider(
             self.provider.refresh_tokens(
                 refresh_token=request.refreshToken,
             )

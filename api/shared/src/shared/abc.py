@@ -6,7 +6,7 @@ from collections.abc import Callable
 from functools import cached_property, wraps
 from typing import Concatenate, ParamSpec, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from shared.errors import DomainError, DomainUnknown
 
@@ -14,6 +14,8 @@ P = ParamSpec("P")
 R = TypeVar("R")
 S = TypeVar("S", bound="BaseService")
 T = TypeVar("T", bound="BaseProvider")
+
+__all__ = ["Field"]
 
 
 class ApiModel(BaseModel, frozen=True, extra="forbid"): ...

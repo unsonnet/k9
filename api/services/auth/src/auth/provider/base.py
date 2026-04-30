@@ -1,5 +1,6 @@
 from abc import abstractmethod
 from enum import StrEnum
+from typing import Mapping
 
 from shared.abc import BaseProvider, DataModel, private_api
 
@@ -7,20 +8,19 @@ from shared.abc import BaseProvider, DataModel, private_api
 class Tokens(DataModel, frozen=True):
     access_token: str
     expires_in: int
-    refresh_token: str | None = None
-    id_token: str | None = None
-
-
-class ChallengeKey(StrEnum):
-    NEW_PASSWORD = "NEW_PASSWORD"
-    NEW_MFA = "NEW_MFA"
-    MFA = "MFA"
+    refresh_token: str
+    id_token: str
 
 
 class Challenge(DataModel, frozen=True):
+    class Key(StrEnum):
+        NEW_PASSWORD = "NEW_PASSWORD"
+        NEW_MFA = "NEW_MFA"
+        MFA = "MFA"
+
     session: str
-    challenge: ChallengeKey
-    parameters: list[str]
+    challenge: Key
+    parameters: Mapping[str, str]
 
 
 # ──── Abstract Authentication Provider ────────────────────────────────────────────────
@@ -44,8 +44,8 @@ class AuthProvider(BaseProvider):
         self,
         *,
         session: str,
-        challenge: ChallengeKey,
-        response: dict[str, str],
+        challenge: Challenge.Key,
+        response: Mapping[str, str],
     ) -> Tokens | Challenge: ...
 
     @private_api

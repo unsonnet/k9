@@ -19,66 +19,7 @@ from shared.errors import (
 )
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 
-from .base import AuthProvider, Challenge, ChallengeKey, Tokens
-
-# ──── Helper Methods ──────────────────────────────────────────────────────────────────
-
-
-def _challenge_key(name: str) -> ChallengeKey:
-    match name:
-        case "NEW_PASSWORD_REQUIRED":
-            return ChallengeKey.NEW_PASSWORD
-        case "MFA_SETUP":
-            return ChallengeKey.NEW_MFA
-        case "SOFTWARE_TOKEN_MFA":
-            return ChallengeKey.MFA
-    raise DomainInvariantViolation()
-
-
-def _result(response: Mapping[str, Any]) -> Tokens | Challenge:
-    match response:
-        case {
-            "AuthenticationResult": {
-                "AccessToken": str(AccessToken),
-                "ExpiresIn": int(ExpiresIn),
-                "RefreshToken": str(RefreshToken),
-                "IdToken": str(IdToken),
-            }
-        }:
-            return Tokens(
-                access_token=AccessToken,
-                expires_in=ExpiresIn,
-                refresh_token=RefreshToken,
-                id_token=IdToken,
-            )
-        case {
-            "Session": str(Session),
-            "ChallengeName": str(ChallengeName),
-            "ChallengeParameters": dict(ChallengeParameters),
-        }:
-            return Challenge(
-                session=Session,
-                challenge=_challenge_key(ChallengeName),
-                parameters=list(ChallengeParameters.keys()),
-            )
-    raise DomainInvariantViolation()
-
-
-def _tokens(response: Mapping[str, Any]) -> Tokens:
-    match _result(response):
-        case Tokens() as tokens:
-            return tokens
-        case Challenge():
-            raise DomainInvariantViolation()
-        case _ as never:
-            assert_unreachable(never)
-
-
-def _none(response: dict) -> None:
-    if not response:
-        return None
-    raise DomainInvariantViolation()
-
+from .base import AuthProvider, Challenge, Tokens
 
 # ──── Cognito Provider ────────────────────────────────────────────────────────────────
 
@@ -92,14 +33,6 @@ class CognitoAuthProvider(AuthProvider):
         self._client = boto3.client("cognito-idp", region_name=settings.aws_region)
         self._client_id = settings.cognito_client_id
         self._client_secret = settings.cognito_client_secret
-
-    # ──── Helper Methods ────
-
-    def _secret_hash(self, username: str) -> str:
-        message = f"{username}{self._client_id}".encode("utf-8")
-        key = self._client_secret.encode("utf-8")
-        digest = hmac.new(key, message, hashlib.sha256).digest()
-        return base64.b64encode(digest).decode("utf-8")
 
     @property
     def _exception_map(self) -> ExceptionMap:
@@ -134,61 +67,62 @@ class CognitoAuthProvider(AuthProvider):
             ],
         }
 
-    def _challenge_new_password(
-        self,
-        session: str,
-        response: dict[str, str],
-    ) -> Tokens | Challenge:
-        return _result(
-            self._client.respond_to_auth_challenge(
-                ClientId=self._client_id,
-                Session=session,
-                ChallengeName="NEW_PASSWORD_REQUIRED",
-                ChallengeResponses={
-                    "SECRET_HASH": self._secret_hash(response["username"]),
-                    "USERNAME": response["username"],
-                    "NEW_PASSWORD": response["password"],
-                },
-            )
-        )
+    # ──── Helper Methods ────
 
-    def _challenge_new_mfa(
-        self,
-        session: str,
-        response: dict[str, str],
-    ) -> Tokens:
-        return _tokens(
-            self._client.respond_to_auth_challenge(
-                ClientId=self._client_id,
-                Session=self._client.verify_software_token(
-                    Session=session,
-                    UserCode=response["code"],
-                )["Session"],
-                ChallengeName="MFA_SETUP",
-                ChallengeResponses={
-                    "SECRET_HASH": self._secret_hash(response["username"]),
-                    "USERNAME": response["username"],
-                },
-            )
-        )
+    def _secret_hash(self, username: str) -> str:
+        message = f"{username}{self._client_id}".encode("utf-8")
+        key = self._client_secret.encode("utf-8")
+        digest = hmac.new(key, message, hashlib.sha256).digest()
+        return base64.b64encode(digest).decode("utf-8")
 
-    def _challenge_mfa(
-        self,
-        session: str,
-        response: dict[str, str],
-    ) -> Tokens:
-        return _tokens(
-            self._client.respond_to_auth_challenge(
-                ClientId=self._client_id,
-                Session=session,
-                ChallengeName="SOFTWARE_TOKEN_MFA",
-                ChallengeResponses={
-                    "SECRET_HASH": self._secret_hash(response["username"]),
-                    "USERNAME": response["username"],
-                    "SOFTWARE_TOKEN_MFA_CODE": response["code"],
-                },
-            )
-        )
+    def _tokens(self, response: Mapping[str, Any]) -> Tokens:
+        match response:
+            case {
+                "AuthenticationResult": {
+                    "AccessToken": str(access_token),
+                    "ExpiresIn": int(expires_in),
+                    "RefreshToken": str(refresh_token),
+                    "IdToken": str(id_token),
+                }
+            }:
+                return Tokens(
+                    access_token=access_token,
+                    expires_in=expires_in,
+                    refresh_token=refresh_token,
+                    id_token=id_token,
+                )
+        raise DomainInvariantViolation(f"Unexpected cognito response: {response}")
+
+    def _challenge(self, session: str, name: str) -> Challenge:
+        match name:
+            case "NEW_PASSWORD_REQUIRED":
+                return Challenge(
+                    session=session,
+                    challenge=Challenge.Key.NEW_PASSWORD,
+                    parameters={},
+                )
+            case "MFA_SETUP":
+                response = self._client.associate_software_token(Session=session)
+                return Challenge(
+                    session=response["Session"],
+                    challenge=Challenge.Key.NEW_MFA,
+                    parameters={"secret": response["SecretCode"]},
+                )
+            case "SOFTWARE_TOKEN_MFA":
+                return Challenge(
+                    session=session,
+                    challenge=Challenge.Key.MFA,
+                    parameters={},
+                )
+        raise DomainInvariantViolation(f"Unexpected cognito challenge: {name}")
+
+    def _result(self, response: Mapping[str, Any]) -> Tokens | Challenge:
+        match response:
+            case {"AuthenticationResult": dict()}:
+                return self._tokens(response)
+            case {"Session": str(session), "ChallengeName": str(name)}:
+                return self._challenge(session, name)
+        raise DomainInvariantViolation(f"Unexpected cognito response: {response}")
 
     # ──── Private APIs ────
 
@@ -199,7 +133,7 @@ class CognitoAuthProvider(AuthProvider):
         username: str,
         password: str,
     ) -> Tokens | Challenge:
-        return _result(
+        return self._result(
             self._client.initiate_auth(
                 ClientId=self._client_id,
                 AuthFlow="USER_PASSWORD_AUTH",
@@ -216,16 +150,51 @@ class CognitoAuthProvider(AuthProvider):
         self,
         *,
         session: str,
-        challenge: ChallengeKey,
-        response: dict[str, str],
+        challenge: Challenge.Key,
+        response: Mapping[str, str],
     ) -> Tokens | Challenge:
         match challenge:
-            case ChallengeKey.NEW_PASSWORD:
-                return self._challenge_new_password(session, response)
-            case ChallengeKey.NEW_MFA:
-                return self._challenge_new_mfa(session, response)
-            case ChallengeKey.MFA:
-                return self._challenge_mfa(session, response)
+            case Challenge.Key.NEW_PASSWORD:
+                return self._result(
+                    self._client.respond_to_auth_challenge(
+                        ClientId=self._client_id,
+                        Session=session,
+                        ChallengeName="NEW_PASSWORD_REQUIRED",
+                        ChallengeResponses={
+                            "SECRET_HASH": self._secret_hash(response["username"]),
+                            "USERNAME": response["username"],
+                            "NEW_PASSWORD": response["password"],
+                        },
+                    )
+                )
+            case Challenge.Key.NEW_MFA:
+                return self._tokens(
+                    self._client.respond_to_auth_challenge(
+                        ClientId=self._client_id,
+                        Session=self._client.verify_software_token(
+                            Session=session,
+                            UserCode=response["code"],
+                        )["Session"],
+                        ChallengeName="MFA_SETUP",
+                        ChallengeResponses={
+                            "SECRET_HASH": self._secret_hash(response["username"]),
+                            "USERNAME": response["username"],
+                        },
+                    )
+                )
+            case Challenge.Key.MFA:
+                return self._tokens(
+                    self._client.respond_to_auth_challenge(
+                        ClientId=self._client_id,
+                        Session=session,
+                        ChallengeName="SOFTWARE_TOKEN_MFA",
+                        ChallengeResponses={
+                            "SECRET_HASH": self._secret_hash(response["username"]),
+                            "USERNAME": response["username"],
+                            "SOFTWARE_TOKEN_MFA_CODE": response["code"],
+                        },
+                    )
+                )
             case _ as never:
                 assert_unreachable(never)
 
@@ -235,7 +204,7 @@ class CognitoAuthProvider(AuthProvider):
         *,
         refresh_token: str,
     ) -> Tokens:
-        return _tokens(
+        return self._tokens(
             self._client.get_tokens_from_refresh_token(
                 ClientId=self._client_id,
                 ClientSecret=self._client_secret,
@@ -252,17 +221,17 @@ class CognitoAuthProvider(AuthProvider):
     ) -> None:
         match access_token, refresh_token:
             case str() as token, None:
-                return _none(
-                    self._client.global_sign_out(
-                        AccessToken=token,
-                    )
+                self._client.global_sign_out(
+                    AccessToken=token,
                 )
+                return
             case None, str() as token:
-                return _none(
-                    self._client.revoke_token(
-                        ClientId=self._client_id,
-                        ClientSecret=self._client_secret,
-                        Token=token,
-                    )
+                self._client.revoke_token(
+                    ClientId=self._client_id,
+                    ClientSecret=self._client_secret,
+                    Token=token,
                 )
-        raise DomainInvariantViolation()
+                return
+        raise DomainInvariantViolation(
+            "Unexpected combination of access and refresh tokens"
+        )
