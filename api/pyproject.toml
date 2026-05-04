@@ -27,5 +27,24 @@ auth = { workspace = true }
 dev = [
     "aws-cdk-lib>=2.250.0",
     "constructs>=10.6.0",
+    "moto>=5.2.0",
+    "pytest>=9.0.3",
+    "pytest-mock>=3.15.1",
     "ruff>=0.15.8",
+]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+addopts = "-ra --strict-markers"
+markers = [
+    "unit: provider and service contract tests with isolated dependencies",
+    "integration: handler and service contract tests with dummy providers",
+]
+norecursedirs = [
+    ".ignore",
+    ".venv",
+    ".aws-sam",
+    "infra/cdk/cdk.out",
 ]
