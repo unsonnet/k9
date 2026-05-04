@@ -4,7 +4,7 @@ import hmac
 from typing import Any, Mapping
 
 import boto3
-from shared.abc import ExceptionMap, private_api
+from shared.abc import BaseProvider, ExceptionMap, private_api
 from shared.config import settings
 from shared.errors import (
     DomainExpiredToken,
@@ -19,20 +19,25 @@ from shared.errors import (
 )
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 
-from .base import AuthProvider, Challenge, Tokens
-
-# ──── Cognito Provider ────────────────────────────────────────────────────────────────
+from .base import Challenge, Tokens
 
 
-class CognitoAuthProvider(AuthProvider):
+class CognitoAuthProvider(BaseProvider):
     _client: CognitoIdentityProviderClient
     _client_id: str
     _client_secret: str
 
-    def __init__(self) -> None:
-        self._client = boto3.client("cognito-idp", region_name=settings.aws_region)
-        self._client_id = settings.cognito_client_id
-        self._client_secret = settings.cognito_client_secret
+    def __init__(
+        self,
+        *,
+        region: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+    ) -> None:
+        region = region or settings.aws_region
+        self._client = boto3.client("cognito-idp", region_name=region)
+        self._client_id = client_id or settings.cognito_client_id
+        self._client_secret = client_secret or settings.cognito_client_secret
 
     @property
     def _exception_map(self) -> ExceptionMap:

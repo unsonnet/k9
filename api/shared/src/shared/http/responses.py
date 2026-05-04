@@ -16,7 +16,7 @@ __all__ = [
 
 class Response[T: BaseModel | None](BaseResponse[T]):
     status_code: ClassVar[HTTPStatus]
-    content_type: ClassVar[str] = "application/json"
+    content_type: ClassVar[str | None] = "application/json"
 
     def __init__(self, body: T = None):
         super().__init__(
@@ -30,7 +30,7 @@ class Response[T: BaseModel | None](BaseResponse[T]):
         return {
             "description": cls.status_code.phrase,
             "content": {cls.content_type: {"schema": body_type.model_json_schema()}}
-            if not issubclass(body_type, NoneType)
+            if cls.content_type is not None and not issubclass(body_type, NoneType)
             else {},
         }
 
@@ -48,6 +48,7 @@ class Accepted[T: BaseModel](Response[T]):
 
 class NoContent(Response[None]):
     status_code = HTTPStatus.NO_CONTENT
+    content_type = None
 
 
 # 3xx Redirection

@@ -3,7 +3,13 @@ from typing import Mapping
 from shared.abc import ApiModel, BaseService, public_api
 from shared.errors import assert_unreachable
 
-from .provider import AuthProvider, Challenge, Tokens
+from .providers import AuthProvider, Challenge, Tokens
+
+__all__ = [
+    "AuthRequest",
+    "AuthResponse",
+    "AuthService",
+]
 
 # ──── Request Payloads ────────────────────────────────────────────────────────────────
 
@@ -65,10 +71,8 @@ class AuthResponse:
 class AuthService(BaseService):
     provider: AuthProvider
 
-    def __init__(self) -> None:
-        from .provider import CognitoAuthProvider
-
-        self.provider = CognitoAuthProvider()
+    def __init__(self, provider: AuthProvider) -> None:
+        self.provider = provider
 
     # ──── Public APIs ────
 

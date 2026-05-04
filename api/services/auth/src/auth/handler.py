@@ -10,10 +10,11 @@ from shared.http import Body, HttpResolver
 from shared.http.errors import Forbidden, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Accepted, NoContent
 
+from .providers import CognitoAuthProvider as AuthProvider
 from .service import AuthRequest, AuthResponse, AuthService
 
 app = HttpResolver(enable_validation=True)
-svc = AuthService()
+svc = AuthService(AuthProvider())
 
 
 @app.post(

@@ -166,11 +166,9 @@ class HttpResolver(APIGatewayHttpResolver):
 
     @classmethod
     def _union(cls, annotation: Any) -> Any:
-        body_types = [
-            body_type
-            for _, body_type in cls._extract(annotation)
-            if body_type is not NoneType
-        ]
+        all_body_types = [body_type for _, body_type in cls._extract(annotation)]
+        has_none = any(bt is NoneType for bt in all_body_types)
+        body_types = [bt for bt in all_body_types if bt is not NoneType]
 
         if not body_types:
             return NoneType
@@ -178,6 +176,9 @@ class HttpResolver(APIGatewayHttpResolver):
         union = body_types[0]
         for body_type in body_types[1:]:
             union = union | body_type
+
+        if has_none:
+            union = union | NoneType
         return union
 
     @classmethod
