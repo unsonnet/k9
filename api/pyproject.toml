@@ -4,8 +4,6 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "auth",
-    "aws-lambda-powertools>=3.26.0",
-    "boto3>=1.42.85",
     "shared",
 ]
 
@@ -20,16 +18,15 @@ members = [
 ]
 
 [tool.uv.sources]
-shared = { workspace = true }
 auth = { workspace = true }
+shared = { workspace = true }
 
 [dependency-groups]
 dev = [
-    "aws-cdk-lib>=2.250.0",
-    "constructs>=10.6.0",
     "moto>=5.2.0",
     "pytest>=9.0.3",
     "pytest-mock>=3.15.1",
+    "pyyaml>=6.0.3",
     "ruff>=0.15.8",
 ]
 

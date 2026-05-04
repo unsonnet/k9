@@ -33,7 +33,6 @@ name = "auth"
 version = "0.1.0"
 source = { editable = "services/auth" }
 dependencies = [
-    { name = "aws-lambda-powertools" },
     { name = "boto3" },
     { name = "shared" },
     { name = "types-boto3", extra = ["cognito-idp"] },
@@ -41,7 +40,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aws-lambda-powertools", specifier = ">=3.26.0" },
     { name = "boto3", specifier = ">=1.42.85" },
     { name = "shared", editable = "shared" },
     { name = "types-boto3", extras = ["cognito-idp"], specifier = ">=1.42.85" },
@@ -465,36 +463,30 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "auth" },
-    { name = "aws-lambda-powertools" },
-    { name = "boto3" },
     { name = "shared" },
 ]
 
 [package.dev-dependencies]
 dev = [
-    { name = "aws-cdk-lib" },
-    { name = "constructs" },
     { name = "moto" },
     { name = "pytest" },
     { name = "pytest-mock" },
+    { name = "pyyaml" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "auth", editable = "services/auth" },
-    { name = "aws-lambda-powertools", specifier = ">=3.26.0" },
-    { name = "boto3", specifier = ">=1.42.85" },
     { name = "shared", editable = "shared" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "aws-cdk-lib", specifier = ">=2.250.0" },
-    { name = "constructs", specifier = ">=10.6.0" },
     { name = "moto", specifier = ">=5.2.0" },
     { name = "pytest", specifier = ">=9.0.3" },
     { name = "pytest-mock", specifier = ">=3.15.1" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "ruff", specifier = ">=0.15.8" },
 ]
 

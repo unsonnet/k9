@@ -4,7 +4,6 @@ version = "0.1.0"
 description = "Auth API Endpoints"
 requires-python = ">=3.12"
 dependencies = [
-    "aws-lambda-powertools>=3.26.0",
     "boto3>=1.42.85",
     "shared",
     "types-boto3[cognito-idp]>=1.42.85",
