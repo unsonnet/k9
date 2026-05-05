@@ -1,5 +1,3 @@
-from typing import Annotated
-
 from shared.errors import (
     DomainForbidden,
     DomainRateLimited,
@@ -10,7 +8,7 @@ from shared.http import Body, HttpResolver
 from shared.http.errors import Forbidden, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Accepted, NoContent
 
-from .providers import CognitoAuthProvider as AuthProvider
+from .providers.auth import CognitoAuthProvider as AuthProvider
 from .service import AuthRequest, AuthResponse, AuthService
 
 app = HttpResolver(enable_validation=True)
@@ -31,7 +29,7 @@ svc = AuthService(AuthProvider())
     },
 )
 def login(
-    request: Annotated[AuthRequest.Login, Body()],
+    request: Body[AuthRequest.Login],
 ) -> (
     OK[AuthResponse.Tokens]
     | Accepted[AuthResponse.Challenge]
@@ -69,7 +67,7 @@ def login(
     },
 )
 def challenge(
-    request: Annotated[AuthRequest.Challenge, Body()],
+    request: Body[AuthRequest.Challenge],
 ) -> (
     OK[AuthResponse.Tokens]
     | Accepted[AuthResponse.Challenge]
@@ -106,7 +104,7 @@ def challenge(
     },
 )
 def refresh(
-    request: Annotated[AuthRequest.Refresh, Body()],
+    request: Body[AuthRequest.Refresh],
 ) -> OK[AuthResponse.Tokens] | Unauthorized | Forbidden | TooManyRequests:
     try:
         match svc.refresh(request):
@@ -134,7 +132,7 @@ def refresh(
     },
 )
 def logout(
-    request: Annotated[AuthRequest.Logout, Body()],
+    request: Body[AuthRequest.Logout],
 ) -> NoContent | Forbidden | TooManyRequests:
     try:
         match svc.logout(request):

@@ -75,6 +75,10 @@ class Forbidden(ClientError):
     status_code = HTTPStatus.FORBIDDEN
 
 
+class NotFound(ClientError):
+    status_code = HTTPStatus.NOT_FOUND
+
+
 class TooManyRequests(ClientError):
     status_code = HTTPStatus.TOO_MANY_REQUESTS
 

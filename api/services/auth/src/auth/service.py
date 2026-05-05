@@ -3,7 +3,7 @@ from typing import Mapping
 from shared.abc import ApiModel, BaseService, public_api
 from shared.errors import assert_unreachable
 
-from .providers import AuthProvider, Challenge, Tokens
+from .providers.auth import AuthProvider, Challenge, Tokens
 
 __all__ = [
     "AuthRequest",

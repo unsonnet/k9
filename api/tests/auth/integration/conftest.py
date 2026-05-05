@@ -1,7 +1,7 @@
 import importlib
 
 import pytest
-from auth.providers.base import Challenge, Tokens
+from auth.providers.auth.base import Challenge, Tokens
 
 
 class DummyAuthProvider:
@@ -64,9 +64,9 @@ def auth_handler_module(
     monkeypatch: pytest.MonkeyPatch,
     dummy_provider: DummyAuthProvider,
 ):
-    import auth.providers as providers
+    import auth.providers.auth as auth
 
-    monkeypatch.setattr(providers, "CognitoAuthProvider", lambda: dummy_provider)
+    monkeypatch.setattr(auth, "CognitoAuthProvider", lambda: dummy_provider)
 
     import auth.handler as handler
 

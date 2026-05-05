@@ -12,9 +12,8 @@ from shared.errors import (
     DomainInvalidCredentials,
     DomainInvalidTokens,
     DomainInvariantViolation,
+    DomainNotFound,
     DomainRateLimited,
-    DomainUserNotConfirmed,
-    DomainUserNotFound,
     assert_unreachable,
 )
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
@@ -64,10 +63,7 @@ class CognitoAuthProvider(BaseProvider):
                 cx.TooManyRequestsException,
                 cx.LimitExceededException,
             ],
-            DomainUserNotConfirmed: [
-                cx.UserNotConfirmedException,
-            ],
-            DomainUserNotFound: [
+            DomainNotFound: [
                 cx.UserNotFoundException,
             ],
         }

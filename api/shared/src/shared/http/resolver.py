@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from functools import wraps
 from http import HTTPStatus
 from inspect import signature
@@ -5,6 +6,7 @@ from types import NoneType, UnionType
 from typing import (
     Any,
     Callable,
+    Mapping,
     Union,
     get_args,
     get_origin,
@@ -21,8 +23,18 @@ from aws_lambda_powertools.event_handler.openapi.exceptions import (
 )
 from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
 
+from shared.errors import DomainInvalidTokens
+
 from .errors import BadRequest, InternalServerError, ServerError
 from .responses import Response
+
+
+@dataclass(frozen=True)
+class Caller:
+    userId: str
+    username: str
+    email: str
+    groups: tuple[str, ...]
 
 
 class HttpResolver(APIGatewayHttpResolver):
@@ -32,6 +44,45 @@ class HttpResolver(APIGatewayHttpResolver):
         super().exception_handler(RequestValidationError)(lambda e: BadRequest(cause=e))
         super().exception_handler(ServerError)(lambda e: e)
         super().exception_handler(Exception)(lambda e: InternalServerError(cause=e))
+
+    # ──── Auth Context ────
+
+    def claims(self) -> Mapping[str, Any]:
+        try:
+            return self.current_event.request_context.authorizer["jwt"]["claims"]
+        except (AttributeError, KeyError, TypeError) as exc:
+            raise DomainInvalidTokens("Missing JWT claims") from exc
+
+    @staticmethod
+    def _groups(claims: Mapping[str, Any]) -> tuple[str, ...]:
+        match claims.get("cognito:groups", ()):
+            case str() as value:
+                return tuple(
+                    group.strip() for group in value.split(",") if group.strip()
+                )
+            case list() | tuple() as values:
+                return tuple(str(group) for group in values)
+            case _:
+                return ()
+
+    def caller(self) -> Caller:
+        claims = self.claims()
+
+        try:
+            user_id = str(claims["sub"])
+        except KeyError as exc:
+            raise DomainInvalidTokens("Missing subject claim") from exc
+
+        return Caller(
+            userId=user_id,
+            username=str(
+                claims.get("username") or claims.get("cognito:username") or ""
+            ),
+            email=str(claims.get("email") or ""),
+            groups=self._groups(claims),
+        )
+
+    # ──── Routes ────
 
     def route[T: Callable[..., Any]](  # type: ignore[override]
         self,
@@ -81,8 +132,19 @@ class HttpResolver(APIGatewayHttpResolver):
 
         return decorator
 
-    def post(self, *args, **kwargs):  # type: ignore[override]
+    def post(self, *args, **kwargs):
         return super().post(*args, **kwargs)
+
+    def put(self, *args, **kwargs):
+        return super().put(*args, **kwargs)
+
+    def get(self, *args, **kwargs):
+        return super().get(*args, **kwargs)
+
+    def patch(self, *args, **kwargs):
+        return super().patch(*args, **kwargs)
+
+    # ──── OpenAPI Response Parsing ────
 
     @classmethod
     def _parse(

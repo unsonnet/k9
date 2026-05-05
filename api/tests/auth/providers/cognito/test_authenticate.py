@@ -1,5 +1,5 @@
 import pytest
-from auth.providers.base import Challenge, Tokens
+from auth.providers.auth.base import Challenge, Tokens
 from botocore.stub import Stubber
 from shared.errors import (
     DomainForbidden,

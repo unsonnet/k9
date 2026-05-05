@@ -1,4 +1,4 @@
-import auth.providers.cognito as cognito
+import auth.providers.auth.cognito as cognito
 import boto3
 import pytest
 

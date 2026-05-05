@@ -1,5 +1,5 @@
 import pytest
-from auth.providers.base import Tokens
+from auth.providers.auth.base import Tokens
 from shared.errors import DomainForbidden
 
 pytestmark = pytest.mark.integration
