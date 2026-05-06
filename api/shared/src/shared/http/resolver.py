@@ -31,8 +31,8 @@ from .responses import Response
 
 @dataclass(frozen=True)
 class Caller:
-    userId: str
-    username: str
+    id: str
+    name: str
     email: str
     groups: tuple[str, ...]
 
@@ -74,10 +74,8 @@ class HttpResolver(APIGatewayHttpResolver):
             raise DomainInvalidTokens("Missing subject claim") from exc
 
         return Caller(
-            userId=user_id,
-            username=str(
-                claims.get("username") or claims.get("cognito:username") or ""
-            ),
+            id=user_id,
+            name=str(claims.get("username") or claims.get("cognito:username") or ""),
             email=str(claims.get("email") or ""),
             groups=self._groups(claims),
         )
