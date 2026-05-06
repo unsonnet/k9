@@ -20,7 +20,7 @@ class User(DataModel, frozen=True):
 
     class Status(StrEnum):
         ACTIVE = "active"
-        DISABLED = "disabled"
+        INACTIVE = "inactive"
 
     class Update(TypedDict):
         name: NotRequired[str]

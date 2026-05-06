@@ -50,7 +50,7 @@ def list_users(
 
 
 @app.get(
-    "/user/{userId}",
+    "/user/<userId>",
     summary="Read user profile",
     description=(
         "Read a user profile. The special userId value 'me' resolves to the "
@@ -86,7 +86,7 @@ def get_user(
 
 
 @app.patch(
-    "/user/{userId}",
+    "/user/<userId>",
     summary="Update user profile",
     description=(
         "Update a user profile. The special userId value 'me' resolves to the "
@@ -123,7 +123,7 @@ def update_user(
 
 
 @app.get(
-    "/user/{userId}/reports",
+    "/user/<userId>/reports",
     summary="List user reports",
     description=(
         "List or search reports associated with a user. The special userId value 'me' "

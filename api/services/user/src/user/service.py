@@ -18,11 +18,6 @@ __all__ = [
 
 
 class UserRequest:
-    class User(ApiModel, frozen=True):
-        name: str | None = None
-        role: User.Role | None = None
-        status: User.Status | None = None
-
     class ListUsers(ApiModel, frozen=True):
         q: str | None = None
         limit: int | None = None

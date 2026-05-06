@@ -20,6 +20,7 @@ members = [
 
 [tool.uv.sources]
 auth = { workspace = true }
+user = { workspace = true }
 shared = { workspace = true }
 
 [dependency-groups]
