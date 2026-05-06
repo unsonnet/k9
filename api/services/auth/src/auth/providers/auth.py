@@ -1,10 +1,11 @@
 import base64
 import hashlib
 import hmac
-from typing import Any, Mapping
+from enum import StrEnum
+from typing import Any, Mapping, Protocol
 
 import boto3
-from shared.abc import BaseProvider, ExceptionMap, private_api
+from shared.abc import BaseProvider, DataModel, ExceptionMap, private_api
 from shared.config import settings
 from shared.errors import (
     DomainExpiredToken,
@@ -18,7 +19,68 @@ from shared.errors import (
 )
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 
-from .base import Challenge, Tokens
+__all__ = [
+    "Tokens",
+    "Challenge",
+    "AuthProvider",
+    "CognitoAuthProvider",
+]
+
+# ──── Authentication Models ───────────────────────────────────────────────────────────
+
+
+class Tokens(DataModel, frozen=True):
+    access_token: str
+    expires_in: int
+    refresh_token: str
+    id_token: str
+
+
+class Challenge(DataModel, frozen=True):
+    class Key(StrEnum):
+        NEW_PASSWORD = "NEW_PASSWORD"
+        NEW_MFA = "NEW_MFA"
+        MFA = "MFA"
+
+    session: str
+    challenge: Key
+    parameters: Mapping[str, str]
+
+
+# ──── Authentication Protocol ─────────────────────────────────────────────────────────
+
+
+class AuthProvider(Protocol):
+    def authenticate(
+        self,
+        *,
+        username: str,
+        password: str,
+    ) -> Tokens | Challenge: ...
+
+    def respond_to_challenge(
+        self,
+        *,
+        session: str,
+        challenge: Challenge.Key,
+        response: Mapping[str, str],
+    ) -> Tokens | Challenge: ...
+
+    def refresh_tokens(
+        self,
+        *,
+        refresh_token: str,
+    ) -> Tokens: ...
+
+    def revoke_tokens(
+        self,
+        *,
+        access_token: str | None = None,
+        refresh_token: str | None = None,
+    ) -> None: ...
+
+
+# ──── AWS Authentication Provider ─────────────────────────────────────────────────────
 
 
 class CognitoAuthProvider(BaseProvider):

@@ -1,7 +1,7 @@
 import importlib
 
 import pytest
-from auth.providers.auth.base import Challenge, Tokens
+from auth.providers.auth import Challenge, Tokens
 
 
 class DummyAuthProvider:

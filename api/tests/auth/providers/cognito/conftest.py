@@ -1,4 +1,4 @@
-import auth.providers.auth.cognito as cognito
+import auth.providers.auth as auth
 import boto3
 import pytest
 
@@ -26,12 +26,12 @@ def cognito_client():
 @pytest.fixture
 def provider(monkeypatch: pytest.MonkeyPatch, cognito_client):
     monkeypatch.setattr(
-        cognito.boto3,
+        auth.boto3,
         "client",
         lambda service_name, region_name=None: cognito_client,
     )
 
-    return cognito.CognitoAuthProvider(
+    return auth.CognitoAuthProvider(
         region="us-east-1",
         client_id="client-id",
         client_secret="client-secret-value-1234",

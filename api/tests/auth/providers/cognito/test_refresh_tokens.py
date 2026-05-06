@@ -1,5 +1,5 @@
 import pytest
-from auth.providers.auth.base import Tokens
+from auth.providers.auth import Tokens
 from botocore.stub import Stubber
 
 from .helpers import token_response
