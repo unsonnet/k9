@@ -11,6 +11,9 @@ __all__ = [
     "BadRequest",
     "Unauthorized",
     "Forbidden",
+    "NotFound",
+    "MethodNotAllowed",
+    "UnprocessableEntity",
     "TooManyRequests",
     "ServerError",
     "InternalServerError",
@@ -77,6 +80,14 @@ class Forbidden(ClientError):
 
 class NotFound(ClientError):
     status_code = HTTPStatus.NOT_FOUND
+
+
+class MethodNotAllowed(ClientError):
+    status_code = HTTPStatus.METHOD_NOT_ALLOWED
+
+
+class UnprocessableEntity(ClientError):
+    status_code = HTTPStatus.UNPROCESSABLE_ENTITY
 
 
 class TooManyRequests(ClientError):

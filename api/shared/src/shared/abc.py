@@ -4,13 +4,14 @@ from collections.abc import Callable
 from functools import cached_property, update_wrapper, wraps
 from typing import Concatenate, Literal, Self, cast, overload
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from shared.errors import DomainError, DomainForbidden, DomainUnknown
 from shared.http import Caller
 
 __all__ = [
     "Field",
+    "model_validator",
     "ApiModel",
     "DataModel",
     "BaseService",

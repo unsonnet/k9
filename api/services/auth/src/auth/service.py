@@ -1,6 +1,6 @@
-from typing import Mapping
+from typing import Mapping, Self
 
-from shared.abc import ApiModel, BaseService, public_api
+from shared.abc import ApiModel, BaseService, Field, model_validator, public_api
 from shared.errors import assert_unreachable
 
 from .providers.auth import AuthProvider, Challenge, Tokens
@@ -16,20 +16,32 @@ __all__ = [
 
 class AuthRequest:
     class Login(ApiModel, frozen=True):
-        username: str
-        password: str
+        username: str = Field(min_length=1)
+        password: str = Field(min_length=1)
 
     class Challenge(ApiModel, frozen=True):
-        session: str
+        session: str = Field(min_length=1)
         challenge: Challenge.Key
-        response: Mapping[str, str]
+        response: Mapping[str, str] = Field(min_length=1)
 
     class Refresh(ApiModel, frozen=True):
-        refreshToken: str
+        refreshToken: str = Field(min_length=1)
 
     class Logout(ApiModel, frozen=True):
         accessToken: str | None = None
         refreshToken: str | None = None
+
+        @model_validator(mode="after")
+        def verify_has_token(self) -> Self:
+            match self.accessToken, self.refreshToken:
+                case None, None:
+                    raise ValueError("Either accessToken or refreshToken is required")
+                case "", _:
+                    raise ValueError("accessToken cannot be blank")
+                case _, "":
+                    raise ValueError("refreshToken cannot be blank")
+                case _:
+                    return self
 
 
 # ──── Response Payloads ───────────────────────────────────────────────────────────────

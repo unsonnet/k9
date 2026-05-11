@@ -18,6 +18,7 @@ from aws_lambda_powertools.event_handler import Response as BaseResponse
 from aws_lambda_powertools.event_handler.api_gateway import (
     _DEFAULT_OPENAPI_RESPONSE_DESCRIPTION,
 )
+from aws_lambda_powertools.event_handler.exceptions import NotFoundError
 from aws_lambda_powertools.event_handler.openapi.exceptions import (
     RequestValidationError,
 )
@@ -25,7 +26,13 @@ from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
 
 from shared.errors import DomainInvalidTokens
 
-from .errors import BadRequest, InternalServerError, ServerError
+from .errors import (
+    InternalServerError,
+    MethodNotAllowed,
+    NotFound,
+    ServerError,
+    UnprocessableEntity,
+)
 from .responses import Response
 
 
@@ -41,7 +48,10 @@ class HttpResolver(APIGatewayHttpResolver):
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("enable_validation", True)
         super().__init__(*args, **kwargs)
-        super().exception_handler(RequestValidationError)(lambda e: BadRequest(cause=e))
+        super().exception_handler(RequestValidationError)(
+            lambda e: UnprocessableEntity(cause=e)
+        )
+        super().exception_handler(NotFoundError)(self._handle_routing_error)
         super().exception_handler(ServerError)(lambda e: e)
         super().exception_handler(Exception)(lambda e: InternalServerError(cause=e))
 
@@ -79,6 +89,19 @@ class HttpResolver(APIGatewayHttpResolver):
             email=str(claims.get("email") or ""),
             groups=self._groups(claims),
         )
+
+    def _handle_routing_error(self, exc: NotFoundError) -> NotFound | MethodNotAllowed:
+        method = self.current_event.http_method.upper()
+        path = self._remove_prefix(self.current_event.path)
+        registered_routes = self._static_routes + self._dynamic_routes
+
+        if any(
+            route.method != method and route.rule.match(path)
+            for route in registered_routes
+        ):
+            return MethodNotAllowed(cause=exc)
+
+        return NotFound(cause=exc)
 
     # ──── Routes ────
 
