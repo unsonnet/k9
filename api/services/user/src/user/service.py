@@ -50,7 +50,7 @@ class UserResponse:
         id: str
         name: str
         role: User.Role
-        status: User.Status
+        enabled: bool
         createdAt: datetime
         updatedAt: datetime | None = None
         lastLoginAt: datetime | None = None
@@ -61,7 +61,7 @@ class UserResponse:
                 id=user.id,
                 name=user.name,
                 role=user.role,
-                status=user.status,
+                enabled=user.enabled,
                 createdAt=user.created_at,
                 updatedAt=user.updated_at,
                 lastLoginAt=user.last_login_at,
@@ -194,8 +194,8 @@ class UserService(BaseService):
     ) -> UserResponse.User:
         if request.id not in ["me", caller.id]:
             raise DomainForbidden("Cannot update another user's profile")
-        if "role" in request.update or "status" in request.update:
-            raise DomainForbidden("Cannot update role or status")
+        if "role" in request.update or "enabled" in request.update:
+            raise DomainForbidden("Cannot update `role` or `enabled`")
         return UserResponse.User.from_provider(
             self.users.update_user(id=caller.id, update=request.update)
         )
