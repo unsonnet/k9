@@ -86,6 +86,7 @@ class AuthProvider(Protocol):
 class CognitoAuthProvider(BaseProvider):
     _client: CognitoIdentityProviderClient
     _client_id: str
+    _user_pool_id: str
     _client_secret: str
 
     def __init__(
@@ -93,11 +94,13 @@ class CognitoAuthProvider(BaseProvider):
         *,
         region: str | None = None,
         client_id: str | None = None,
+        user_pool_id: str | None = None,
         client_secret: str | None = None,
     ) -> None:
         region = region or settings.aws_region
         self._client = boto3.client("cognito-idp", region_name=region)
         self._client_id = client_id or settings.cognito_client_id
+        self._user_pool_id = user_pool_id or settings.cognito_user_pool_id
         self._client_secret = client_secret or settings.cognito_client_secret
 
     @property
@@ -197,9 +200,10 @@ class CognitoAuthProvider(BaseProvider):
         password: str,
     ) -> Tokens | Challenge:
         return self._result(
-            self._client.initiate_auth(
+            self._client.admin_initiate_auth(
                 ClientId=self._client_id,
-                AuthFlow="USER_PASSWORD_AUTH",
+                UserPoolId=self._user_pool_id,
+                AuthFlow="ADMIN_USER_PASSWORD_AUTH",
                 AuthParameters={
                     "SECRET_HASH": self._secret_hash(username),
                     "USERNAME": username,
@@ -219,8 +223,9 @@ class CognitoAuthProvider(BaseProvider):
         match challenge:
             case Challenge.Key.NEW_PASSWORD:
                 return self._result(
-                    self._client.respond_to_auth_challenge(
+                    self._client.admin_respond_to_auth_challenge(
                         ClientId=self._client_id,
+                        UserPoolId=self._user_pool_id,
                         Session=session,
                         ChallengeName="NEW_PASSWORD_REQUIRED",
                         ChallengeResponses={
@@ -232,8 +237,9 @@ class CognitoAuthProvider(BaseProvider):
                 )
             case Challenge.Key.NEW_MFA:
                 return self._tokens(
-                    self._client.respond_to_auth_challenge(
+                    self._client.admin_respond_to_auth_challenge(
                         ClientId=self._client_id,
+                        UserPoolId=self._user_pool_id,
                         Session=self._client.verify_software_token(
                             Session=session,
                             UserCode=response["code"],
@@ -247,8 +253,9 @@ class CognitoAuthProvider(BaseProvider):
                 )
             case Challenge.Key.MFA:
                 return self._tokens(
-                    self._client.respond_to_auth_challenge(
+                    self._client.admin_respond_to_auth_challenge(
                         ClientId=self._client_id,
+                        UserPoolId=self._user_pool_id,
                         Session=session,
                         ChallengeName="SOFTWARE_TOKEN_MFA",
                         ChallengeResponses={
