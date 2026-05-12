@@ -21,7 +21,7 @@ pytestmark = pytest.mark.unit
 # ──── Helpers ─────────────────────────────────────────────────────────────────────────
 
 
-def initiate_auth_params(
+def admin_initiate_auth_params(
     provider: auth.CognitoAuthProvider,
     *,
     username: str = "alice",
@@ -29,11 +29,33 @@ def initiate_auth_params(
 ) -> dict[str, Any]:
     return {
         "ClientId": "client-id",
-        "AuthFlow": "USER_PASSWORD_AUTH",
+        "UserPoolId": "user-pool-id",
+        "AuthFlow": "ADMIN_USER_PASSWORD_AUTH",
         "AuthParameters": {
             "SECRET_HASH": provider._secret_hash(username),
             "USERNAME": username,
             "PASSWORD": password,
+        },
+    }
+
+
+def admin_respond_to_auth_challenge_params(
+    provider: auth.CognitoAuthProvider,
+    *,
+    session: str = "challenge-session-token",
+    username: str = "alice",
+    challenge_name: str,
+    challenge_responses: dict[str, str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "ClientId": "client-id",
+        "UserPoolId": "user-pool-id",
+        "Session": session,
+        "ChallengeName": challenge_name,
+        "ChallengeResponses": {
+            "SECRET_HASH": provider._secret_hash(username),
+            "USERNAME": username,
+            **(challenge_responses or {}),
         },
     }
 
@@ -121,6 +143,7 @@ def provider(
     return auth.CognitoAuthProvider(
         region="us-east-1",
         client_id="client-id",
+        user_pool_id="user-pool-id",
         client_secret="client-secret-value-1234",
     )
 
@@ -192,9 +215,9 @@ class TestAuthenticate:
         tokens: Tokens,
     ) -> None:
         stubber.add_response(
-            "initiate_auth",
+            "admin_initiate_auth",
             token_response(),
-            initiate_auth_params(provider),
+            admin_initiate_auth_params(provider),
         )
 
         result = provider.authenticate(
@@ -235,9 +258,9 @@ class TestAuthenticate:
         expected_challenge: Challenge,
     ) -> None:
         stubber.add_response(
-            "initiate_auth",
+            "admin_initiate_auth",
             challenge_response(challenge_name=challenge_name),
-            initiate_auth_params(provider),
+            admin_initiate_auth_params(provider),
         )
 
         result = provider.authenticate(
@@ -254,12 +277,12 @@ class TestAuthenticate:
         new_mfa_challenge: Challenge,
     ) -> None:
         stubber.add_response(
-            "initiate_auth",
+            "admin_initiate_auth",
             challenge_response(
                 session="challenge-session-token",
                 challenge_name="MFA_SETUP",
             ),
-            initiate_auth_params(provider),
+            admin_initiate_auth_params(provider),
         )
         stubber.add_response(
             "associate_software_token",
@@ -333,9 +356,9 @@ class TestAuthenticate:
     ) -> None:
         add_client_error(
             stubber,
-            method="initiate_auth",
+            method="admin_initiate_auth",
             service_error_code=service_error_code,
-            expected_params=initiate_auth_params(provider),
+            expected_params=admin_initiate_auth_params(provider),
         )
 
         with pytest.raises(expected_error):
@@ -356,18 +379,13 @@ class TestRespondToChallenge:
         tokens: Tokens,
     ) -> None:
         stubber.add_response(
-            "respond_to_auth_challenge",
+            "admin_respond_to_auth_challenge",
             token_response(),
-            {
-                "ClientId": "client-id",
-                "Session": "challenge-session-token",
-                "ChallengeName": "NEW_PASSWORD_REQUIRED",
-                "ChallengeResponses": {
-                    "SECRET_HASH": provider._secret_hash("alice"),
-                    "USERNAME": "alice",
-                    "NEW_PASSWORD": "new-secret",
-                },
-            },
+            admin_respond_to_auth_challenge_params(
+                provider,
+                challenge_name="NEW_PASSWORD_REQUIRED",
+                challenge_responses={"NEW_PASSWORD": "new-secret"},
+            ),
         )
 
         result = provider.respond_to_challenge(
@@ -388,21 +406,16 @@ class TestRespondToChallenge:
         mfa_challenge: Challenge,
     ) -> None:
         stubber.add_response(
-            "respond_to_auth_challenge",
+            "admin_respond_to_auth_challenge",
             challenge_response(
                 session="challenge-session-token",
                 challenge_name="SOFTWARE_TOKEN_MFA",
             ),
-            {
-                "ClientId": "client-id",
-                "Session": "challenge-session-token",
-                "ChallengeName": "NEW_PASSWORD_REQUIRED",
-                "ChallengeResponses": {
-                    "SECRET_HASH": provider._secret_hash("alice"),
-                    "USERNAME": "alice",
-                    "NEW_PASSWORD": "new-secret",
-                },
-            },
+            admin_respond_to_auth_challenge_params(
+                provider,
+                challenge_name="NEW_PASSWORD_REQUIRED",
+                challenge_responses={"NEW_PASSWORD": "new-secret"},
+            ),
         )
 
         result = provider.respond_to_challenge(
@@ -433,17 +446,13 @@ class TestRespondToChallenge:
             },
         )
         stubber.add_response(
-            "respond_to_auth_challenge",
+            "admin_respond_to_auth_challenge",
             token_response(),
-            {
-                "ClientId": "client-id",
-                "Session": "verified-session-token",
-                "ChallengeName": "MFA_SETUP",
-                "ChallengeResponses": {
-                    "SECRET_HASH": provider._secret_hash("alice"),
-                    "USERNAME": "alice",
-                },
-            },
+            admin_respond_to_auth_challenge_params(
+                provider,
+                session="verified-session-token",
+                challenge_name="MFA_SETUP",
+            ),
         )
 
         result = provider.respond_to_challenge(
@@ -464,18 +473,13 @@ class TestRespondToChallenge:
         tokens: Tokens,
     ) -> None:
         stubber.add_response(
-            "respond_to_auth_challenge",
+            "admin_respond_to_auth_challenge",
             token_response(),
-            {
-                "ClientId": "client-id",
-                "Session": "challenge-session-token",
-                "ChallengeName": "SOFTWARE_TOKEN_MFA",
-                "ChallengeResponses": {
-                    "SECRET_HASH": provider._secret_hash("alice"),
-                    "USERNAME": "alice",
-                    "SOFTWARE_TOKEN_MFA_CODE": "123456",
-                },
-            },
+            admin_respond_to_auth_challenge_params(
+                provider,
+                challenge_name="SOFTWARE_TOKEN_MFA",
+                challenge_responses={"SOFTWARE_TOKEN_MFA_CODE": "123456"},
+            ),
         )
 
         result = provider.respond_to_challenge(
@@ -523,18 +527,13 @@ class TestRespondToChallenge:
     ) -> None:
         add_client_error(
             stubber,
-            method="respond_to_auth_challenge",
+            method="admin_respond_to_auth_challenge",
             service_error_code=service_error_code,
-            expected_params={
-                "ClientId": "client-id",
-                "Session": "challenge-session-token",
-                "ChallengeName": "NEW_PASSWORD_REQUIRED",
-                "ChallengeResponses": {
-                    "SECRET_HASH": provider._secret_hash("alice"),
-                    "USERNAME": "alice",
-                    "NEW_PASSWORD": "new-secret",
-                },
-            },
+            expected_params=admin_respond_to_auth_challenge_params(
+                provider,
+                challenge_name="NEW_PASSWORD_REQUIRED",
+                challenge_responses={"NEW_PASSWORD": "new-secret"},
+            ),
         )
 
         with pytest.raises(expected_error):
@@ -643,17 +642,13 @@ class TestRespondToChallenge:
         )
         add_client_error(
             stubber,
-            method="respond_to_auth_challenge",
+            method="admin_respond_to_auth_challenge",
             service_error_code=service_error_code,
-            expected_params={
-                "ClientId": "client-id",
-                "Session": "verified-session-token",
-                "ChallengeName": "MFA_SETUP",
-                "ChallengeResponses": {
-                    "SECRET_HASH": provider._secret_hash("alice"),
-                    "USERNAME": "alice",
-                },
-            },
+            expected_params=admin_respond_to_auth_challenge_params(
+                provider,
+                session="verified-session-token",
+                challenge_name="MFA_SETUP",
+            ),
         )
 
         with pytest.raises(expected_error):
@@ -700,18 +695,13 @@ class TestRespondToChallenge:
     ) -> None:
         add_client_error(
             stubber,
-            method="respond_to_auth_challenge",
+            method="admin_respond_to_auth_challenge",
             service_error_code=service_error_code,
-            expected_params={
-                "ClientId": "client-id",
-                "Session": "challenge-session-token",
-                "ChallengeName": "SOFTWARE_TOKEN_MFA",
-                "ChallengeResponses": {
-                    "SECRET_HASH": provider._secret_hash("alice"),
-                    "USERNAME": "alice",
-                    "SOFTWARE_TOKEN_MFA_CODE": "123456",
-                },
-            },
+            expected_params=admin_respond_to_auth_challenge_params(
+                provider,
+                challenge_name="SOFTWARE_TOKEN_MFA",
+                challenge_responses={"SOFTWARE_TOKEN_MFA_CODE": "123456"},
+            ),
         )
 
         with pytest.raises(expected_error):
@@ -1017,9 +1007,9 @@ class TestResponseParsing:
         response: dict[str, Any],
     ) -> None:
         stubber.add_response(
-            "initiate_auth",
+            "admin_initiate_auth",
             response,
-            initiate_auth_params(provider),
+            admin_initiate_auth_params(provider),
         )
 
         with pytest.raises(DomainInvariantViolation):
@@ -1043,12 +1033,12 @@ class TestResponseParsing:
         challenge_name: str,
     ) -> None:
         stubber.add_response(
-            "initiate_auth",
+            "admin_initiate_auth",
             challenge_response(
                 session="challenge-session-token",
                 challenge_name=challenge_name,
             ),
-            initiate_auth_params(provider),
+            admin_initiate_auth_params(provider),
         )
 
         with pytest.raises(DomainInvariantViolation):
