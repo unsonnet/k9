@@ -1,7 +1,9 @@
+import re
 from datetime import datetime
 from typing import Self
 
-from shared.abc import ApiModel, BaseService, Field, model_validator, public_api
+from pydantic import Field, field_validator, model_validator
+from shared.abc import ApiModel, BaseService, public_api
 from shared.errors import DomainForbidden
 from shared.http import Caller
 
@@ -15,6 +17,17 @@ __all__ = [
 ]
 
 
+# ──── Helpers ─────────────────────────────────────────────────────────────────────────
+
+
+def normalize_name(name: str) -> str:
+    return re.sub(r"\s+", " ", name.strip()).casefold()
+
+
+def sanitize_query(q: str) -> str:
+    return q.strip().replace("\\", "\\\\").replace('"', '\\"')
+
+
 # ──── Request Payloads ────────────────────────────────────────────────────────────────
 
 
@@ -24,14 +37,28 @@ class UserRequest:
         limit: int | None = None
         cursor: str | None = None
 
+        @field_validator("q")
+        @classmethod
+        def sanitize_q(cls, value: str | None) -> str | None:
+            return normalize_name(sanitize_query(value)) if value else None
+
     class GetUser(ApiModel, frozen=True):
-        id: str
+        id: str = Field(min_length=1)
 
     class UpdateUser(ApiModel, frozen=True):
         class Update(User.Update): ...
 
-        id: str
+        id: str = Field(min_length=1)
         update: Update
+
+        @field_validator("update")
+        @classmethod
+        def normalize_update(cls, value: Update) -> Update:
+            match value:
+                case {"name": str(name)}:
+                    return {**value, "name": normalize_name(name)}
+                case _:
+                    return value
 
     class ListReports(ApiModel, frozen=True):
         user: str = Field(min_length=1)
@@ -41,6 +68,11 @@ class UserRequest:
         dateTo: datetime | None = None
         limit: int | None = Field(default=None, ge=1, le=100)
         cursor: str | None = None
+
+        @field_validator("q")
+        @classmethod
+        def sanitize_q(cls, value: str | None) -> str | None:
+            return sanitize_query(value) if value else None
 
         @model_validator(mode="after")
         def verify_date_range(self) -> Self:

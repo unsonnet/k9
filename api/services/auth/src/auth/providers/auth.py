@@ -17,6 +17,7 @@ from shared.errors import (
     DomainRateLimited,
     assert_unreachable,
 )
+from shared.providers.cognito import encode_name
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 
 __all__ = [
@@ -54,7 +55,7 @@ class AuthProvider(Protocol):
     def authenticate(
         self,
         *,
-        username: str,
+        name: str,
         password: str,
     ) -> Tokens | Challenge: ...
 
@@ -135,8 +136,8 @@ class CognitoAuthProvider(BaseProvider):
 
     # ──── Helper Methods ────
 
-    def _secret_hash(self, username: str) -> str:
-        message = f"{username}{self._client_id}".encode("utf-8")
+    def _secret_hash(self, xname: str) -> str:
+        message = f"{xname}{self._client_id}".encode("utf-8")
         key = self._client_secret.encode("utf-8")
         digest = hmac.new(key, message, hashlib.sha256).digest()
         return base64.b64encode(digest).decode("utf-8")
@@ -159,8 +160,8 @@ class CognitoAuthProvider(BaseProvider):
                 )
         raise DomainInvariantViolation(f"Unexpected cognito response: {response}")
 
-    def _challenge(self, session: str, name: str) -> Challenge:
-        match name:
+    def _challenge(self, session: str, challenge: str) -> Challenge:
+        match challenge:
             case "NEW_PASSWORD_REQUIRED":
                 return Challenge(
                     session=session,
@@ -180,14 +181,14 @@ class CognitoAuthProvider(BaseProvider):
                     challenge=Challenge.Key.MFA,
                     parameters={},
                 )
-        raise DomainInvariantViolation(f"Unexpected cognito challenge: {name}")
+        raise DomainInvariantViolation(f"Unexpected cognito challenge: {challenge}")
 
     def _result(self, response: Mapping[str, Any]) -> Tokens | Challenge:
         match response:
             case {"AuthenticationResult": dict()}:
                 return self._tokens(response)
-            case {"Session": str(session), "ChallengeName": str(name)}:
-                return self._challenge(session, name)
+            case {"Session": str(session), "ChallengeName": str(challenge)}:
+                return self._challenge(session, challenge)
         raise DomainInvariantViolation(f"Unexpected cognito response: {response}")
 
     # ──── Private APIs ────
@@ -196,17 +197,18 @@ class CognitoAuthProvider(BaseProvider):
     def authenticate(
         self,
         *,
-        username: str,
+        name: str,
         password: str,
     ) -> Tokens | Challenge:
+        xname = encode_name(name)
         return self._result(
             self._client.admin_initiate_auth(
                 ClientId=self._client_id,
                 UserPoolId=self._user_pool_id,
                 AuthFlow="ADMIN_USER_PASSWORD_AUTH",
                 AuthParameters={
-                    "SECRET_HASH": self._secret_hash(username),
-                    "USERNAME": username,
+                    "SECRET_HASH": self._secret_hash(xname),
+                    "USERNAME": xname,
                     "PASSWORD": password,
                 },
             )
@@ -222,6 +224,7 @@ class CognitoAuthProvider(BaseProvider):
     ) -> Tokens | Challenge:
         match challenge:
             case Challenge.Key.NEW_PASSWORD:
+                xname = encode_name(response["name"])
                 return self._result(
                     self._client.admin_respond_to_auth_challenge(
                         ClientId=self._client_id,
@@ -229,13 +232,14 @@ class CognitoAuthProvider(BaseProvider):
                         Session=session,
                         ChallengeName="NEW_PASSWORD_REQUIRED",
                         ChallengeResponses={
-                            "SECRET_HASH": self._secret_hash(response["username"]),
-                            "USERNAME": response["username"],
+                            "SECRET_HASH": self._secret_hash(xname),
+                            "USERNAME": xname,
                             "NEW_PASSWORD": response["password"],
                         },
                     )
                 )
             case Challenge.Key.NEW_MFA:
+                xname = encode_name(response["name"])
                 return self._tokens(
                     self._client.admin_respond_to_auth_challenge(
                         ClientId=self._client_id,
@@ -246,12 +250,13 @@ class CognitoAuthProvider(BaseProvider):
                         )["Session"],
                         ChallengeName="MFA_SETUP",
                         ChallengeResponses={
-                            "SECRET_HASH": self._secret_hash(response["username"]),
-                            "USERNAME": response["username"],
+                            "SECRET_HASH": self._secret_hash(xname),
+                            "USERNAME": xname,
                         },
                     )
                 )
             case Challenge.Key.MFA:
+                xname = encode_name(response["name"])
                 return self._tokens(
                     self._client.admin_respond_to_auth_challenge(
                         ClientId=self._client_id,
@@ -259,8 +264,8 @@ class CognitoAuthProvider(BaseProvider):
                         Session=session,
                         ChallengeName="SOFTWARE_TOKEN_MFA",
                         ChallengeResponses={
-                            "SECRET_HASH": self._secret_hash(response["username"]),
-                            "USERNAME": response["username"],
+                            "SECRET_HASH": self._secret_hash(xname),
+                            "USERNAME": xname,
                             "SOFTWARE_TOKEN_MFA_CODE": response["code"],
                         },
                     )

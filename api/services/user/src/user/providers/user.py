@@ -1,8 +1,18 @@
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Any, Mapping, NotRequired, Protocol, Sequence, TypedDict, overload
+from typing import (
+    Annotated,
+    Any,
+    Mapping,
+    NotRequired,
+    Protocol,
+    Sequence,
+    TypedDict,
+    overload,
+)
 
 import boto3
+from pydantic import StrictBool, StringConstraints
 from shared.abc import BaseProvider, DataModel, ExceptionMap, private_api
 from shared.config import settings
 from shared.errors import (
@@ -12,6 +22,7 @@ from shared.errors import (
     DomainRateLimited,
     assert_unreachable,
 )
+from shared.providers.cognito import decode_id, encode_id, encode_name
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 
 __all__ = [
@@ -30,9 +41,11 @@ class User(DataModel, frozen=True):
         ADMIN = "admin"
 
     class Update(TypedDict):
-        name: NotRequired[str]
+        name: NotRequired[
+            Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+        ]
         role: NotRequired["User.Role"]
-        enabled: NotRequired[bool]
+        enabled: NotRequired[StrictBool]
 
     id: str
     name: str
@@ -119,10 +132,10 @@ class CognitoUserProvider(BaseProvider):
             if "Name" in attr and "Value" in attr
         }
 
-    def _role(self, id: str) -> User.Role:
+    def _role(self, xid: str) -> User.Role:
         response = self._client.admin_list_groups_for_user(
             UserPoolId=self._user_pool_id,
-            Username=id,
+            Username=xid,
         )
         return (
             User.Role.ADMIN
@@ -146,16 +159,16 @@ class CognitoUserProvider(BaseProvider):
     def _user(self, response: Mapping[str, Any]) -> User:
         match response:
             case {
-                "Username": str(id),
+                "Username": str(xid),
                 "Enabled": bool(enabled),
                 "UserCreateDate": datetime() as created_at,
                 "UserLastModifiedDate": datetime() as updated_at,
             }:
                 attrs = self._attrs(response)
                 return User(
-                    id=id,
-                    name=attrs["preferred_username"],
-                    role=self._role(id),
+                    id=decode_id(xid),
+                    name=attrs["name"],
+                    role=self._role(xid),
                     enabled=enabled,
                     created_at=self._dt(created_at),
                     updated_at=self._dt(updated_at),
@@ -179,12 +192,11 @@ class CognitoUserProvider(BaseProvider):
         limit: int | None = None,
         cursor: str | None = None,
     ) -> UserPage:
-        q = q.replace("\\", "\\\\").replace('"', '\\"') if q else None
         return self._page(
             self._client.list_users(
                 UserPoolId=self._user_pool_id,
                 Limit=min(limit or 25, 60),
-                **({"Filter": f'preferred_username ^= "{q}"'} if q else {}),
+                **({"Filter": f'name ^= "{q}"'} if q else {}),
                 **({"PaginationToken": cursor} if cursor else {}),
             )
         )
@@ -195,10 +207,11 @@ class CognitoUserProvider(BaseProvider):
         *,
         id: str,
     ) -> User:
+        xid = encode_id(id)
         return self._user(
             self._client.admin_get_user(
                 UserPoolId=self._user_pool_id,
-                Username=id,
+                Username=xid,
             )
         )
 
@@ -209,13 +222,19 @@ class CognitoUserProvider(BaseProvider):
         id: str,
         update: User.Update,
     ) -> User:
+        xid = encode_id(id)
+
         if "name" in update:
             self._client.admin_update_user_attributes(
                 UserPoolId=self._user_pool_id,
-                Username=id,
+                Username=xid,
                 UserAttributes=[
                     {
                         "Name": "preferred_username",
+                        "Value": encode_name(update["name"]),
+                    },
+                    {
+                        "Name": "name",
                         "Value": update["name"],
                     },
                 ],
@@ -226,13 +245,13 @@ class CognitoUserProvider(BaseProvider):
                 case User.Role.USER:
                     self._client.admin_remove_user_from_group(
                         UserPoolId=self._user_pool_id,
-                        Username=id,
+                        Username=xid,
                         GroupName="admin",
                     )
                 case User.Role.ADMIN:
                     self._client.admin_add_user_to_group(
                         UserPoolId=self._user_pool_id,
-                        Username=id,
+                        Username=xid,
                         GroupName="admin",
                     )
 
@@ -241,12 +260,12 @@ class CognitoUserProvider(BaseProvider):
                 case True:
                     self._client.admin_enable_user(
                         UserPoolId=self._user_pool_id,
-                        Username=id,
+                        Username=xid,
                     )
                 case False:
                     self._client.admin_disable_user(
                         UserPoolId=self._user_pool_id,
-                        Username=id,
+                        Username=xid,
                     )
 
         return self.get_user(id=id)

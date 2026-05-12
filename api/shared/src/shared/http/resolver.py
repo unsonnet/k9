@@ -22,10 +22,11 @@ from aws_lambda_powertools.event_handler.exceptions import NotFoundError
 from aws_lambda_powertools.event_handler.openapi.exceptions import (
     RequestValidationError,
 )
-from pydantic import ValidationError as PydanticValidationError
 from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
+from pydantic import ValidationError as PydanticValidationError
 
 from shared.errors import DomainInvalidTokens
+from shared.providers.cognito import decode_id
 
 from .errors import (
     InternalServerError,
@@ -41,7 +42,6 @@ from .responses import Response
 class Caller:
     id: str
     name: str
-    email: str
     groups: tuple[str, ...]
 
 
@@ -81,16 +81,17 @@ class HttpResolver(APIGatewayHttpResolver):
 
     def caller(self) -> Caller:
         claims = self.claims()
-
         try:
-            user_id = str(claims["sub"])
+            xid = str(claims["cognito:username"])
         except KeyError as exc:
-            raise DomainInvalidTokens("Missing subject claim") from exc
-
+            raise DomainInvalidTokens("Missing cognito username claim") from exc
+        try:
+            name = str(claims["cognito:name"])
+        except KeyError as exc:
+            raise DomainInvalidTokens("Missing cognito name claim") from exc
         return Caller(
-            id=user_id,
-            name=str(claims.get("username") or claims.get("cognito:username") or ""),
-            email=str(claims.get("email") or ""),
+            id=decode_id(xid),
+            name=name,
             groups=self._groups(claims),
         )
 

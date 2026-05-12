@@ -13,7 +13,7 @@ from opensearchpy.exceptions import (
     ConnectionTimeout,
     NotFoundError,
 )
-from pydantic import StrictBool, ValidationError, field_validator
+from pydantic import Field, StrictBool, ValidationError, field_validator
 from shared.abc import BaseProvider, DataModel, ExceptionMap, private_api
 from shared.config import settings
 from shared.errors import (
@@ -23,6 +23,7 @@ from shared.errors import (
     DomainRateLimited,
     assert_unreachable,
 )
+from shared.providers.cognito import decode_id, encode_id
 
 __all__ = [
     "Report",
@@ -36,11 +37,16 @@ __all__ = [
 
 class Report(DataModel, frozen=True):
     id: str
-    user: str
+    user: str = Field(validation_alias="xuser")
     title: str
     final: StrictBool
     created_at: datetime
     updated_at: datetime | None = None
+
+    @field_validator("user", mode="after")
+    @classmethod
+    def decode_user(cls, value: str) -> str:
+        return decode_id(value)
 
     @field_validator("created_at", "updated_at", mode="after")
     @classmethod
@@ -153,7 +159,7 @@ class OpenSearchReportProvider(BaseProvider):
             case _ as never:
                 assert_unreachable(never)
 
-    def _search_after(self, cursor: str | None) -> list[Any] | None:
+    def _search_after(self, cursor: str | None) -> Sequence[Any] | None:
         if cursor is None:
             return None
 
@@ -185,7 +191,7 @@ class OpenSearchReportProvider(BaseProvider):
     def _query(
         self,
         *,
-        user: str,
+        xuser: str,
         q: str | None,
         final: bool | None,
         date_from: datetime | None,
@@ -193,9 +199,7 @@ class OpenSearchReportProvider(BaseProvider):
         limit: int | None,
         cursor: str | None,
     ) -> dict[str, Any]:
-        filters: list[dict[str, Any]] = [
-            {"term": {"user": user}},
-        ]
+        filters: list[dict[str, Any]] = [{"term": {"xuser": xuser}}]
 
         if final is not None:
             filters.append({"term": {"final": final}})
@@ -205,48 +209,75 @@ class OpenSearchReportProvider(BaseProvider):
                 {
                     "range": {
                         "created_at": {
-                            **(
-                                {"gte": value} if (value := self._dt(date_from)) else {}
-                            ),
-                            **({"lte": value} if (value := self._dt(date_to)) else {}),
+                            k: v
+                            for k, v in {
+                                "gte": self._dt(date_from),
+                                "lte": self._dt(date_to),
+                            }.items()
+                            if v
                         }
                     }
                 }
             )
 
-        return {
+        body: dict[str, Any] = {
             "size": min(limit or 25, 100),
-            "query": {
-                "bool": {
-                    "filter": filters,
-                    **(
-                        {
-                            "must": [
-                                {
-                                    "match": {
-                                        "title": {
-                                            "query": q,
-                                            "operator": "and",
-                                        }
+            "query": {"bool": {"filter": filters}},
+            "sort": [{"created_at": "desc"}, {"id": "asc"}],
+        }
+
+        if q:
+            body["query"]["bool"]["must"] = [
+                {
+                    "bool": {
+                        "should": [
+                            {
+                                "term": {
+                                    "id": {
+                                        "value": q,
+                                        "boost": 10,
+                                        "case_insensitive": True,
                                     }
                                 }
-                            ]
-                        }
-                        if q
-                        else {}
-                    ),
+                            },
+                            {
+                                "prefix": {
+                                    "id": {
+                                        "value": q,
+                                        "boost": 6,
+                                        "case_insensitive": True,
+                                    }
+                                }
+                            },
+                            {
+                                "match": {
+                                    "title": {
+                                        "query": q,
+                                        "operator": "and",
+                                        "boost": 4,
+                                    }
+                                }
+                            },
+                            {
+                                "match_phrase_prefix": {
+                                    "title": {
+                                        "query": q,
+                                        "boost": 2,
+                                    }
+                                }
+                            },
+                        ],
+                        "minimum_should_match": 1,
+                    }
                 }
-            },
-            "sort": [
-                {"created_at": "desc"},
-                {"id": "asc"},
-            ],
-            **(
-                {"search_after": search_after}
-                if (search_after := self._search_after(cursor))
-                else {}
-            ),
-        }
+            ]
+
+            body["sort"] = [{"_score": "desc"}, {"created_at": "desc"}, {"id": "asc"}]
+
+        if search_after := self._search_after(cursor):
+            body["search_after"] = search_after
+
+        return body
 
     def _page(self, response: Mapping[str, Any]) -> ReportPage:
         match response:
@@ -275,7 +306,7 @@ class OpenSearchReportProvider(BaseProvider):
             self._client.search(
                 index=self._index,
                 body=self._query(
-                    user=user,
+                    xuser=encode_id(user),
                     q=q,
                     final=final,
                     date_from=date_from,

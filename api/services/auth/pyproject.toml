@@ -5,6 +5,7 @@ description = "Auth API Endpoints"
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.42.85",
+    "pydantic>=2.12.5",
     "shared",
     "types-boto3[cognito-idp]>=1.42.85",
 ]

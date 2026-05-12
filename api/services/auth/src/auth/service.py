@@ -1,6 +1,8 @@
+import re
 from typing import Mapping, Self
 
-from shared.abc import ApiModel, BaseService, Field, model_validator, public_api
+from pydantic import Field, field_validator, model_validator
+from shared.abc import ApiModel, BaseService, public_api
 from shared.errors import assert_unreachable
 
 from .providers.auth import AuthProvider, Challenge, Tokens
@@ -11,18 +13,39 @@ __all__ = [
     "AuthService",
 ]
 
+# ──── Helpers ─────────────────────────────────────────────────────────────────────────
+
+
+def normalize_name(name: str) -> str:
+    return re.sub(r"\s+", " ", name.strip()).casefold()
+
+
 # ──── Request Payloads ────────────────────────────────────────────────────────────────
 
 
 class AuthRequest:
     class Login(ApiModel, frozen=True):
-        username: str = Field(min_length=1)
+        name: str = Field(min_length=1)
         password: str = Field(min_length=1)
+
+        @field_validator("name")
+        @classmethod
+        def normalize_name(cls, value: str) -> str:
+            return normalize_name(value)
 
     class Challenge(ApiModel, frozen=True):
         session: str = Field(min_length=1)
         challenge: Challenge.Key
         response: Mapping[str, str] = Field(min_length=1)
+
+        @field_validator("response")
+        @classmethod
+        def normalize_response(cls, value: Mapping[str, str]) -> Mapping[str, str]:
+            match value:
+                case {"name": str(name)}:
+                    return {**value, "name": normalize_name(name)}
+                case _:
+                    return value
 
     class Refresh(ApiModel, frozen=True):
         refreshToken: str = Field(min_length=1)
@@ -94,7 +117,7 @@ class AuthService(BaseService):
         request: AuthRequest.Login,
     ) -> AuthResponse.Tokens | AuthResponse.Challenge:
         match self.provider.authenticate(
-            username=request.username,
+            name=request.name,
             password=request.password,
         ):
             case Tokens() as tokens:
