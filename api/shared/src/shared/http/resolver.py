@@ -22,6 +22,7 @@ from aws_lambda_powertools.event_handler.exceptions import NotFoundError
 from aws_lambda_powertools.event_handler.openapi.exceptions import (
     RequestValidationError,
 )
+from pydantic import ValidationError as PydanticValidationError
 from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
 
 from shared.errors import DomainInvalidTokens
@@ -49,6 +50,9 @@ class HttpResolver(APIGatewayHttpResolver):
         kwargs.setdefault("enable_validation", True)
         super().__init__(*args, **kwargs)
         super().exception_handler(RequestValidationError)(
+            lambda e: UnprocessableEntity(cause=e)
+        )
+        super().exception_handler(PydanticValidationError)(
             lambda e: UnprocessableEntity(cause=e)
         )
         super().exception_handler(NotFoundError)(self._handle_routing_error)

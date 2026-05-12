@@ -86,9 +86,9 @@ class FakeReportProvider:
         *,
         user: str,
         q: str | None = None,
-        final: str | None = None,
-        date_from: str | None = None,
-        date_to: str | None = None,
+        final: bool | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
         limit: int | None = None,
         cursor: str | None = None,
     ) -> ReportPage:
@@ -188,12 +188,12 @@ def user_handler_module(
 
     monkeypatch.setattr(
         user_provider_module,
-        "UserProvider",
+        "CognitoUserProvider",
         lambda: user_provider,
     )
     monkeypatch.setattr(
         report_provider_module,
-        "ReportProvider",
+        "OpenSearchReportProvider",
         lambda: report_provider,
     )
 
@@ -841,8 +841,8 @@ class TestListReports:
             query_params={
                 "q": "report",
                 "final": "true",
-                "dateFrom": "2026-01-01",
-                "dateTo": "2026-01-31",
+                "dateFrom": "2026-01-01T00:00:00Z",
+                "dateTo": "2026-01-31T23:59:59Z",
                 "limit": 10,
                 "cursor": "cursor-1",
             },
@@ -853,9 +853,9 @@ class TestListReports:
             {
                 "user": expected_provider_user,
                 "q": "report",
-                "final": "true",
-                "date_from": "2026-01-01",
-                "date_to": "2026-01-31",
+                "final": True,
+                "date_from": datetime(2026, 1, 1, tzinfo=timezone.utc),
+                "date_to": datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc),
                 "limit": 10,
                 "cursor": "cursor-1",
             }
@@ -999,6 +999,18 @@ class TestListReports:
         "query_params",
         [
             pytest.param({"limit": "not-an-int"}, id="invalid-limit"),
+            pytest.param({"limit": "0"}, id="limit-too-low"),
+            pytest.param({"limit": "101"}, id="limit-too-high"),
+            pytest.param({"final": "not-a-bool"}, id="invalid-final"),
+            pytest.param({"dateFrom": "not-a-date"}, id="invalid-date-from"),
+            pytest.param({"dateTo": "not-a-date"}, id="invalid-date-to"),
+            pytest.param(
+                {
+                    "dateFrom": "2026-02-01T00:00:00Z",
+                    "dateTo": "2026-01-01T00:00:00Z",
+                },
+                id="date-range-backwards",
+            ),
         ],
     )
     def test_rejects_invalid_query_params(
