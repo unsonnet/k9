@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from shared.errors import (
     DomainForbidden,
     DomainNotFound,
@@ -9,12 +11,12 @@ from shared.http import Body, HttpResolver, Path, Query
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK
 
-from .providers.report import ReportProvider
-from .providers.user import UserProvider
+from .providers.report import OpenSearchReportProvider as ReportProvider
+from .providers.user import CognitoUserProvider as UserProvider
 from .service import UserRequest, UserResponse, UserService
 
 app = HttpResolver(enable_validation=True)
-svc = UserService(UserProvider(), ReportProvider())  # type: ignore[reportAbstractUsage]
+svc = UserService(UserProvider(), ReportProvider())
 
 
 @app.get(
@@ -142,9 +144,9 @@ def update_user(
 def list_reports(
     userId: Path[str],
     q: Query[str | None] = None,
-    final: Query[str | None] = None,
-    dateFrom: Query[str | None] = None,
-    dateTo: Query[str | None] = None,
+    final: Query[bool | None] = None,
+    dateFrom: Query[datetime | None] = None,
+    dateTo: Query[datetime | None] = None,
     limit: Query[int | None] = None,
     cursor: Query[str | None] = None,
 ) -> (

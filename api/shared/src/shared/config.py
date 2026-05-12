@@ -55,5 +55,13 @@ class Settings:
     def cognito_user_pool_id(self) -> str:
         return self.env_or_parameter("COGNITO_USER_POOL_ID")
 
+    @cached_property
+    def opensearch_endpoint(self) -> str:
+        return self.env_or_parameter("OPENSEARCH_ENDPOINT")
+
+    @cached_property
+    def opensearch_reports_index(self) -> str:
+        return self.env_or_parameter("OPENSEARCH_REPORTS_INDEX")
+
 
 settings = Settings()

@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Self
 
-from shared.abc import ApiModel, BaseService, public_api
+from shared.abc import ApiModel, BaseService, Field, model_validator, public_api
 from shared.errors import DomainForbidden
 from shared.http import Caller
 
@@ -33,13 +34,21 @@ class UserRequest:
         update: Update
 
     class ListReports(ApiModel, frozen=True):
-        user: str
+        user: str = Field(min_length=1)
         q: str | None = None
-        final: str | None = None
-        dateFrom: str | None = None
-        dateTo: str | None = None
-        limit: int | None = None
+        final: bool | None = None
+        dateFrom: datetime | None = None
+        dateTo: datetime | None = None
+        limit: int | None = Field(default=None, ge=1, le=100)
         cursor: str | None = None
+
+        @model_validator(mode="after")
+        def verify_date_range(self) -> Self:
+            match self.dateFrom, self.dateTo:
+                case datetime() as start, datetime() as end if start > end:
+                    raise ValueError("dateFrom must be before or equal to dateTo")
+                case _:
+                    return self
 
 
 # ──── Response Payloads ───────────────────────────────────────────────────────────────
@@ -83,7 +92,7 @@ class UserResponse:
         user: str
         title: str
         final: bool
-        createdAt: datetime | None = None
+        createdAt: datetime
         updatedAt: datetime | None = None
 
         @classmethod
