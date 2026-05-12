@@ -12,6 +12,14 @@ from shared.errors import (
     DomainUnauthorized,
 )
 
+from tests.helpers import (
+    ProviderMethod,
+    assert_body,
+    assert_no_body,
+    assert_problem,
+    assert_status,
+)
+
 pytestmark = pytest.mark.integration
 
 
@@ -20,69 +28,110 @@ pytestmark = pytest.mark.integration
 
 class FakeAuthProvider:
     def __init__(self) -> None:
-        self.authenticate_result: Tokens | Challenge | None = None
-        self.authenticate_error: Exception | None = None
-
-        self.challenge_result: Tokens | Challenge | None = None
-        self.challenge_error: Exception | None = None
-
-        self.refresh_result: Tokens | None = None
-        self.refresh_error: Exception | None = None
-
-        self.revoke_error: Exception | None = None
-
-    def authenticate(self, *, username: str, password: str) -> Tokens | Challenge:
-        if self.authenticate_error is not None:
-            raise self.authenticate_error
-        if self.authenticate_result is None:
-            raise AssertionError("authenticate_result not configured")
-        return self.authenticate_result
-
-    def respond_to_challenge(
-        self,
-        *,
-        session: str,
-        challenge: Challenge.Key,
-        response: dict[str, str],
-    ) -> Tokens | Challenge:
-        if self.challenge_error is not None:
-            raise self.challenge_error
-        if self.challenge_result is None:
-            raise AssertionError("challenge_result not configured")
-        return self.challenge_result
-
-    def refresh_tokens(self, *, refresh_token: str) -> Tokens:
-        if self.refresh_error is not None:
-            raise self.refresh_error
-        if self.refresh_result is None:
-            raise AssertionError("refresh_result not configured")
-        return self.refresh_result
-
-    def revoke_tokens(
-        self,
-        *,
-        access_token: str | None = None,
-        refresh_token: str | None = None,
-    ) -> None:
-        if self.revoke_error is not None:
-            raise self.revoke_error
+        self.authenticate = ProviderMethod()
+        self.respond_to_challenge = ProviderMethod()
+        self.refresh_tokens = ProviderMethod()
+        self.revoke_tokens = ProviderMethod(result=None)
 
 
-def assert_problem_response(
-    response: dict[str, Any],
-    response_body: Callable[[dict[str, Any]], dict[str, Any]],
+AUTH_ERRORS = [
+    pytest.param(
+        DomainForbidden(),
+        403,
+        "Forbidden",
+        None,
+        id="forbidden",
+    ),
+    pytest.param(
+        DomainRateLimited(),
+        429,
+        "Too Many Requests",
+        None,
+        id="rate-limited",
+    ),
+]
+
+LOGIN_ERRORS = [
+    pytest.param(
+        DomainInvalidCredentials(),
+        401,
+        "Unauthorized",
+        "Invalid credentials",
+        id="invalid-credentials",
+    ),
+    pytest.param(
+        DomainUnauthorized(),
+        401,
+        "Unauthorized",
+        "Invalid credentials",
+        id="unauthorized",
+    ),
+    *AUTH_ERRORS,
+]
+
+CHALLENGE_ERRORS = [
+    pytest.param(
+        DomainInvalidCredentials(),
+        401,
+        "Unauthorized",
+        "Invalid challenge response",
+        id="invalid-challenge-response",
+    ),
+    pytest.param(
+        DomainUnauthorized(),
+        401,
+        "Unauthorized",
+        "Invalid challenge response",
+        id="unauthorized",
+    ),
+    *AUTH_ERRORS,
+]
+
+REFRESH_ERRORS = [
+    pytest.param(
+        DomainInvalidCredentials(),
+        401,
+        "Unauthorized",
+        "Invalid refresh token",
+        id="invalid-refresh-token",
+    ),
+    pytest.param(
+        DomainUnauthorized(),
+        401,
+        "Unauthorized",
+        "Invalid refresh token",
+        id="unauthorized",
+    ),
+    *AUTH_ERRORS,
+]
+
+
+def token_body(
     *,
-    status: int,
-    title: str,
-    detail: str | None = None,
-) -> None:
-    assert response["statusCode"] == status
+    access_token: str = "access-token",
+    refresh_token: str = "refresh-token",
+    id_token: str = "id-token",
+    expires_in: int = 3600,
+) -> dict[str, Any]:
+    return {
+        "accessToken": access_token,
+        "expiresIn": expires_in,
+        "refreshToken": refresh_token,
+        "idToken": id_token,
+    }
 
-    body = response_body(response)
-    assert body["title"] == title
 
-    if detail is not None:
-        assert body["detail"] == detail
+def challenge_body(
+    *,
+    session: str = "challenge-session",
+    challenge: str = "NEW_PASSWORD",
+    parameters: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    return {
+        "session": session,
+        "challenge": challenge,
+        "parameters": parameters or {},
+    }
 
 
 # ──── Fixtures ───────────────────────────────────────────────────────────────────────
@@ -98,9 +147,13 @@ def auth_handler_module(
     monkeypatch: pytest.MonkeyPatch,
     auth_provider: FakeAuthProvider,
 ):
-    import auth.providers.auth as auth
+    import auth.providers.auth as auth_provider_module
 
-    monkeypatch.setattr(auth, "CognitoAuthProvider", lambda: auth_provider)
+    monkeypatch.setattr(
+        auth_provider_module,
+        "CognitoAuthProvider",
+        lambda: auth_provider,
+    )
 
     import auth.handler as handler
 
@@ -160,9 +213,6 @@ def mfa_challenge() -> Challenge:
     )
 
 
-# ──── Tests ───────────────────────────────────────────────────────────────────────────
-
-
 # ──── POST /auth/login ────────────────────────────────────────────────────────────────
 
 
@@ -172,78 +222,56 @@ class TestLogin:
         auth_provider: FakeAuthProvider,
         invoke_auth_api,
         tokens: Tokens,
-        response_body,
     ) -> None:
-        auth_provider.authenticate_result = tokens
+        auth_provider.authenticate.result = tokens
 
         response = invoke_auth_api(
             "/auth/login",
             {
-                "username": "alice",
+                "name": "alice",
                 "password": "secret",
             },
         )
 
-        assert response["statusCode"] == 200
-        assert response_body(response) == {
-            "accessToken": "access-token",
-            "expiresIn": 3600,
-            "refreshToken": "refresh-token",
-            "idToken": "id-token",
-        }
+        assert_status(response, 200)
+        assert_body(response, token_body())
+        assert auth_provider.authenticate.calls == [
+            {
+                "name": "alice",
+                "password": "secret",
+            }
+        ]
 
     def test_returns_challenge(
         self,
         auth_provider: FakeAuthProvider,
         invoke_auth_api,
         password_challenge: Challenge,
-        response_body,
     ) -> None:
-        auth_provider.authenticate_result = password_challenge
+        auth_provider.authenticate.result = password_challenge
 
         response = invoke_auth_api(
             "/auth/login",
             {
-                "username": "alice",
+                "name": "alice",
                 "password": "secret",
             },
         )
 
-        assert response["statusCode"] == 202
-        assert response_body(response) == {
-            "session": "challenge-session",
-            "challenge": "NEW_PASSWORD",
-            "parameters": {},
-        }
+        assert_status(response, 202)
+        assert_body(response, challenge_body())
+        assert auth_provider.authenticate.calls == [
+            {
+                "name": "alice",
+                "password": "secret",
+            }
+        ]
 
     @pytest.mark.parametrize(
         ("provider_error", "expected_status", "expected_title", "expected_detail"),
-        [
-            pytest.param(
-                DomainInvalidCredentials(),
-                401,
-                "Unauthorized",
-                "Invalid credentials",
-                id="invalid-credentials",
-            ),
-            pytest.param(
-                DomainUnauthorized(),
-                401,
-                "Unauthorized",
-                "Invalid credentials",
-                id="unauthorized",
-            ),
-            pytest.param(DomainForbidden(), 403, "Forbidden", None, id="forbidden"),
-            pytest.param(
-                DomainRateLimited(),
-                429,
-                "Too Many Requests",
-                None,
-                id="rate-limited",
-            ),
-        ],
+        LOGIN_ERRORS,
     )
-    def test_maps_domain_errors(
+    def test_maps_provider_errors(
         self,
         auth_provider: FakeAuthProvider,
         invoke_auth_api,
@@ -251,21 +279,19 @@ class TestLogin:
         expected_status: int,
         expected_title: str,
         expected_detail: str | None,
-        response_body,
     ) -> None:
-        auth_provider.authenticate_error = provider_error
+        auth_provider.authenticate.error = provider_error
 
         response = invoke_auth_api(
             "/auth/login",
             {
-                "username": "alice",
+                "name": "alice",
                 "password": "bad-secret",
             },
         )
 
-        assert_problem_response(
+        assert_problem(
             response,
-            response_body,
             status=expected_status,
             title=expected_title,
             detail=expected_detail,
@@ -275,10 +301,10 @@ class TestLogin:
         "payload",
         [
             pytest.param({}, id="missing-all-fields"),
-            pytest.param({"username": "alice"}, id="missing-password"),
-            pytest.param({"password": "secret"}, id="missing-username"),
-            pytest.param({"username": "", "password": "secret"}, id="blank-username"),
-            pytest.param({"username": "alice", "password": ""}, id="blank-password"),
+            pytest.param({"name": "alice"}, id="missing-password"),
+            pytest.param({"password": "secret"}, id="missing-name"),
+            pytest.param({"name": "", "password": "secret"}, id="blank-name"),
+            pytest.param({"name": "alice", "password": ""}, id="blank-password"),
         ],
     )
     def test_rejects_invalid_body(
@@ -288,7 +314,7 @@ class TestLogin:
     ) -> None:
         response = invoke_auth_api("/auth/login", payload)
 
-        assert response["statusCode"] == 422
+        assert_status(response, 422)
 
 
 # ──── POST /auth/challenge ────────────────────────────────────────────────────────────
@@ -300,9 +326,8 @@ class TestChallenge:
         auth_provider: FakeAuthProvider,
         invoke_auth_api,
         tokens: Tokens,
-        response_body,
     ) -> None:
-        auth_provider.challenge_result = tokens
+        auth_provider.respond_to_challenge.result = tokens
 
         response = invoke_auth_api(
             "/auth/challenge",
@@ -310,28 +335,32 @@ class TestChallenge:
                 "session": "challenge-session",
                 "challenge": "MFA",
                 "response": {
-                    "username": "alice",
+                    "name": "alice",
                     "code": "123456",
                 },
             },
         )
 
-        assert response["statusCode"] == 200
-        assert response_body(response) == {
-            "accessToken": "access-token",
-            "expiresIn": 3600,
-            "refreshToken": "refresh-token",
-            "idToken": "id-token",
-        }
+        assert_status(response, 200)
+        assert_body(response, token_body())
+        assert auth_provider.respond_to_challenge.calls == [
+            {
+                "session": "challenge-session",
+                "challenge": Challenge.Key.MFA,
+                "response": {
+                    "name": "alice",
+                    "code": "123456",
+                },
+            }
+        ]
 
     def test_returns_followup_challenge(
         self,
         auth_provider: FakeAuthProvider,
         invoke_auth_api,
         mfa_challenge: Challenge,
-        response_body,
     ) -> None:
-        auth_provider.challenge_result = mfa_challenge
+        auth_provider.respond_to_challenge.result = mfa_challenge
 
         response = invoke_auth_api(
             "/auth/challenge",
@@ -339,47 +368,37 @@ class TestChallenge:
                 "session": "challenge-session",
                 "challenge": "NEW_PASSWORD",
                 "response": {
-                    "username": "alice",
+                    "name": "alice",
                     "password": "new-secret",
                 },
             },
         )
 
-        assert response["statusCode"] == 202
-        assert response_body(response) == {
-            "session": "next-session",
-            "challenge": "NEW_MFA",
-            "parameters": {"secret": "software-token-secret"},
-        }
+        assert_status(response, 202)
+        assert_body(
+            response,
+            challenge_body(
+                session="next-session",
+                challenge="NEW_MFA",
+                parameters={"secret": "software-token-secret"},
+            ),
+        )
+        assert auth_provider.respond_to_challenge.calls == [
+            {
+                "session": "challenge-session",
+                "challenge": Challenge.Key.NEW_PASSWORD,
+                "response": {
+                    "name": "alice",
+                    "password": "new-secret",
+                },
+            }
+        ]
 
     @pytest.mark.parametrize(
         ("provider_error", "expected_status", "expected_title", "expected_detail"),
-        [
-            pytest.param(
-                DomainInvalidCredentials(),
-                401,
-                "Unauthorized",
-                "Invalid challenge response",
-                id="invalid-challenge-response",
-            ),
-            pytest.param(
-                DomainUnauthorized(),
-                401,
-                "Unauthorized",
-                "Invalid challenge response",
-                id="unauthorized",
-            ),
-            pytest.param(DomainForbidden(), 403, "Forbidden", None, id="forbidden"),
-            pytest.param(
-                DomainRateLimited(),
-                429,
-                "Too Many Requests",
-                None,
-                id="rate-limited",
-            ),
-        ],
+        CHALLENGE_ERRORS,
     )
-    def test_maps_domain_errors(
+    def test_maps_provider_errors(
         self,
         auth_provider: FakeAuthProvider,
         invoke_auth_api,
@@ -387,9 +406,8 @@ class TestChallenge:
         expected_status: int,
         expected_title: str,
         expected_detail: str | None,
-        response_body,
     ) -> None:
-        auth_provider.challenge_error = provider_error
+        auth_provider.respond_to_challenge.error = provider_error
 
         response = invoke_auth_api(
             "/auth/challenge",
@@ -397,15 +415,14 @@ class TestChallenge:
                 "session": "challenge-session",
                 "challenge": "MFA",
                 "response": {
-                    "username": "alice",
+                    "name": "alice",
                     "code": "123456",
                 },
             },
         )
 
-        assert_problem_response(
+        assert_problem(
             response,
-            response_body,
             status=expected_status,
             title=expected_title,
             detail=expected_detail,
@@ -419,7 +436,7 @@ class TestChallenge:
                 {
                     "challenge": "MFA",
                     "response": {
-                        "username": "alice",
+                        "name": "alice",
                         "code": "123456",
                     },
                 },
@@ -429,7 +446,7 @@ class TestChallenge:
                 {
                     "session": "challenge-session",
                     "response": {
-                        "username": "alice",
+                        "name": "alice",
                         "code": "123456",
                     },
                 },
@@ -447,7 +464,7 @@ class TestChallenge:
                     "session": "challenge-session",
                     "challenge": "NOT_A_REAL_CHALLENGE",
                     "response": {
-                        "username": "alice",
+                        "name": "alice",
                         "code": "123456",
                     },
                 },
@@ -462,7 +479,7 @@ class TestChallenge:
     ) -> None:
         response = invoke_auth_api("/auth/challenge", payload)
 
-        assert response["statusCode"] == 422
+        assert_status(response, 422)
 
 
 # ──── POST /auth/refresh ──────────────────────────────────────────────────────────────
@@ -474,9 +491,8 @@ class TestRefresh:
         auth_provider: FakeAuthProvider,
         invoke_auth_api,
         refreshed_tokens: Tokens,
-        response_body,
     ) -> None:
-        auth_provider.refresh_result = refreshed_tokens
+        auth_provider.refresh_tokens.result = refreshed_tokens
 
         response = invoke_auth_api(
             "/auth/refresh",
@@ -485,42 +501,26 @@ class TestRefresh:
             },
         )
 
-        assert response["statusCode"] == 200
-        assert response_body(response) == {
-            "accessToken": "new-access-token",
-            "expiresIn": 3600,
-            "refreshToken": "refresh-token",
-            "idToken": "new-id-token",
-        }
+        assert_status(response, 200)
+        assert_body(
+            response,
+            token_body(
+                access_token="new-access-token",
+                refresh_token="refresh-token",
+                id_token="new-id-token",
+            ),
+        )
+        assert auth_provider.refresh_tokens.calls == [
+            {
+                "refresh_token": "refresh-token",
+            }
+        ]
 
     @pytest.mark.parametrize(
         ("provider_error", "expected_status", "expected_title", "expected_detail"),
-        [
-            pytest.param(
-                DomainInvalidCredentials(),
-                401,
-                "Unauthorized",
-                "Invalid refresh token",
-                id="invalid-refresh-token",
-            ),
-            pytest.param(
-                DomainUnauthorized(),
-                401,
-                "Unauthorized",
-                "Invalid refresh token",
-                id="unauthorized",
-            ),
-            pytest.param(DomainForbidden(), 403, "Forbidden", None, id="forbidden"),
-            pytest.param(
-                DomainRateLimited(),
-                429,
-                "Too Many Requests",
-                None,
-                id="rate-limited",
-            ),
-        ],
+        REFRESH_ERRORS,
     )
-    def test_maps_domain_errors(
+    def test_maps_provider_errors(
         self,
         auth_provider: FakeAuthProvider,
         invoke_auth_api,
@@ -528,9 +528,8 @@ class TestRefresh:
         expected_status: int,
         expected_title: str,
         expected_detail: str | None,
-        response_body,
     ) -> None:
-        auth_provider.refresh_error = provider_error
+        auth_provider.refresh_tokens.error = provider_error
 
         response = invoke_auth_api(
             "/auth/refresh",
@@ -539,9 +538,8 @@ class TestRefresh:
             },
         )
 
-        assert_problem_response(
+        assert_problem(
             response,
-            response_body,
             status=expected_status,
             title=expected_title,
             detail=expected_detail,
@@ -561,7 +559,7 @@ class TestRefresh:
     ) -> None:
         response = invoke_auth_api("/auth/refresh", payload)
 
-        assert response["statusCode"] == 422
+        assert_status(response, 422)
 
 
 # ──── POST /auth/logout ───────────────────────────────────────────────────────────────
@@ -570,6 +568,7 @@ class TestRefresh:
 class TestLogout:
     def test_returns_no_content(
         self,
+        auth_provider: FakeAuthProvider,
         invoke_auth_api,
     ) -> None:
         response = invoke_auth_api(
@@ -579,8 +578,57 @@ class TestLogout:
             },
         )
 
-        assert response["statusCode"] == 204
-        assert response.get("body") in (None, "")
+        assert_status(response, 204)
+        assert_no_body(response)
+        assert auth_provider.revoke_tokens.calls == [
+            {
+                "access_token": "access-token",
+                "refresh_token": None,
+            }
+        ]
+
+    def test_accepts_refresh_token(
+        self,
+        auth_provider: FakeAuthProvider,
+        invoke_auth_api,
+    ) -> None:
+        response = invoke_auth_api(
+            "/auth/logout",
+            {
+                "refreshToken": "refresh-token",
+            },
+        )
+
+        assert_status(response, 204)
+        assert_no_body(response)
+        assert auth_provider.revoke_tokens.calls == [
+            {
+                "access_token": None,
+                "refresh_token": "refresh-token",
+            }
+        ]
+
+    def test_accepts_both_tokens(
+        self,
+        auth_provider: FakeAuthProvider,
+        invoke_auth_api,
+    ) -> None:
+        response = invoke_auth_api(
+            "/auth/logout",
+            {
+                "accessToken": "access-token",
+                "refreshToken": "refresh-token",
+            },
+        )
+
+        assert_status(response, 204)
+        assert_no_body(response)
+        assert auth_provider.revoke_tokens.calls == [
+            {
+                "access_token": "access-token",
+                "refresh_token": "refresh-token",
+            }
+        ]
 
     @pytest.mark.parametrize(
         "provider_error",
@@ -589,13 +637,13 @@ class TestLogout:
             pytest.param(DomainUnauthorized(), id="unauthorized"),
         ],
     )
-    def test_is_idempotent_for_unauthorized_token(
+    def test_handles_unauthorized_token_idempotently(
         self,
         auth_provider: FakeAuthProvider,
         invoke_auth_api,
         provider_error: Exception,
     ) -> None:
-        auth_provider.revoke_error = provider_error
+        auth_provider.revoke_tokens.error = provider_error
 
         response = invoke_auth_api(
             "/auth/logout",
@@ -604,8 +652,8 @@ class TestLogout:
             },
         )
 
-        assert response["statusCode"] == 204
-        assert response.get("body") in (None, "")
+        assert_status(response, 204)
+        assert_no_body(response)
 
     @pytest.mark.parametrize(
         ("provider_error", "expected_status", "expected_title"),
@@ -619,16 +667,15 @@ class TestLogout:
             ),
         ],
     )
-    def test_maps_domain_errors(
+    def test_maps_provider_errors(
         self,
         auth_provider: FakeAuthProvider,
         invoke_auth_api,
         provider_error: Exception,
         expected_status: int,
         expected_title: str,
-        response_body,
     ) -> None:
-        auth_provider.revoke_error = provider_error
+        auth_provider.revoke_tokens.error = provider_error
 
         response = invoke_auth_api(
             "/auth/logout",
@@ -637,20 +684,18 @@ class TestLogout:
             },
         )
 
-        assert_problem_response(
+        assert_problem(
             response,
-            response_body,
             status=expected_status,
             title=expected_title,
         )
 
-    def test_unexpected_domain_error_returns_internal_server_error(
+    def test_maps_unexpected_domain_error(
         self,
         auth_provider: FakeAuthProvider,
         invoke_auth_api,
-        response_body,
     ) -> None:
-        auth_provider.revoke_error = DomainInvariantViolation("unexpected")
+        auth_provider.revoke_tokens.error = DomainInvariantViolation("unexpected")
 
         response = invoke_auth_api(
             "/auth/logout",
@@ -659,9 +704,8 @@ class TestLogout:
             },
         )
 
-        assert_problem_response(
+        assert_problem(
             response,
-            response_body,
             status=500,
             title="Internal Server Error",
         )
@@ -680,7 +724,7 @@ class TestLogout:
     ) -> None:
         response = invoke_auth_api("/auth/logout", payload)
 
-        assert response["statusCode"] == 422
+        assert_status(response, 422)
 
 
 # ──── Routing ────────────────────────────────────────────────────────────────────────
@@ -708,7 +752,7 @@ class TestRouting:
             lambda_context,
         )
 
-        assert response["statusCode"] == 405
+        assert_status(response, 405)
 
     def test_returns_not_found_for_unknown_route(
         self,
@@ -721,4 +765,4 @@ class TestRouting:
             lambda_context,
         )
 
-        assert response["statusCode"] == 404
+        assert_status(response, 404)

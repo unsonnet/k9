@@ -14,6 +14,7 @@ from shared.errors import (
     DomainNotFound,
     DomainRateLimited,
 )
+from shared.providers.cognito import encode_name
 
 pytestmark = pytest.mark.unit
 
@@ -24,16 +25,18 @@ pytestmark = pytest.mark.unit
 def admin_initiate_auth_params(
     provider: auth.CognitoAuthProvider,
     *,
-    username: str = "alice",
+    name: str = "alice",
     password: str = "secret",
 ) -> dict[str, Any]:
+    xname = encode_name(name)
+
     return {
         "ClientId": "client-id",
         "UserPoolId": "user-pool-id",
         "AuthFlow": "ADMIN_USER_PASSWORD_AUTH",
         "AuthParameters": {
-            "SECRET_HASH": provider._secret_hash(username),
-            "USERNAME": username,
+            "SECRET_HASH": provider._secret_hash(xname),
+            "USERNAME": xname,
             "PASSWORD": password,
         },
     }
@@ -43,18 +46,20 @@ def admin_respond_to_auth_challenge_params(
     provider: auth.CognitoAuthProvider,
     *,
     session: str = "challenge-session-token",
-    username: str = "alice",
+    name: str = "alice",
     challenge_name: str,
     challenge_responses: dict[str, str] | None = None,
 ) -> dict[str, Any]:
+    xname = encode_name(name)
+
     return {
         "ClientId": "client-id",
         "UserPoolId": "user-pool-id",
         "Session": session,
         "ChallengeName": challenge_name,
         "ChallengeResponses": {
-            "SECRET_HASH": provider._secret_hash(username),
-            "USERNAME": username,
+            "SECRET_HASH": provider._secret_hash(xname),
+            "USERNAME": xname,
             **(challenge_responses or {}),
         },
     }
@@ -221,7 +226,7 @@ class TestAuthenticate:
         )
 
         result = provider.authenticate(
-            username="alice",
+            name="alice",
             password="secret",
         )
 
@@ -250,7 +255,7 @@ class TestAuthenticate:
             ),
         ],
     )
-    def test_returns_challenge(
+    def test_returns_password_challenge(
         self,
         provider: auth.CognitoAuthProvider,
         stubber: Stubber,
@@ -264,7 +269,7 @@ class TestAuthenticate:
         )
 
         result = provider.authenticate(
-            username="alice",
+            name="alice",
             password="secret",
         )
 
@@ -296,7 +301,7 @@ class TestAuthenticate:
         )
 
         result = provider.authenticate(
-            username="alice",
+            name="alice",
             password="secret",
         )
 
@@ -363,7 +368,7 @@ class TestAuthenticate:
 
         with pytest.raises(expected_error):
             provider.authenticate(
-                username="alice",
+                name="alice",
                 password="secret",
             )
 
@@ -392,7 +397,7 @@ class TestRespondToChallenge:
             session="challenge-session-token",
             challenge=Challenge.Key.NEW_PASSWORD,
             response={
-                "username": "alice",
+                "name": "alice",
                 "password": "new-secret",
             },
         )
@@ -422,7 +427,7 @@ class TestRespondToChallenge:
             session="challenge-session-token",
             challenge=Challenge.Key.NEW_PASSWORD,
             response={
-                "username": "alice",
+                "name": "alice",
                 "password": "new-secret",
             },
         )
@@ -459,7 +464,7 @@ class TestRespondToChallenge:
             session="challenge-session-token",
             challenge=Challenge.Key.NEW_MFA,
             response={
-                "username": "alice",
+                "name": "alice",
                 "code": "123456",
             },
         )
@@ -486,7 +491,7 @@ class TestRespondToChallenge:
             session="challenge-session-token",
             challenge=Challenge.Key.MFA,
             response={
-                "username": "alice",
+                "name": "alice",
                 "code": "123456",
             },
         )
@@ -541,7 +546,7 @@ class TestRespondToChallenge:
                 session="challenge-session-token",
                 challenge=Challenge.Key.NEW_PASSWORD,
                 response={
-                    "username": "alice",
+                    "name": "alice",
                     "password": "new-secret",
                 },
             )
@@ -593,7 +598,7 @@ class TestRespondToChallenge:
                 session="challenge-session-token",
                 challenge=Challenge.Key.NEW_MFA,
                 response={
-                    "username": "alice",
+                    "name": "alice",
                     "code": "123456",
                 },
             )
@@ -656,7 +661,7 @@ class TestRespondToChallenge:
                 session="challenge-session-token",
                 challenge=Challenge.Key.NEW_MFA,
                 response={
-                    "username": "alice",
+                    "name": "alice",
                     "code": "123456",
                 },
             )
@@ -709,7 +714,7 @@ class TestRespondToChallenge:
                 session="challenge-session-token",
                 challenge=Challenge.Key.MFA,
                 response={
-                    "username": "alice",
+                    "name": "alice",
                     "code": "123456",
                 },
             )
@@ -809,7 +814,7 @@ class TestRefreshTokens:
 
 
 class TestRevokeTokens:
-    def test_with_access_token_uses_global_sign_out(
+    def test_uses_expected_payload_with_access_token(
         self,
         provider: auth.CognitoAuthProvider,
         stubber: Stubber,
@@ -826,7 +831,7 @@ class TestRevokeTokens:
 
         assert response is None
 
-    def test_with_refresh_token_uses_revoke_token(
+    def test_uses_expected_payload_with_refresh_token(
         self,
         provider: auth.CognitoAuthProvider,
         stubber: Stubber,
@@ -856,7 +861,7 @@ class TestRevokeTokens:
             ),
         ],
     )
-    def test_requires_exactly_one_token(
+    def test_rejects_missing_or_multiple_tokens(
         self,
         provider: auth.CognitoAuthProvider,
         access_token: str | None,
@@ -1014,7 +1019,7 @@ class TestResponseParsing:
 
         with pytest.raises(DomainInvariantViolation):
             provider.authenticate(
-                username="alice",
+                name="alice",
                 password="secret",
             )
 
@@ -1043,6 +1048,6 @@ class TestResponseParsing:
 
         with pytest.raises(DomainInvariantViolation):
             provider.authenticate(
-                username="alice",
+                name="alice",
                 password="secret",
             )

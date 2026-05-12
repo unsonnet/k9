@@ -2,12 +2,17 @@ import json
 from urllib.parse import urlencode
 
 import pytest
-from shared.errors import DomainUnauthorized
 from shared.http import Caller
+from shared.providers.cognito import encode_id
 
 
 @pytest.fixture
-def apigw_event():
+def current_caller():
+    return {"claims": None}
+
+
+@pytest.fixture
+def apigw_event(current_caller):
     def _build(
         path: str,
         body: dict | None = None,
@@ -51,6 +56,14 @@ def apigw_event():
             "isBase64Encoded": False,
         }
 
+        claims = current_caller["claims"]
+        if claims is not None:
+            event["requestContext"]["authorizer"] = {
+                "jwt": {
+                    "claims": claims,
+                },
+            }
+
         if clean_query_params:
             event["queryStringParameters"] = {
                 key: str(value) for key, value in clean_query_params.items()
@@ -74,28 +87,16 @@ def lambda_context():
 
 
 @pytest.fixture
-def response_body():
-    def _parse(response: dict) -> dict:
-        body = response.get("body")
-        return json.loads(body) if body else {}
-
-    return _parse
-
-
-@pytest.fixture
 def caller_factory():
-
     def _build(
         *,
         id: str = "user-1",
         name: str = "Alice",
-        email: str | None = None,
         groups: tuple[str, ...] = (),
     ) -> Caller:
         return Caller(
             id=id,
             name=name,
-            email=email or f"{id}@example.com",
             groups=groups,
         )
 
@@ -107,7 +108,6 @@ def user_caller(caller_factory):
     return caller_factory(
         id="user-1",
         name="Alice",
-        email="alice@example.com",
         groups=("user",),
     )
 
@@ -117,26 +117,27 @@ def admin_caller(caller_factory):
     return caller_factory(
         id="admin-1",
         name="Admin",
-        email="admin@example.com",
         groups=("admin",),
     )
 
 
 @pytest.fixture
-def use_caller(monkeypatch: pytest.MonkeyPatch):
-    def _use(handler_module, caller):
-        monkeypatch.setattr(handler_module.app, "caller", lambda: caller)
+def use_caller(current_caller):
+    def _use(caller: Caller, *, groups_as_string: bool = False):
+        groups = ",".join(caller.groups) if groups_as_string else list(caller.groups)
+        current_caller["claims"] = {
+            "cognito:username": encode_id(caller.id),
+            "cognito:name": caller.name,
+            "cognito:groups": groups,
+        }
         return caller
 
     return _use
 
 
 @pytest.fixture
-def use_unauthorized_caller(monkeypatch: pytest.MonkeyPatch):
-    def _use(handler_module):
-        def _raise():
-            raise DomainUnauthorized()
-
-        monkeypatch.setattr(handler_module.app, "caller", _raise)
+def use_unauthorized_caller(current_caller):
+    def _use():
+        current_caller["claims"] = None
 
     return _use

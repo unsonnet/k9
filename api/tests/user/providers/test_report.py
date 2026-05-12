@@ -18,6 +18,7 @@ from shared.errors import (
     DomainNotFound,
     DomainRateLimited,
 )
+from shared.providers.cognito import encode_id
 from user.providers.report import Report, ReportPage
 
 pytestmark = pytest.mark.unit
@@ -32,7 +33,7 @@ INDEX = "reports"
 def report_source(
     *,
     id: str = "report-1",
-    user: str = "user-1",
+    xuser: str = "user-1",
     title: str = "Report One",
     final: bool = True,
     created_at: str = "2026-01-01T00:00:00+00:00",
@@ -40,7 +41,7 @@ def report_source(
 ) -> dict[str, Any]:
     return {
         "id": id,
-        "user": user,
+        "xuser": encode_id(xuser),
         "title": title,
         "final": final,
         "created_at": created_at,
@@ -74,7 +75,7 @@ def list_reports_body(
     limit: int | None = None,
     cursor: str | None = None,
 ) -> dict[str, Any]:
-    filters: list[dict[str, Any]] = [{"term": {"user": user}}]
+    filters: list[dict[str, Any]] = [{"term": {"xuser": encode_id(user)}}]
 
     if final is not None:
         filters.append({"term": {"final": final}})
@@ -108,11 +109,45 @@ def list_reports_body(
                     {
                         "must": [
                             {
-                                "match": {
-                                    "title": {
-                                        "query": q,
-                                        "operator": "and",
-                                    }
+                                "bool": {
+                                    "should": [
+                                        {
+                                            "term": {
+                                                "id": {
+                                                    "value": q,
+                                                    "boost": 10,
+                                                    "case_insensitive": True,
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "prefix": {
+                                                "id": {
+                                                    "value": q,
+                                                    "boost": 6,
+                                                    "case_insensitive": True,
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "match": {
+                                                "title": {
+                                                    "query": q,
+                                                    "operator": "and",
+                                                    "boost": 4,
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "match_phrase_prefix": {
+                                                "title": {
+                                                    "query": q,
+                                                    "boost": 2,
+                                                }
+                                            }
+                                        },
+                                    ],
+                                    "minimum_should_match": 1,
                                 }
                             }
                         ]
@@ -122,10 +157,11 @@ def list_reports_body(
                 ),
             }
         },
-        "sort": [
-            {"created_at": "desc"},
-            {"id": "asc"},
-        ],
+        "sort": (
+            [{"_score": "desc"}, {"created_at": "desc"}, {"id": "asc"}]
+            if q
+            else [{"created_at": "desc"}, {"id": "asc"}]
+        ),
         **(
             {"search_after": json.loads(base64.urlsafe_b64decode(cursor).decode())}
             if cursor
@@ -166,7 +202,7 @@ class RaisingOpenSearch:
 
 
 class TestListReports:
-    def test_uses_expected_payload_and_returns_report_page(self) -> None:
+    def test_uses_expected_payload_and_returns_page(self) -> None:
         cursor = report_cursor(["2025-12-31T00:00:00+00:00", "report-0"])
         client = FakeOpenSearch(
             {
@@ -222,21 +258,25 @@ class TestListReports:
         ]
         assert result == ReportPage(
             reports=[
-                Report(
-                    id="report-1",
-                    user="user-1",
-                    title="Report One",
-                    final=True,
-                    created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
-                    updated_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
+                Report.model_validate(
+                    {
+                        "id": "report-1",
+                        "xuser": encode_id("user-1"),
+                        "title": "Report One",
+                        "final": True,
+                        "created_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
+                        "updated_at": datetime(2026, 1, 2, tzinfo=timezone.utc),
+                    }
                 ),
-                Report(
-                    id="report-2",
-                    user="user-1",
-                    title="Report Two",
-                    final=False,
-                    created_at=datetime(2026, 1, 3, tzinfo=timezone.utc),
-                    updated_at=None,
+                Report.model_validate(
+                    {
+                        "id": "report-2",
+                        "xuser": encode_id("user-1"),
+                        "title": "Report Two",
+                        "final": False,
+                        "created_at": datetime(2026, 1, 3, tzinfo=timezone.utc),
+                        "updated_at": None,
+                    }
                 ),
             ],
             cursor=report_cursor(["2026-01-01T00:00:00+00:00", "report-1"]),
@@ -270,7 +310,7 @@ class TestListReports:
         ]
         assert result == ReportPage(reports=[], cursor=None)
 
-    def test_returns_empty_page_when_provider_returns_no_reports(self) -> None:
+    def test_returns_empty_page(self) -> None:
         client = FakeOpenSearch({"hits": {"hits": []}})
         provider = make_provider(client)
 

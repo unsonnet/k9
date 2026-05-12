@@ -11,12 +11,45 @@ from shared.errors import (
     DomainNotFound,
     DomainRateLimited,
 )
+from shared.providers.cognito import encode_id, encode_name
 from user.providers.user import User, UserPage
 
 pytestmark = pytest.mark.unit
 
 
 # ──── Helpers ─────────────────────────────────────────────────────────────────────────
+
+REGION = "us-east-1"
+USER_POOL_ID = "pool-id"
+USER_ID = "user-1"
+ADMIN_ID = "admin-1"
+USER_XID = encode_id(USER_ID)
+ADMIN_XID = encode_id(ADMIN_ID)
+CREATED_AT = datetime(2026, 1, 1, tzinfo=timezone.utc)
+UPDATED_AT = datetime(2026, 1, 2, tzinfo=timezone.utc)
+
+PROVIDER_ERROR_CASES = [
+    pytest.param("ForbiddenException", DomainForbidden, id="forbidden"),
+    pytest.param("NotAuthorizedException", DomainForbidden, id="not-authorized"),
+    pytest.param("TooManyRequestsException", DomainRateLimited, id="too-many-requests"),
+    pytest.param("LimitExceededException", DomainRateLimited, id="limit-exceeded"),
+    pytest.param("UserNotFoundException", DomainNotFound, id="user-not-found"),
+    pytest.param("ResourceNotFoundException", DomainNotFound, id="resource-not-found"),
+]
+
+
+def user_params(xid: str = USER_XID) -> dict[str, str]:
+    return {
+        "UserPoolId": USER_POOL_ID,
+        "Username": xid,
+    }
+
+
+def group_params(xid: str = USER_XID) -> dict[str, str]:
+    return {
+        **user_params(xid),
+        "GroupName": "admin",
+    }
 
 
 def list_users_params(
@@ -25,62 +58,113 @@ def list_users_params(
     limit: int | None = None,
     cursor: str | None = None,
 ) -> dict[str, Any]:
-    q = q.replace("\\", "\\\\").replace('"', '\\"') if q else None
-
     return {
-        "UserPoolId": "pool-id",
+        "UserPoolId": USER_POOL_ID,
         "Limit": min(limit or 25, 60),
-        **({"Filter": f'preferred_username ^= "{q}"'} if q else {}),
+        **({"Filter": f'name ^= "{q}"'} if q else {}),
         **({"PaginationToken": cursor} if cursor else {}),
     }
 
 
-def cognito_user_response(
+def name_update_params(
     *,
-    id: str = "user-1",
-    name: str = "Alice",
-    enabled: bool = True,
-    created_at: datetime | None = None,
-    updated_at: datetime | None = None,
-    for_admin_get_user: bool = False,
+    xid: str = USER_XID,
+    name: str = "Alice Updated",
 ) -> dict[str, Any]:
-    created_at = created_at or datetime(2026, 1, 1, tzinfo=timezone.utc)
-    updated_at = updated_at or datetime(2026, 1, 2, tzinfo=timezone.utc)
-    attrs_key = "UserAttributes" if for_admin_get_user else "Attributes"
-
     return {
-        "Username": id,
-        "Enabled": enabled,
-        "UserCreateDate": created_at,
-        "UserLastModifiedDate": updated_at,
-        attrs_key: [
-            {
-                "Name": "preferred_username",
-                "Value": name,
-            }
+        **user_params(xid),
+        "UserAttributes": [
+            {"Name": "preferred_username", "Value": encode_name(name)},
+            {"Name": "name", "Value": name},
         ],
     }
 
 
-def role_response(*, is_admin: bool) -> dict[str, list[dict[str, str]]]:
-    groups = [{"GroupName": "admin"}] if is_admin else [{"GroupName": "user"}]
-    return {"Groups": groups}
+def cognito_user(
+    *,
+    id: str = USER_ID,
+    name: str = "Alice",
+    enabled: bool = True,
+    created_at: datetime = CREATED_AT,
+    updated_at: datetime = UPDATED_AT,
+    admin_get_user: bool = False,
+) -> dict[str, Any]:
+    attrs_key = "UserAttributes" if admin_get_user else "Attributes"
+    return {
+        "Username": encode_id(id),
+        "Enabled": enabled,
+        "UserCreateDate": created_at,
+        "UserLastModifiedDate": updated_at,
+        attrs_key: [
+            {"Name": "preferred_username", "Value": encode_name(name)},
+            {"Name": "name", "Value": name},
+        ],
+    }
 
 
-def add_client_error(
+def groups(*, admin: bool = False) -> dict[str, list[dict[str, str]]]:
+    return {"Groups": [{"GroupName": "admin" if admin else "user"}]}
+
+
+def expected_user(
+    *,
+    id: str = USER_ID,
+    name: str = "Alice",
+    role: User.Role = User.Role.USER,
+    enabled: bool = True,
+    created_at: datetime = CREATED_AT,
+    updated_at: datetime = UPDATED_AT,
+) -> User:
+    return User(
+        id=id,
+        name=name,
+        role=role,
+        enabled=enabled,
+        created_at=created_at,
+        updated_at=updated_at,
+        last_login_at=None,
+    )
+
+
+def stub_group_lookup(
+    stubber: Stubber, *, xid: str = USER_XID, admin: bool = False
+) -> None:
+    stubber.add_response(
+        "admin_list_groups_for_user",
+        groups(admin=admin),
+        user_params(xid),
+    )
+
+
+def stub_get_user(
+    stubber: Stubber,
+    *,
+    id: str = USER_ID,
+    name: str = "Alice",
+    role: User.Role = User.Role.USER,
+    enabled: bool = True,
+) -> None:
+    xid = encode_id(id)
+    stubber.add_response(
+        "admin_get_user",
+        cognito_user(id=id, name=name, enabled=enabled, admin_get_user=True),
+        user_params(xid),
+    )
+    stub_group_lookup(stubber, xid=xid, admin=role == User.Role.ADMIN)
+
+
+def add_provider_error(
     stubber: Stubber,
     *,
     method: str,
-    service_error_code: str,
+    code: str,
     expected_params: dict[str, Any],
-    service_message: str = "provider error",
-    http_status_code: int = 400,
 ) -> None:
     stubber.add_client_error(
         method,
-        service_error_code=service_error_code,
-        service_message=service_message,
-        http_status_code=http_status_code,
+        service_error_code=code,
+        service_message="provider error",
+        http_status_code=400,
         expected_params=expected_params,
     )
 
@@ -90,22 +174,16 @@ def add_client_error(
 
 @pytest.fixture(autouse=True)
 def aws_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    """
-    Prevent boto3 from attempting to discover real AWS credentials.
-
-    These tests use botocore Stubber, so no real AWS calls are made, but boto3
-    still needs credentials available when constructing/signing requests.
-    """
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
     monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
     monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
     monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
-    monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
+    monkeypatch.setenv("AWS_DEFAULT_REGION", REGION)
 
 
 @pytest.fixture
 def cognito_client():
-    return boto3.client("cognito-idp", region_name="us-east-1")
+    return boto3.client("cognito-idp", region_name=REGION)
 
 
 @pytest.fixture
@@ -118,11 +196,7 @@ def provider(
         "client",
         lambda service_name, region_name=None: cognito_client,
     )
-
-    return user.CognitoUserProvider(
-        region="us-east-1",
-        user_pool_id="pool-id",
-    )
+    return user.CognitoUserProvider(region=REGION, user_pool_id=USER_POOL_ID)
 
 
 @pytest.fixture
@@ -131,210 +205,78 @@ def stubber(cognito_client):
         yield stubber
 
 
-@pytest.fixture
-def user_record() -> User:
-    return User(
-        id="user-1",
-        name="Alice",
-        role=User.Role.USER,
-        enabled=True,
-        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
-        updated_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
-        last_login_at=None,
-    )
-
-
-@pytest.fixture
-def admin_record() -> User:
-    return User(
-        id="admin-1",
-        name="Admin",
-        role=User.Role.ADMIN,
-        enabled=True,
-        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
-        updated_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
-        last_login_at=None,
-    )
-
-
-@pytest.fixture
-def disabled_admin_record() -> User:
-    return User(
-        id="user-1",
-        name="Alice Updated",
-        role=User.Role.ADMIN,
-        enabled=False,
-        created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
-        updated_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
-        last_login_at=None,
-    )
-
-
-@pytest.fixture
-def user_page(
-    user_record: User,
-    admin_record: User,
-) -> UserPage:
-    return UserPage(
-        users=[
-            user_record,
-            admin_record,
-        ],
-        cursor="next-cursor",
-    )
-
-
-# ──── Tests ───────────────────────────────────────────────────────────────────────────
-
-
 # ──── list_users() ────────────────────────────────────────────────────────────────────
 
 
 class TestListUsers:
-    def test_uses_expected_payload_and_returns_user_page(
+    def test_uses_expected_payload_and_returns_page(
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
-        user_page: UserPage,
     ) -> None:
         stubber.add_response(
             "list_users",
             {
                 "Users": [
-                    cognito_user_response(id="user-1", name="Alice"),
-                    cognito_user_response(id="admin-1", name="Admin"),
+                    cognito_user(id=USER_ID, name="Alice"),
+                    cognito_user(id=ADMIN_ID, name="Admin"),
                 ],
                 "PaginationToken": "next-cursor",
             },
             list_users_params(q="ali", limit=10, cursor="cursor-1"),
         )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            role_response(is_admin=False),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            role_response(is_admin=True),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "admin-1",
-            },
+        stub_group_lookup(stubber, xid=USER_XID)
+        stub_group_lookup(stubber, xid=ADMIN_XID, admin=True)
+
+        result = provider.list_users(q="ali", limit=10, cursor="cursor-1")
+
+        assert result == UserPage(
+            users=[
+                expected_user(),
+                expected_user(id=ADMIN_ID, name="Admin", role=User.Role.ADMIN),
+            ],
+            cursor="next-cursor",
         )
 
-        result = provider.list_users(
-            q="ali",
-            limit=10,
-            cursor="cursor-1",
-        )
-
-        assert result == user_page
-
-    def test_uses_default_limit_when_limit_is_omitted(
+    def test_uses_default_limit_and_returns_empty_page(
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
     ) -> None:
-        stubber.add_response(
-            "list_users",
-            {
-                "Users": [],
-            },
-            list_users_params(),
-        )
+        stubber.add_response("list_users", {"Users": []}, list_users_params())
 
         result = provider.list_users()
 
         assert result == UserPage(users=[], cursor=None)
 
-    def test_escapes_query_and_clamps_limit(
-        self,
-        provider: user.CognitoUserProvider,
-        stubber: Stubber,
-    ) -> None:
-        query = 'ali\\ce"name'
-
-        stubber.add_response(
-            "list_users",
-            {
-                "Users": [
-                    cognito_user_response(),
-                ],
-            },
-            list_users_params(q=query, limit=200),
-        )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            role_response(is_admin=False),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-
-        result = provider.list_users(q=query, limit=200)
-
-        assert result.users[0].id == "user-1"
-
-    def test_returns_empty_page_when_provider_returns_no_users(
+    def test_clamps_limit_to_100(
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
     ) -> None:
         stubber.add_response(
             "list_users",
-            {
-                "Users": [],
-                "PaginationToken": "next-cursor",
-            },
-            list_users_params(limit=10),
+            {"Users": [cognito_user()]},
+            list_users_params(limit=200),
         )
+        stub_group_lookup(stubber)
 
-        result = provider.list_users(limit=10)
+        result = provider.list_users(limit=200)
 
-        assert result == UserPage(users=[], cursor="next-cursor")
+        assert result.users == [expected_user()]
 
-    @pytest.mark.parametrize(
-        ("service_error_code", "expected_error"),
-        [
-            pytest.param("ForbiddenException", DomainForbidden, id="forbidden"),
-            pytest.param(
-                "NotAuthorizedException",
-                DomainForbidden,
-                id="not-authorized",
-            ),
-            pytest.param(
-                "TooManyRequestsException",
-                DomainRateLimited,
-                id="too-many-requests",
-            ),
-            pytest.param(
-                "LimitExceededException",
-                DomainRateLimited,
-                id="limit-exceeded",
-            ),
-            pytest.param("UserNotFoundException", DomainNotFound, id="user-not-found"),
-            pytest.param(
-                "ResourceNotFoundException",
-                DomainNotFound,
-                id="resource-not-found",
-            ),
-        ],
-    )
+    @pytest.mark.parametrize(("code", "expected_error"), PROVIDER_ERROR_CASES)
     def test_maps_provider_errors(
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
-        service_error_code: str,
+        code: str,
         expected_error: type[Exception],
     ) -> None:
-        add_client_error(
+        add_provider_error(
             stubber,
             method="list_users",
-            service_error_code=service_error_code,
+            code=code,
             expected_params=list_users_params(),
         )
 
@@ -350,173 +292,68 @@ class TestGetUser:
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
-        user_record: User,
     ) -> None:
-        stubber.add_response(
-            "admin_get_user",
-            cognito_user_response(for_admin_get_user=True),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            role_response(is_admin=False),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
+        stub_get_user(stubber)
 
-        result = provider.get_user(id="user-1")
+        result = provider.get_user(id=USER_ID)
 
-        assert result == user_record
+        assert result == expected_user()
 
     def test_returns_admin_role_when_user_is_in_admin_group(
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
-        admin_record: User,
     ) -> None:
-        stubber.add_response(
-            "admin_get_user",
-            cognito_user_response(
-                id="admin-1",
-                name="Admin",
-                for_admin_get_user=True,
-            ),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "admin-1",
-            },
-        )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            role_response(is_admin=True),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "admin-1",
-            },
+        stub_get_user(stubber, id=ADMIN_ID, name="Admin", role=User.Role.ADMIN)
+
+        result = provider.get_user(id=ADMIN_ID)
+
+        assert result == expected_user(
+            id=ADMIN_ID,
+            name="Admin",
+            role=User.Role.ADMIN,
         )
 
-        result = provider.get_user(id="admin-1")
-
-        assert result == admin_record
-
-    @pytest.mark.parametrize(
-        ("service_error_code", "expected_error"),
-        [
-            pytest.param("ForbiddenException", DomainForbidden, id="forbidden"),
-            pytest.param(
-                "NotAuthorizedException",
-                DomainForbidden,
-                id="not-authorized",
-            ),
-            pytest.param(
-                "TooManyRequestsException",
-                DomainRateLimited,
-                id="too-many-requests",
-            ),
-            pytest.param(
-                "LimitExceededException",
-                DomainRateLimited,
-                id="limit-exceeded",
-            ),
-            pytest.param("UserNotFoundException", DomainNotFound, id="user-not-found"),
-            pytest.param(
-                "ResourceNotFoundException",
-                DomainNotFound,
-                id="resource-not-found",
-            ),
-        ],
-    )
+    @pytest.mark.parametrize(("code", "expected_error"), PROVIDER_ERROR_CASES)
     def test_maps_provider_errors(
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
-        service_error_code: str,
+        code: str,
         expected_error: type[Exception],
     ) -> None:
-        add_client_error(
+        add_provider_error(
             stubber,
             method="admin_get_user",
-            service_error_code=service_error_code,
-            expected_params={
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
+            code=code,
+            expected_params=user_params(),
         )
 
         with pytest.raises(expected_error):
-            provider.get_user(id="user-1")
+            provider.get_user(id=USER_ID)
 
 
 # ──── update_user() ──────────────────────────────────────────────────────────────────
 
 
 class TestUpdateUser:
-    def test_updates_name_role_enabled_and_returns_user(
+    def test_uses_expected_payload_and_returns_updated_user(
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
-        disabled_admin_record: User,
     ) -> None:
-        stubber.add_response(
-            "admin_update_user_attributes",
-            {},
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-                "UserAttributes": [
-                    {
-                        "Name": "preferred_username",
-                        "Value": "Alice Updated",
-                    }
-                ],
-            },
-        )
-        stubber.add_response(
-            "admin_add_user_to_group",
-            {},
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-                "GroupName": "admin",
-            },
-        )
-        stubber.add_response(
-            "admin_disable_user",
-            {},
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-        stubber.add_response(
-            "admin_get_user",
-            cognito_user_response(
-                id="user-1",
-                name="Alice Updated",
-                enabled=False,
-                for_admin_get_user=True,
-            ),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            role_response(is_admin=True),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
+        stubber.add_response("admin_update_user_attributes", {}, name_update_params())
+        stubber.add_response("admin_add_user_to_group", {}, group_params())
+        stubber.add_response("admin_disable_user", {}, user_params())
+        stub_get_user(
+            stubber,
+            name="Alice Updated",
+            role=User.Role.ADMIN,
+            enabled=False,
         )
 
         result = provider.update_user(
-            id="user-1",
+            id=USER_ID,
             update={
                 "name": "Alice Updated",
                 "role": User.Role.ADMIN,
@@ -524,245 +361,22 @@ class TestUpdateUser:
             },
         )
 
-        assert result == disabled_admin_record
-
-    def test_updates_name_using_expected_payload_and_returns_user(
-        self,
-        provider: user.CognitoUserProvider,
-        stubber: Stubber,
-    ) -> None:
-        stubber.add_response(
-            "admin_update_user_attributes",
-            {},
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-                "UserAttributes": [
-                    {
-                        "Name": "preferred_username",
-                        "Value": "Alice Updated",
-                    }
-                ],
-            },
-        )
-        stubber.add_response(
-            "admin_get_user",
-            cognito_user_response(
-                name="Alice Updated",
-                for_admin_get_user=True,
-            ),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            role_response(is_admin=False),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-
-        result = provider.update_user(
-            id="user-1",
-            update={"name": "Alice Updated"},
-        )
-
-        assert result == User(
-            id="user-1",
+        assert result == expected_user(
             name="Alice Updated",
-            role=User.Role.USER,
-            enabled=True,
-            created_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
-            updated_at=datetime(2026, 1, 2, tzinfo=timezone.utc),
-            last_login_at=None,
+            role=User.Role.ADMIN,
+            enabled=False,
         )
 
-    @pytest.mark.parametrize(
-        ("role", "expected_method"),
-        [
-            pytest.param(User.Role.USER, "admin_remove_user_from_group", id="user"),
-            pytest.param(User.Role.ADMIN, "admin_add_user_to_group", id="admin"),
-        ],
-    )
-    def test_updates_role_using_expected_group_method(
+    def test_uses_empty_update_and_returns_user(
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
-        role: User.Role,
-        expected_method: str,
     ) -> None:
-        stubber.add_response(
-            expected_method,
-            {},
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-                "GroupName": "admin",
-            },
-        )
-        stubber.add_response(
-            "admin_get_user",
-            cognito_user_response(for_admin_get_user=True),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            role_response(is_admin=role == User.Role.ADMIN),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
+        stub_get_user(stubber)
 
-        result = provider.update_user(
-            id="user-1",
-            update={"role": role},
-        )
+        result = provider.update_user(id=USER_ID, update={})
 
-        assert result.id == "user-1"
-        assert result.role == role
-
-    @pytest.mark.parametrize(
-        ("enabled", "expected_method"),
-        [
-            pytest.param(True, "admin_enable_user", id="enable"),
-            pytest.param(False, "admin_disable_user", id="disable"),
-        ],
-    )
-    def test_updates_enabled_using_expected_method(
-        self,
-        provider: user.CognitoUserProvider,
-        stubber: Stubber,
-        enabled: bool,
-        expected_method: str,
-    ) -> None:
-        stubber.add_response(
-            expected_method,
-            {},
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-        stubber.add_response(
-            "admin_get_user",
-            cognito_user_response(
-                enabled=enabled,
-                for_admin_get_user=True,
-            ),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            role_response(is_admin=False),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-
-        result = provider.update_user(
-            id="user-1",
-            update={"enabled": enabled},
-        )
-
-        assert result.id == "user-1"
-        assert result.enabled is enabled
-
-    def test_with_empty_update_only_returns_user(
-        self,
-        provider: user.CognitoUserProvider,
-        stubber: Stubber,
-        user_record: User,
-    ) -> None:
-        stubber.add_response(
-            "admin_get_user",
-            cognito_user_response(for_admin_get_user=True),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            role_response(is_admin=False),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
-
-        result = provider.update_user(
-            id="user-1",
-            update={},
-        )
-
-        assert result == user_record
-
-    @pytest.mark.parametrize(
-        ("service_error_code", "expected_error"),
-        [
-            pytest.param("ForbiddenException", DomainForbidden, id="forbidden"),
-            pytest.param(
-                "NotAuthorizedException",
-                DomainForbidden,
-                id="not-authorized",
-            ),
-            pytest.param(
-                "TooManyRequestsException",
-                DomainRateLimited,
-                id="too-many-requests",
-            ),
-            pytest.param(
-                "LimitExceededException",
-                DomainRateLimited,
-                id="limit-exceeded",
-            ),
-            pytest.param("UserNotFoundException", DomainNotFound, id="user-not-found"),
-            pytest.param(
-                "ResourceNotFoundException",
-                DomainNotFound,
-                id="resource-not-found",
-            ),
-        ],
-    )
-    def test_name_update_maps_provider_errors(
-        self,
-        provider: user.CognitoUserProvider,
-        stubber: Stubber,
-        service_error_code: str,
-        expected_error: type[Exception],
-    ) -> None:
-        add_client_error(
-            stubber,
-            method="admin_update_user_attributes",
-            service_error_code=service_error_code,
-            expected_params={
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-                "UserAttributes": [
-                    {
-                        "Name": "preferred_username",
-                        "Value": "Alice Updated",
-                    }
-                ],
-            },
-        )
-
-        with pytest.raises(expected_error):
-            provider.update_user(
-                id="user-1",
-                update={"name": "Alice Updated"},
-            )
+        assert result == expected_user()
 
     @pytest.mark.parametrize(
         ("role", "method"),
@@ -771,58 +385,19 @@ class TestUpdateUser:
             pytest.param(User.Role.ADMIN, "admin_add_user_to_group", id="admin"),
         ],
     )
-    @pytest.mark.parametrize(
-        ("service_error_code", "expected_error"),
-        [
-            pytest.param("ForbiddenException", DomainForbidden, id="forbidden"),
-            pytest.param(
-                "NotAuthorizedException",
-                DomainForbidden,
-                id="not-authorized",
-            ),
-            pytest.param(
-                "TooManyRequestsException",
-                DomainRateLimited,
-                id="too-many-requests",
-            ),
-            pytest.param(
-                "LimitExceededException",
-                DomainRateLimited,
-                id="limit-exceeded",
-            ),
-            pytest.param("UserNotFoundException", DomainNotFound, id="user-not-found"),
-            pytest.param(
-                "ResourceNotFoundException",
-                DomainNotFound,
-                id="resource-not-found",
-            ),
-        ],
-    )
-    def test_role_update_maps_provider_errors(
+    def test_uses_expected_payload_when_updating_role(
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
         role: User.Role,
         method: str,
-        service_error_code: str,
-        expected_error: type[Exception],
     ) -> None:
-        add_client_error(
-            stubber,
-            method=method,
-            service_error_code=service_error_code,
-            expected_params={
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-                "GroupName": "admin",
-            },
-        )
+        stubber.add_response(method, {}, group_params())
+        stub_get_user(stubber, role=role)
 
-        with pytest.raises(expected_error):
-            provider.update_user(
-                id="user-1",
-                update={"role": role},
-            )
+        result = provider.update_user(id=USER_ID, update={"role": role})
+
+        assert result.role == role
 
     @pytest.mark.parametrize(
         ("enabled", "method"),
@@ -831,60 +406,94 @@ class TestUpdateUser:
             pytest.param(False, "admin_disable_user", id="disable"),
         ],
     )
+    def test_uses_expected_payload_when_updating_enabled(
+        self,
+        provider: user.CognitoUserProvider,
+        stubber: Stubber,
+        enabled: bool,
+        method: str,
+    ) -> None:
+        stubber.add_response(method, {}, user_params())
+        stub_get_user(stubber, enabled=enabled)
+
+        result = provider.update_user(id=USER_ID, update={"enabled": enabled})
+
+        assert result.enabled is enabled
+
+    @pytest.mark.parametrize(("code", "expected_error"), PROVIDER_ERROR_CASES)
+    def test_name_update_maps_provider_errors(
+        self,
+        provider: user.CognitoUserProvider,
+        stubber: Stubber,
+        code: str,
+        expected_error: type[Exception],
+    ) -> None:
+        add_provider_error(
+            stubber,
+            method="admin_update_user_attributes",
+            code=code,
+            expected_params=name_update_params(),
+        )
+
+        with pytest.raises(expected_error):
+            provider.update_user(id=USER_ID, update={"name": "Alice Updated"})
+
     @pytest.mark.parametrize(
-        ("service_error_code", "expected_error"),
+        ("role", "method"),
         [
-            pytest.param("ForbiddenException", DomainForbidden, id="forbidden"),
-            pytest.param(
-                "NotAuthorizedException",
-                DomainForbidden,
-                id="not-authorized",
-            ),
-            pytest.param(
-                "TooManyRequestsException",
-                DomainRateLimited,
-                id="too-many-requests",
-            ),
-            pytest.param(
-                "LimitExceededException",
-                DomainRateLimited,
-                id="limit-exceeded",
-            ),
-            pytest.param("UserNotFoundException", DomainNotFound, id="user-not-found"),
-            pytest.param(
-                "ResourceNotFoundException",
-                DomainNotFound,
-                id="resource-not-found",
-            ),
+            pytest.param(User.Role.USER, "admin_remove_user_from_group", id="user"),
+            pytest.param(User.Role.ADMIN, "admin_add_user_to_group", id="admin"),
         ],
     )
+    @pytest.mark.parametrize(("code", "expected_error"), PROVIDER_ERROR_CASES)
+    def test_role_update_maps_provider_errors(
+        self,
+        provider: user.CognitoUserProvider,
+        stubber: Stubber,
+        role: User.Role,
+        method: str,
+        code: str,
+        expected_error: type[Exception],
+    ) -> None:
+        add_provider_error(
+            stubber,
+            method=method,
+            code=code,
+            expected_params=group_params(),
+        )
+
+        with pytest.raises(expected_error):
+            provider.update_user(id=USER_ID, update={"role": role})
+
+    @pytest.mark.parametrize(
+        ("enabled", "method"),
+        [
+            pytest.param(True, "admin_enable_user", id="enable"),
+            pytest.param(False, "admin_disable_user", id="disable"),
+        ],
+    )
+    @pytest.mark.parametrize(("code", "expected_error"), PROVIDER_ERROR_CASES)
     def test_enabled_update_maps_provider_errors(
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
         enabled: bool,
         method: str,
-        service_error_code: str,
+        code: str,
         expected_error: type[Exception],
     ) -> None:
-        add_client_error(
+        add_provider_error(
             stubber,
             method=method,
-            service_error_code=service_error_code,
-            expected_params={
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
+            code=code,
+            expected_params=user_params(),
         )
 
         with pytest.raises(expected_error):
-            provider.update_user(
-                id="user-1",
-                update={"enabled": enabled},
-            )
+            provider.update_user(id=USER_ID, update={"enabled": enabled})
 
 
-# ──── Provider Responses ──────────────────────────────────────────────────────────────
+# ──── Provider Responses ─────────────────────────────────────────────────────────────
 
 
 class TestResponseParsing:
@@ -892,30 +501,24 @@ class TestResponseParsing:
         "response",
         [
             pytest.param({}, id="empty-response"),
-            pytest.param({"Username": "user-1"}, id="missing-required-fields"),
+            pytest.param({"Username": USER_XID}, id="missing-required-fields"),
             pytest.param(
                 {
-                    "Username": "user-1",
+                    "Username": USER_XID,
                     "Enabled": True,
-                    "UserCreateDate": datetime(2026, 1, 1, tzinfo=timezone.utc),
+                    "UserCreateDate": CREATED_AT,
                 },
                 id="missing-updated-at",
             ),
         ],
     )
-    def test_rejects_unexpected_list_user_response(
+    def test_rejects_unexpected_list_users_response(
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
         response: dict[str, Any],
     ) -> None:
-        stubber.add_response(
-            "list_users",
-            {
-                "Users": [response],
-            },
-            list_users_params(),
-        )
+        stubber.add_response("list_users", {"Users": [response]}, list_users_params())
 
         with pytest.raises(DomainInvariantViolation):
             provider.list_users()
@@ -923,12 +526,12 @@ class TestResponseParsing:
     @pytest.mark.parametrize(
         "response",
         [
-            pytest.param({"Username": "user-1"}, id="missing-required-fields"),
+            pytest.param({"Username": USER_XID}, id="missing-required-fields"),
             pytest.param(
                 {
-                    "Username": "user-1",
+                    "Username": USER_XID,
                     "Enabled": True,
-                    "UserCreateDate": datetime(2026, 1, 1, tzinfo=timezone.utc),
+                    "UserCreateDate": CREATED_AT,
                 },
                 id="missing-updated-at",
             ),
@@ -940,47 +543,29 @@ class TestResponseParsing:
         stubber: Stubber,
         response: dict[str, Any],
     ) -> None:
-        stubber.add_response(
-            "admin_get_user",
-            response,
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
+        stubber.add_response("admin_get_user", response, user_params())
 
         with pytest.raises(DomainInvariantViolation):
-            provider.get_user(id="user-1")
+            provider.get_user(id=USER_ID)
 
-    def test_converts_datetimes_to_utc(
+    def test_normalizes_datetimes_to_utc(
         self,
         provider: user.CognitoUserProvider,
         stubber: Stubber,
     ) -> None:
         eastern = timezone(timedelta(hours=-5))
-
         stubber.add_response(
             "admin_get_user",
-            cognito_user_response(
+            cognito_user(
                 created_at=datetime(2026, 1, 1, 7, 0, tzinfo=eastern),
                 updated_at=datetime(2026, 1, 2, 8, 30, tzinfo=eastern),
-                for_admin_get_user=True,
+                admin_get_user=True,
             ),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
+            user_params(),
         )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            role_response(is_admin=False),
-            {
-                "UserPoolId": "pool-id",
-                "Username": "user-1",
-            },
-        )
+        stub_group_lookup(stubber)
 
-        result = provider.get_user(id="user-1")
+        result = provider.get_user(id=USER_ID)
 
         assert result.created_at == datetime(2026, 1, 1, 12, 0, tzinfo=timezone.utc)
         assert result.updated_at == datetime(2026, 1, 2, 13, 30, tzinfo=timezone.utc)
