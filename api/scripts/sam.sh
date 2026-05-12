@@ -12,7 +12,6 @@ cd "$repo_root"
 action="${1:-start-api}"
 cdk_template="infra/cdk/cdk.out/K9ApiDevStack.template.json"
 built_template=".aws-sam/build/template.yaml"
-env_vars_file=".env.json"
 
 synth() {
   scripts/cdk.sh dev synth >/dev/null
@@ -26,8 +25,7 @@ build() {
 start() {
   build
   exec sam local start-api \
-    --template "$built_template" \
-    --env-vars "$env_vars_file"
+    --template "$built_template"
 }
 
 case "$action" in

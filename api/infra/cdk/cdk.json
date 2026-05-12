@@ -7,9 +7,13 @@
       "architecture": "x86_64",
       "shared": {
         "identity": {
-          "COGNITO_CLIENT_ID": "",
-          "COGNITO_USER_POOL_ID": "",
-          "COGNITO_CLIENT_SECRET": ""
+          "COGNITO_CLIENT_ID_PARAMETER": "/k9/dev/identity/cognito/client-id",
+          "COGNITO_USER_POOL_ID_PARAMETER": "/k9/dev/identity/cognito/user-pool-id",
+          "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/dev/identity/cognito/client-secret"
+        },
+        "index": {
+          "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/dev/index/opensearch/endpoint",
+          "OPENSEARCH_REPORTS_INDEX_PARAMETER": "/k9/dev/index/opensearch/reports-index"
         }
       },
       "services": {
@@ -20,6 +24,16 @@
           "memory": 512,
           "shared": [
             "identity"
+          ]
+        },
+        "user": {
+          "routePrefix": "/user",
+          "dockerfile": "services/user/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "index"
           ]
         }
       }
@@ -33,6 +47,10 @@
           "COGNITO_CLIENT_ID_PARAMETER": "/k9/stage/identity/cognito/client-id",
           "COGNITO_USER_POOL_ID_PARAMETER": "/k9/stage/identity/cognito/user-pool-id",
           "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/stage/identity/cognito/client-secret"
+        },
+        "index": {
+          "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/stage/index/opensearch/endpoint",
+          "OPENSEARCH_REPORTS_INDEX_PARAMETER": "/k9/stage/index/opensearch/reports-index"
         }
       },
       "services": {
@@ -43,6 +61,16 @@
           "memory": 512,
           "shared": [
             "identity"
+          ]
+        },
+        "user": {
+          "routePrefix": "/user",
+          "dockerfile": "services/user/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "index"
           ]
         }
       }
@@ -56,6 +84,10 @@
           "COGNITO_CLIENT_ID_PARAMETER": "/k9/prod/identity/cognito/client-id",
           "COGNITO_USER_POOL_ID_PARAMETER": "/k9/prod/identity/cognito/user-pool-id",
           "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/prod/identity/cognito/client-secret"
+        },
+        "index": {
+          "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/prod/index/opensearch/endpoint",
+          "OPENSEARCH_REPORTS_INDEX_PARAMETER": "/k9/prod/index/opensearch/reports-index"
         }
       },
       "services": {
@@ -66,6 +98,16 @@
           "memory": 512,
           "shared": [
             "identity"
+          ]
+        },
+        "user": {
+          "routePrefix": "/user",
+          "dockerfile": "services/user/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "index"
           ]
         }
       }
