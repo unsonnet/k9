@@ -229,7 +229,7 @@ class TestLogin:
             "/auth/login",
             {
                 "name": "alice",
-                "password": "secret",
+                "password": "Secret@1!",
             },
         )
 
@@ -238,7 +238,7 @@ class TestLogin:
         assert auth_provider.authenticate.calls == [
             {
                 "name": "alice",
-                "password": "secret",
+                "password": "Secret@1!",
             }
         ]
 
@@ -254,7 +254,7 @@ class TestLogin:
             "/auth/login",
             {
                 "name": "alice",
-                "password": "secret",
+                "password": "Secret@1!",
             },
         )
 
@@ -263,7 +263,7 @@ class TestLogin:
         assert auth_provider.authenticate.calls == [
             {
                 "name": "alice",
-                "password": "secret",
+                "password": "Secret@1!",
             }
         ]
 
@@ -286,7 +286,7 @@ class TestLogin:
             "/auth/login",
             {
                 "name": "alice",
-                "password": "bad-secret",
+                "password": "Bad-Secret@1!",
             },
         )
 
@@ -332,7 +332,7 @@ class TestChallenge:
         response = invoke_auth_api(
             "/auth/challenge",
             {
-                "session": "challenge-session",
+                "session": "long-challenge-session",
                 "challenge": "MFA",
                 "response": {
                     "name": "alice",
@@ -345,7 +345,7 @@ class TestChallenge:
         assert_body(response, token_body())
         assert auth_provider.respond_to_challenge.calls == [
             {
-                "session": "challenge-session",
+                "session": "long-challenge-session",
                 "challenge": Challenge.Key.MFA,
                 "response": {
                     "name": "alice",
@@ -365,7 +365,7 @@ class TestChallenge:
         response = invoke_auth_api(
             "/auth/challenge",
             {
-                "session": "challenge-session",
+                "session": "long-challenge-session",
                 "challenge": "NEW_PASSWORD",
                 "response": {
                     "name": "alice",
@@ -385,7 +385,7 @@ class TestChallenge:
         )
         assert auth_provider.respond_to_challenge.calls == [
             {
-                "session": "challenge-session",
+                "session": "long-challenge-session",
                 "challenge": Challenge.Key.NEW_PASSWORD,
                 "response": {
                     "name": "alice",
@@ -412,7 +412,7 @@ class TestChallenge:
         response = invoke_auth_api(
             "/auth/challenge",
             {
-                "session": "challenge-session",
+                "session": "long-challenge-session",
                 "challenge": "MFA",
                 "response": {
                     "name": "alice",
@@ -608,9 +608,8 @@ class TestLogout:
             }
         ]
 
-    def test_accepts_both_tokens(
+    def test_rejects_both_tokens(
         self,
-        auth_provider: FakeAuthProvider,
         invoke_auth_api,
     ) -> None:
         response = invoke_auth_api(
@@ -621,14 +620,7 @@ class TestLogout:
             },
         )
 
-        assert_status(response, 204)
-        assert_no_body(response)
-        assert auth_provider.revoke_tokens.calls == [
-            {
-                "access_token": "access-token",
-                "refresh_token": "refresh-token",
-            }
-        ]
+        assert_status(response, 422)
 
     @pytest.mark.parametrize(
         "provider_error",

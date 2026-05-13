@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable
-from functools import cached_property, update_wrapper, wraps
-from typing import Concatenate, Literal, Self, cast, overload
+from functools import cached_property, wraps
+from typing import Any, Concatenate, Literal, Protocol, overload
 
 from pydantic import BaseModel
 
@@ -29,151 +29,97 @@ class DataModel(BaseModel, frozen=True, extra="forbid"): ...
 
 
 class BaseService(ABC):
-    @staticmethod
-    def is_admin(caller: Caller) -> bool:
-        return "admin" in caller.groups
-
     @classmethod
     def require_admin(cls, caller: Caller) -> None:
-        if not cls.is_admin(caller):
+        if not caller.is_admin:
             raise DomainForbidden("Admin role required")
 
-
-type PublicMethod[T: BaseService, **P, R] = Callable[Concatenate[T, Caller, P], R]
-type AnyCallable = Callable[..., object]
-
-
-class RoleDispatcher[T: BaseService, **P, R]:
-    """Descriptor returned by @public_api.dispatch_by_role."""
-
-    def __init__(self, func: PublicMethod[T, P, R], /) -> None:
-        self.__wrapped__ = func
-        self._admin_impl: PublicMethod[T, P, R] | None = None
-        self._user_impl: PublicMethod[T, P, R] | None = None
-        update_wrapper(cast(AnyCallable, self), func)
-
-    def admin(self, func: PublicMethod[T, P, R], /) -> PublicMethod[T, P, R]:
-        self._admin_impl = func
-        return func
-
-    def user(self, func: PublicMethod[T, P, R], /) -> PublicMethod[T, P, R]:
-        self._user_impl = func
-        return func
-
-    @overload
-    def __get__(self, instance: None, owner: type[T] | None = None, /) -> Self: ...
-
-    @overload
-    def __get__(
-        self,
-        instance: T,
-        owner: type[T] | None = None,
-        /,
-    ) -> Callable[Concatenate[Caller, P], R]: ...
-
-    def __get__(
-        self,
-        instance: T | None,
-        owner: type[T] | None = None,
-        /,
-    ) -> Self | Callable[Concatenate[Caller, P], R]:
-        if instance is None:
-            return self
-
-        @wraps(self.__wrapped__)
-        def dispatch(caller: Caller, /, *args: P.args, **kwargs: P.kwargs) -> R:
-            is_admin = instance.is_admin(caller)
-            impl = self._admin_impl if is_admin else self._user_impl
-
-            if impl is None:
-                role = "admin" if is_admin else "user"
-                raise DomainUnknown(f"No {role} implementation registered")
-
-            return impl(instance, caller, *args, **kwargs)
-
-        return dispatch
+    @classmethod
+    def require_owner(cls, caller: Caller, owner_id: str) -> None:
+        if not caller.is_admin and owner_id not in {"me", caller.id}:
+            raise DomainForbidden("Cannot access another user's resource")
 
 
-class PublicApi(type):
-    @overload
-    def __call__[F: AnyCallable](
-        cls,
-        func: F,
-        /,
-        *,
-        require_admin: Literal[False] = False,
-    ) -> F: ...
+class UserOwnedRequest(Protocol):
+    @property
+    def userId(self) -> str: ...
 
-    @overload
-    def __call__[F: AnyCallable](
-        cls,
-        func: None = None,
-        /,
-        *,
-        require_admin: Literal[False] = False,
-    ) -> Callable[[F], F]: ...
 
-    @overload
-    def __call__[S: BaseService, **P, R](
-        cls,
-        func: PublicMethod[S, P, R],
-        /,
-        *,
-        require_admin: Literal[True],
-    ) -> PublicMethod[S, P, R]: ...
+type AnyCallable = Callable[..., Any]
+type PublicMethod[S: BaseService, **P, R] = Callable[Concatenate[S, Caller, P], R]
+type OwnerMethod[S: BaseService, Req: UserOwnedRequest, **P, R] = Callable[
+    Concatenate[S, Caller, Req, P], R
+]
 
-    @overload
-    def __call__[S: BaseService, **P, R](
-        cls,
-        func: None = None,
-        /,
-        *,
-        require_admin: Literal[True],
-    ) -> Callable[[PublicMethod[S, P, R]], PublicMethod[S, P, R]]: ...
 
-    def __call__(
-        cls,
-        func: AnyCallable | None = None,
-        /,
-        *,
-        require_admin: bool = False,
-    ) -> AnyCallable:
-        if func is None:
-            return cls._require_admin if require_admin else cls._identity
+@overload
+def public_api[F: AnyCallable](
+    func: F,
+    /,
+    *,
+    require_admin: Literal[False] = False,
+    require_owner: Literal[False] = False,
+) -> F: ...
 
-        return cls._require_admin(func) if require_admin else func
 
-    def _identity[F: AnyCallable](cls, func: F, /) -> F:
-        return func
+@overload
+def public_api[F: AnyCallable](
+    func: None = None,
+    /,
+    *,
+    require_admin: Literal[False] = False,
+    require_owner: Literal[False] = False,
+) -> Callable[[F], F]: ...
 
-    def _require_admin[S: BaseService, **P, R](
-        cls,
-        method: PublicMethod[S, P, R],
-        /,
-    ) -> PublicMethod[S, P, R]:
+
+@overload
+def public_api[S: BaseService, **P, R](
+    func: None = None,
+    /,
+    *,
+    require_admin: Literal[True],
+    require_owner: Literal[False] = False,
+) -> Callable[[PublicMethod[S, P, R]], PublicMethod[S, P, R]]: ...
+
+
+@overload
+def public_api[S: BaseService, Req: UserOwnedRequest, **P, R](
+    func: None = None,
+    /,
+    *,
+    require_admin: Literal[False] = False,
+    require_owner: Literal[True],
+) -> Callable[[OwnerMethod[S, Req, P, R]], OwnerMethod[S, Req, P, R]]: ...
+
+
+def public_api(
+    func: AnyCallable | None = None,
+    /,
+    *,
+    require_admin: bool = False,
+    require_owner: bool = False,
+) -> AnyCallable:
+    if require_admin and require_owner:
+        raise TypeError("Use either require_admin or require_owner, not both")
+
+    def decorate(method: AnyCallable) -> AnyCallable:
         @wraps(method)
         def wrapper(
-            self: S,
+            self: BaseService,
             caller: Caller,
-            /,
-            *args: P.args,
-            **kwargs: P.kwargs,
-        ) -> R:
-            self.require_admin(caller)
+            *args: Any,
+            **kwargs: Any,
+        ) -> Any:
+            if require_admin:
+                self.require_admin(caller)
+            elif require_owner:
+                request = args[0]
+                self.require_owner(caller, request.userId)
             return method(self, caller, *args, **kwargs)
 
-        return cast(PublicMethod[S, P, R], wrapper)
+        return wrapper
 
-    def dispatch_by_role[S: BaseService, **P, R](
-        cls,
-        func: PublicMethod[S, P, R],
-        /,
-    ) -> RoleDispatcher[S, P, R]:
-        return RoleDispatcher(func)
-
-
-class public_api(metaclass=PublicApi):
-    """Decorator namespace for public service methods."""
+    return decorate(func) if func is not None else decorate
 
 
 # ──── Abstract Provider ───────────────────────────────────────────────────────────────

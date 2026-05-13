@@ -1,16 +1,21 @@
 from dataclasses import dataclass
 from functools import wraps
 from http import HTTPStatus
-from inspect import signature
+from inspect import Parameter, signature
 from types import NoneType, UnionType
 from typing import (
+    Annotated,
     Any,
     Callable,
     Mapping,
+    Protocol,
+    TypeVar,
     Union,
+    cast,
     get_args,
     get_origin,
     get_type_hints,
+    overload,
 )
 
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
@@ -23,6 +28,7 @@ from aws_lambda_powertools.event_handler.openapi.exceptions import (
     RequestValidationError,
 )
 from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
+from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
 from shared.errors import DomainInvalidTokens
@@ -35,7 +41,30 @@ from .errors import (
     ServerError,
     UnprocessableEntity,
 )
+from .requests import HTTPBody, HTTPPath, HTTPQuery
 from .responses import Response
+
+RequestModelT = TypeVar("RequestModelT", bound=BaseModel)
+ReturnT = TypeVar("ReturnT")
+
+
+class RouteDecorator(Protocol):
+    @overload
+    def __call__(
+        self,
+        func: Callable[[], ReturnT],
+    ) -> Callable[[], ReturnT]: ...
+
+    @overload
+    def __call__(
+        self,
+        func: Callable[[RequestModelT], ReturnT],
+    ) -> Callable[[RequestModelT], ReturnT]: ...
+
+    def __call__(
+        self,
+        func: Callable[..., ReturnT],
+    ) -> Callable[..., ReturnT]: ...
 
 
 @dataclass(frozen=True)
@@ -43,6 +72,10 @@ class Caller:
     id: str
     name: str
     groups: tuple[str, ...]
+
+    @property
+    def is_admin(self) -> bool:
+        return "admin" in self.groups
 
 
 class HttpResolver(APIGatewayHttpResolver):
@@ -59,7 +92,7 @@ class HttpResolver(APIGatewayHttpResolver):
         super().exception_handler(ServerError)(lambda e: e)
         super().exception_handler(Exception)(lambda e: InternalServerError(cause=e))
 
-    # ──── Auth Context ────
+    # ──── Auth Context ────────────────────────────────────────────────────────────────
 
     def claims(self) -> Mapping[str, Any]:
         try:
@@ -108,9 +141,9 @@ class HttpResolver(APIGatewayHttpResolver):
 
         return NotFound(cause=exc)
 
-    # ──── Routes ────
+    # ──── Routes ──────────────────────────────────────────────────────────────────────
 
-    def route[T: Callable[..., Any]](  # type: ignore[override]
+    def route(  # type: ignore[override]
         self,
         rule: str,
         method: str | list[str] | tuple[str],
@@ -130,10 +163,11 @@ class HttpResolver(APIGatewayHttpResolver):
         enable_validation: bool | None = None,
         custom_response_validation_http_code: int | HTTPStatus | None = None,
         middlewares: list[Callable[..., Any]] | None = None,
-    ) -> Callable[[T], T]:
-        def decorator(func: T) -> T:
+    ) -> RouteDecorator:
+        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
             parsed_responses = self._parse(func, responses or {})
-            normalized_func = self._normalize(func)
+            expanded_func = self._expand_request_model(func)
+            normalized_func = self._normalize(expanded_func)
 
             return super(HttpResolver, self).route(
                 rule,
@@ -156,21 +190,353 @@ class HttpResolver(APIGatewayHttpResolver):
                 middlewares,
             )(normalized_func)
 
-        return decorator
+        return cast(RouteDecorator, decorator)
 
-    def post(self, *args, **kwargs):
-        return super().post(*args, **kwargs)
+    def get(  # type: ignore[override]
+        self,
+        rule: str,
+        cors: bool | None = None,
+        compress: bool = False,
+        cache_control: str | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        responses: dict[int, str | OpenAPIResponse] | None = None,
+        response_description: str = _DEFAULT_OPENAPI_RESPONSE_DESCRIPTION,
+        tags: list[str] | None = None,
+        operation_id: str | None = None,
+        include_in_schema: bool = True,
+        security: list[dict[str, list[str]]] | None = None,
+        openapi_extensions: dict[str, Any] | None = None,
+        deprecated: bool = False,
+        enable_validation: bool | None = None,
+        custom_response_validation_http_code: int | HTTPStatus | None = None,
+        middlewares: list[Callable[..., Any]] | None = None,
+    ) -> RouteDecorator:
+        return self.route(
+            rule=rule,
+            method="GET",
+            cors=cors,
+            compress=compress,
+            cache_control=cache_control,
+            summary=summary,
+            description=description,
+            responses=responses,
+            response_description=response_description,
+            tags=tags,
+            operation_id=operation_id,
+            include_in_schema=include_in_schema,
+            security=security,
+            openapi_extensions=openapi_extensions,
+            deprecated=deprecated,
+            enable_validation=enable_validation,
+            custom_response_validation_http_code=custom_response_validation_http_code,
+            middlewares=middlewares,
+        )
 
-    def put(self, *args, **kwargs):
-        return super().put(*args, **kwargs)
+    def post(  # type: ignore[override]
+        self,
+        rule: str,
+        cors: bool | None = None,
+        compress: bool = False,
+        cache_control: str | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        responses: dict[int, str | OpenAPIResponse] | None = None,
+        response_description: str = _DEFAULT_OPENAPI_RESPONSE_DESCRIPTION,
+        tags: list[str] | None = None,
+        operation_id: str | None = None,
+        include_in_schema: bool = True,
+        security: list[dict[str, list[str]]] | None = None,
+        openapi_extensions: dict[str, Any] | None = None,
+        deprecated: bool = False,
+        enable_validation: bool | None = None,
+        custom_response_validation_http_code: int | HTTPStatus | None = None,
+        middlewares: list[Callable[..., Any]] | None = None,
+    ) -> RouteDecorator:
+        return self.route(
+            rule=rule,
+            method="POST",
+            cors=cors,
+            compress=compress,
+            cache_control=cache_control,
+            summary=summary,
+            description=description,
+            responses=responses,
+            response_description=response_description,
+            tags=tags,
+            operation_id=operation_id,
+            include_in_schema=include_in_schema,
+            security=security,
+            openapi_extensions=openapi_extensions,
+            deprecated=deprecated,
+            enable_validation=enable_validation,
+            custom_response_validation_http_code=custom_response_validation_http_code,
+            middlewares=middlewares,
+        )
 
-    def get(self, *args, **kwargs):
-        return super().get(*args, **kwargs)
+    def put(  # type: ignore[override]
+        self,
+        rule: str,
+        cors: bool | None = None,
+        compress: bool = False,
+        cache_control: str | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        responses: dict[int, str | OpenAPIResponse] | None = None,
+        response_description: str = _DEFAULT_OPENAPI_RESPONSE_DESCRIPTION,
+        tags: list[str] | None = None,
+        operation_id: str | None = None,
+        include_in_schema: bool = True,
+        security: list[dict[str, list[str]]] | None = None,
+        openapi_extensions: dict[str, Any] | None = None,
+        deprecated: bool = False,
+        enable_validation: bool | None = None,
+        custom_response_validation_http_code: int | HTTPStatus | None = None,
+        middlewares: list[Callable[..., Any]] | None = None,
+    ) -> RouteDecorator:
+        return self.route(
+            rule=rule,
+            method="PUT",
+            cors=cors,
+            compress=compress,
+            cache_control=cache_control,
+            summary=summary,
+            description=description,
+            responses=responses,
+            response_description=response_description,
+            tags=tags,
+            operation_id=operation_id,
+            include_in_schema=include_in_schema,
+            security=security,
+            openapi_extensions=openapi_extensions,
+            deprecated=deprecated,
+            enable_validation=enable_validation,
+            custom_response_validation_http_code=custom_response_validation_http_code,
+            middlewares=middlewares,
+        )
 
-    def patch(self, *args, **kwargs):
-        return super().patch(*args, **kwargs)
+    def patch(  # type: ignore[override]
+        self,
+        rule: str,
+        cors: bool | None = None,
+        compress: bool = False,
+        cache_control: str | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        responses: dict[int, str | OpenAPIResponse] | None = None,
+        response_description: str = _DEFAULT_OPENAPI_RESPONSE_DESCRIPTION,
+        tags: list[str] | None = None,
+        operation_id: str | None = None,
+        include_in_schema: bool = True,
+        security: list[dict[str, list[str]]] | None = None,
+        openapi_extensions: dict[str, Any] | None = None,
+        deprecated: bool = False,
+        enable_validation: bool | None = None,
+        custom_response_validation_http_code: int | HTTPStatus | None = None,
+        middlewares: list[Callable[..., Any]] | None = None,
+    ) -> RouteDecorator:
+        return self.route(
+            rule=rule,
+            method="PATCH",
+            cors=cors,
+            compress=compress,
+            cache_control=cache_control,
+            summary=summary,
+            description=description,
+            responses=responses,
+            response_description=response_description,
+            tags=tags,
+            operation_id=operation_id,
+            include_in_schema=include_in_schema,
+            security=security,
+            openapi_extensions=openapi_extensions,
+            deprecated=deprecated,
+            enable_validation=enable_validation,
+            custom_response_validation_http_code=custom_response_validation_http_code,
+            middlewares=middlewares,
+        )
 
-    # ──── OpenAPI Response Parsing ────
+    def delete(  # type: ignore[override]
+        self,
+        rule: str,
+        cors: bool | None = None,
+        compress: bool = False,
+        cache_control: str | None = None,
+        summary: str | None = None,
+        description: str | None = None,
+        responses: dict[int, str | OpenAPIResponse] | None = None,
+        response_description: str = _DEFAULT_OPENAPI_RESPONSE_DESCRIPTION,
+        tags: list[str] | None = None,
+        operation_id: str | None = None,
+        include_in_schema: bool = True,
+        security: list[dict[str, list[str]]] | None = None,
+        openapi_extensions: dict[str, Any] | None = None,
+        deprecated: bool = False,
+        enable_validation: bool | None = None,
+        custom_response_validation_http_code: int | HTTPStatus | None = None,
+        middlewares: list[Callable[..., Any]] | None = None,
+    ) -> RouteDecorator:
+        return self.route(
+            rule=rule,
+            method="DELETE",
+            cors=cors,
+            compress=compress,
+            cache_control=cache_control,
+            summary=summary,
+            description=description,
+            responses=responses,
+            response_description=response_description,
+            tags=tags,
+            operation_id=operation_id,
+            include_in_schema=include_in_schema,
+            security=security,
+            openapi_extensions=openapi_extensions,
+            deprecated=deprecated,
+            enable_validation=enable_validation,
+            custom_response_validation_http_code=custom_response_validation_http_code,
+            middlewares=middlewares,
+        )
+
+    # ──── Request Model Expansion ─────────────────────────────────────────────────────
+
+    @staticmethod
+    def _is_request_model(annotation: Any) -> bool:
+        return isinstance(annotation, type) and issubclass(annotation, BaseModel)
+
+    @staticmethod
+    def _param_marker(annotation: Any) -> HTTPBody | HTTPPath | HTTPQuery | None:
+        if get_origin(annotation) is not Annotated:
+            return None
+
+        for meta in get_args(annotation)[1:]:
+            if isinstance(meta, HTTPBody | HTTPPath | HTTPQuery):
+                return meta
+
+        return None
+
+    @staticmethod
+    def _field_default(model_cls: type[BaseModel], field_name: str) -> Any:
+        field = model_cls.model_fields[field_name]
+
+        if field.is_required():
+            return Parameter.empty
+
+        return field.default
+
+    @classmethod
+    def _expand_request_model[T: Callable[..., Any]](cls, func: T) -> T:
+        """
+        Valid handler forms:
+
+            def handler() -> Response: ...
+
+        or:
+
+            def handler(request: SomePydanticRequestModel) -> Response: ...
+
+        If a request model is present, it is expanded into the synthetic
+        Powertools signature using the model field annotations:
+
+            field: Path[T]
+            field: Query[T]
+            field: Body[T]
+
+        The original handler receives either no arguments or the constructed
+        Pydantic request model. It never receives the expanded route params.
+        """
+
+        original_sig = signature(func)
+        original_params = list(original_sig.parameters.values())
+
+        if len(original_params) == 0:
+            return func
+
+        if len(original_params) != 1:
+            raise TypeError(
+                f"{func.__name__} must accept either no parameters or exactly one "
+                "request model parameter"
+            )
+
+        request_param = original_params[0]
+        original_hints = get_type_hints(func, include_extras=True)
+
+        request_model = original_hints.get(
+            request_param.name,
+            request_param.annotation,
+        )
+
+        if not cls._is_request_model(request_model):
+            raise TypeError(
+                f"{func.__name__}.{request_param.name} must be annotated with a "
+                "Pydantic request model"
+            )
+
+        model_cls: type[BaseModel] = request_model
+        model_hints = get_type_hints(model_cls, include_extras=True)
+
+        expanded_params: list[Parameter] = []
+        expanded_field_names: list[str] = []
+
+        for field_name in model_cls.model_fields:
+            field_annotation = model_hints.get(field_name)
+
+            if field_annotation is None:
+                raise TypeError(
+                    f"{model_cls.__name__}.{field_name} is missing an annotation"
+                )
+
+            marker = cls._param_marker(field_annotation)
+
+            if marker is None:
+                raise TypeError(
+                    f"{model_cls.__name__}.{field_name} must be annotated as "
+                    "Path[T], Query[T], or Body[T]"
+                )
+
+            expanded_params.append(
+                Parameter(
+                    name=field_name,
+                    kind=Parameter.POSITIONAL_OR_KEYWORD,
+                    default=cls._field_default(model_cls, field_name),
+                    annotation=field_annotation,
+                )
+            )
+
+            expanded_field_names.append(field_name)
+
+        expanded_sig = original_sig.replace(parameters=expanded_params)
+
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any):
+            bound = expanded_sig.bind_partial(*args, **kwargs)
+            bound.apply_defaults()
+
+            request = model_cls(
+                **{
+                    field_name: bound.arguments[field_name]
+                    for field_name in expanded_field_names
+                    if field_name in bound.arguments
+                }
+            )
+
+            return func(request)
+
+        wrapper.__signature__ = expanded_sig  # type: ignore[attr-defined]
+
+        wrapper.__annotations__ = {
+            name: param.annotation
+            for name, param in expanded_sig.parameters.items()
+            if param.annotation is not Parameter.empty
+        }
+        wrapper.__annotations__["return"] = original_sig.return_annotation
+
+        setattr(wrapper, "__original_handler__", func)
+        setattr(wrapper, "__request_model__", model_cls)
+        setattr(wrapper, "__request_parameter__", request_param.name)
+
+        return wrapper  # type: ignore[return-value]
+
+    # ──── OpenAPI Response Parsing ────────────────────────────────────────────────────
 
     @classmethod
     def _parse(

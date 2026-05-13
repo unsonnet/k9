@@ -42,6 +42,10 @@ class OK[T: BaseModel](Response[T]):
     status_code = HTTPStatus.OK
 
 
+class Created[T: BaseModel](Response[T]):
+    status_code = HTTPStatus.CREATED
+
+
 class Accepted[T: BaseModel](Response[T]):
     status_code = HTTPStatus.ACCEPTED
 

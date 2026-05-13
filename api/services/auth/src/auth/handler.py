@@ -1,15 +1,11 @@
-from shared.errors import (
-    DomainForbidden,
-    DomainRateLimited,
-    DomainUnauthorized,
-    assert_unreachable,
-)
-from shared.http import Body, HttpResolver
+from shared.errors import DomainForbidden, DomainRateLimited, DomainUnauthorized
+from shared.http import HttpResolver
 from shared.http.errors import Forbidden, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Accepted, NoContent
 
+from .payloads import Request, Response
 from .providers.auth import CognitoAuthProvider as AuthProvider
-from .service import AuthRequest, AuthResponse, AuthService
+from .service import AuthService
 
 app = HttpResolver(enable_validation=True)
 svc = AuthService(AuthProvider())
@@ -29,22 +25,20 @@ svc = AuthService(AuthProvider())
     },
 )
 def login(
-    request: Body[AuthRequest.Login],
+    request: Request.Login,
 ) -> (
-    OK[AuthResponse.Tokens]
-    | Accepted[AuthResponse.Challenge]
+    OK[Response.Tokens]
+    | Accepted[Response.Challenge]
     | Unauthorized
     | Forbidden
     | TooManyRequests
 ):
     try:
         match svc.login(request):
-            case AuthResponse.Tokens() as tokens:
+            case Response.Tokens() as tokens:
                 return OK(tokens)
-            case AuthResponse.Challenge() as challenge:
+            case Response.Challenge() as challenge:
                 return Accepted(challenge)
-            case _ as never:
-                assert_unreachable(never)
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid credentials", cause=exc)
     except DomainForbidden as exc:
@@ -67,22 +61,20 @@ def login(
     },
 )
 def challenge(
-    request: Body[AuthRequest.Challenge],
+    request: Request.Challenge,
 ) -> (
-    OK[AuthResponse.Tokens]
-    | Accepted[AuthResponse.Challenge]
+    OK[Response.Tokens]
+    | Accepted[Response.Challenge]
     | Unauthorized
     | Forbidden
     | TooManyRequests
 ):
     try:
         match svc.challenge(request):
-            case AuthResponse.Tokens() as tokens:
+            case Response.Tokens() as tokens:
                 return OK(tokens)
-            case AuthResponse.Challenge() as challenge:
+            case Response.Challenge() as challenge:
                 return Accepted(challenge)
-            case _ as never:
-                assert_unreachable(never)
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid challenge response", cause=exc)
     except DomainForbidden as exc:
@@ -104,14 +96,10 @@ def challenge(
     },
 )
 def refresh(
-    request: Body[AuthRequest.Refresh],
-) -> OK[AuthResponse.Tokens] | Unauthorized | Forbidden | TooManyRequests:
+    request: Request.Refresh,
+) -> OK[Response.Tokens] | Unauthorized | Forbidden | TooManyRequests:
     try:
-        match svc.refresh(request):
-            case AuthResponse.Tokens() as tokens:
-                return OK(tokens)
-            case _ as never:
-                assert_unreachable(never)
+        return OK(svc.refresh(request))
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid refresh token", cause=exc)
     except DomainForbidden as exc:
@@ -132,14 +120,10 @@ def refresh(
     },
 )
 def logout(
-    request: Body[AuthRequest.Logout],
+    request: Request.Logout,
 ) -> NoContent | Forbidden | TooManyRequests:
     try:
-        match svc.logout(request):
-            case None:
-                return NoContent()
-            case _ as never:
-                assert_unreachable(never)
+        return NoContent(svc.logout(request))
     except DomainUnauthorized:
         return NoContent()
     except DomainForbidden as exc:
