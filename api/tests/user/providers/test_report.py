@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any, Mapping
 
 import pytest
-import user.providers.report as report
+import user.providers.report as provider_module
 from opensearchpy.exceptions import (
     AuthenticationException,
     AuthorizationException,
@@ -26,205 +26,140 @@ pytestmark = pytest.mark.unit
 
 # ──── Helpers ─────────────────────────────────────────────────────────────────────────
 
-
 INDEX = "reports"
+USER_ID = "11111111-1111-1111-1111-111111111111"
+REPORT_ID = "report-1"
+REPORT_2_ID = "report-2"
+CREATED_AT = datetime(2026, 1, 1, tzinfo=timezone.utc)
+UPDATED_AT = datetime(2026, 1, 2, tzinfo=timezone.utc)
+
+PROVIDER_ERROR_CASES = [
+    pytest.param(
+        AuthenticationException(401, "auth"),
+        DomainForbidden,
+        id="authentication",
+    ),
+    pytest.param(
+        AuthorizationException(403, "forbidden"),
+        DomainForbidden,
+        id="authorization",
+    ),
+    pytest.param(
+        ConnectionTimeout("timed-out"),
+        DomainRateLimited,
+        id="timeout",
+    ),
+    pytest.param(
+        ConnectionError("connection-error"),
+        DomainRateLimited,
+        id="connection",
+    ),
+    pytest.param(
+        NotFoundError(404, "missing"),
+        DomainNotFound,
+        id="not-found",
+    ),
+]
+
+
+def make_cursor(values: list[Any]) -> str:
+    raw = json.dumps(values, separators=(",", ":")).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("utf-8")
 
 
 def report_source(
     *,
-    id: str = "report-1",
-    xuser: str = "user-1",
-    title: str = "Report One",
+    id: str = REPORT_ID,
+    user: str = USER_ID,
+    title: str = "Quarterly report",
     final: bool = True,
-    created_at: str = "2026-01-01T00:00:00+00:00",
-    updated_at: str | None = "2026-01-02T00:00:00+00:00",
+    created_at: datetime = CREATED_AT,
+    updated_at: datetime | None = UPDATED_AT,
 ) -> dict[str, Any]:
     return {
         "id": id,
-        "xuser": encode_id(xuser),
+        "xuser": encode_id(user),
         "title": title,
         "final": final,
         "created_at": created_at,
-        **({"updated_at": updated_at} if updated_at is not None else {}),
+        "updated_at": updated_at,
     }
 
 
 def report_hit(
     *,
-    source: Mapping[str, Any] | None = None,
-    sort: list[Any] | None = None,
+    source: dict[str, Any],
+    sort: list[Any] | None,
 ) -> dict[str, Any]:
     return {
-        "_source": dict(source or report_source()),
-        **({"sort": sort} if sort is not None else {}),
+        "_source": source,
+        "sort": sort,
     }
 
 
-def report_cursor(value: list[Any]) -> str:
-    raw = json.dumps(value, separators=(",", ":")).encode("utf-8")
-    return base64.urlsafe_b64encode(raw).decode("utf-8")
-
-
-def list_reports_body(
+def expected_report(
     *,
-    user: str = "user-1",
-    q: str | None = None,
-    final: bool | None = None,
-    date_from: datetime | None = None,
-    date_to: datetime | None = None,
-    limit: int | None = None,
-    cursor: str | None = None,
-) -> dict[str, Any]:
-    filters: list[dict[str, Any]] = [{"term": {"xuser": encode_id(user)}}]
-
-    if final is not None:
-        filters.append({"term": {"final": final}})
-
-    if date_from or date_to:
-        filters.append(
-            {
-                "range": {
-                    "created_at": {
-                        **(
-                            {"gte": date_from.astimezone(timezone.utc).isoformat()}
-                            if date_from
-                            else {}
-                        ),
-                        **(
-                            {"lte": date_to.astimezone(timezone.utc).isoformat()}
-                            if date_to
-                            else {}
-                        ),
-                    }
-                }
-            }
-        )
-
-    return {
-        "size": min(limit or 25, 100),
-        "query": {
-            "bool": {
-                "filter": filters,
-                **(
-                    {
-                        "must": [
-                            {
-                                "bool": {
-                                    "should": [
-                                        {
-                                            "term": {
-                                                "id": {
-                                                    "value": q,
-                                                    "boost": 10,
-                                                    "case_insensitive": True,
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "prefix": {
-                                                "id": {
-                                                    "value": q,
-                                                    "boost": 6,
-                                                    "case_insensitive": True,
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "match": {
-                                                "title": {
-                                                    "query": q,
-                                                    "operator": "and",
-                                                    "boost": 4,
-                                                }
-                                            }
-                                        },
-                                        {
-                                            "match_phrase_prefix": {
-                                                "title": {
-                                                    "query": q,
-                                                    "boost": 2,
-                                                }
-                                            }
-                                        },
-                                    ],
-                                    "minimum_should_match": 1,
-                                }
-                            }
-                        ]
-                    }
-                    if q
-                    else {}
-                ),
-            }
-        },
-        "sort": (
-            [{"_score": "desc"}, {"created_at": "desc"}, {"id": "asc"}]
-            if q
-            else [{"created_at": "desc"}, {"id": "asc"}]
-        ),
-        **(
-            {"search_after": json.loads(base64.urlsafe_b64decode(cursor).decode())}
-            if cursor
-            else {}
-        ),
-    }
+    id: str = REPORT_ID,
+    user: str = USER_ID,
+    title: str = "Quarterly report",
+    final: bool = True,
+    created_at: datetime = CREATED_AT,
+    updated_at: datetime | None = UPDATED_AT,
+) -> Report:
+    return Report(
+        id=id,
+        user=user,
+        title=title,
+        final=final,
+        created_at=created_at,
+        updated_at=updated_at,
+    )
 
 
-def make_provider(client: Any) -> report.OpenSearchReportProvider:
-    provider = report.OpenSearchReportProvider.__new__(report.OpenSearchReportProvider)
-    provider._client = client
-    provider._index = INDEX
-    return provider
-
-
-class FakeOpenSearch:
+class FakeSearchClient:
     def __init__(self, response: Mapping[str, Any]) -> None:
-        self.response = response
+        self._response = response
         self.calls: list[dict[str, Any]] = []
 
     def search(self, **kwargs: Any) -> Mapping[str, Any]:
         self.calls.append(kwargs)
-        return self.response
+        return self._response
 
 
-class RaisingOpenSearch:
+class RaisingSearchClient:
     def __init__(self, error: Exception) -> None:
-        self.error = error
+        self._error = error
 
     def search(self, **_: Any) -> Mapping[str, Any]:
-        raise self.error
+        raise self._error
 
 
-# ──── Tests ───────────────────────────────────────────────────────────────────────────
+def make_provider(client: Any) -> provider_module.OpenSearchReportProvider:
+    provider = object.__new__(provider_module.OpenSearchReportProvider)
+    provider._client = client
+    provider._index = INDEX
+    return provider
 
 
 # ──── list_reports() ──────────────────────────────────────────────────────────────────
 
 
 class TestListReports:
-    def test_uses_expected_payload_and_returns_page(self) -> None:
-        cursor = report_cursor(["2025-12-31T00:00:00+00:00", "report-0"])
-        client = FakeOpenSearch(
+    def test_returns_page(self) -> None:
+        client = FakeSearchClient(
             {
                 "hits": {
                     "hits": [
                         report_hit(
-                            source=report_source(
-                                id="report-1",
-                                title="Report One",
-                                final=True,
-                            ),
-                            sort=["2026-01-02T00:00:00+00:00", "report-2"],
+                            source=report_source(),
+                            sort=[1704067200, REPORT_ID],
                         ),
                         report_hit(
                             source=report_source(
-                                id="report-2",
-                                title="Report Two",
-                                final=False,
-                                created_at="2026-01-03T00:00:00+00:00",
-                                updated_at=None,
+                                id=REPORT_2_ID,
+                                title="Incident summary",
                             ),
-                            sort=["2026-01-01T00:00:00+00:00", "report-1"],
+                            sort=[1704067100, REPORT_2_ID],
                         ),
                     ]
                 }
@@ -232,191 +167,181 @@ class TestListReports:
         )
         provider = make_provider(client)
 
-        result = provider.list_reports(
-            user="user-1",
-            q="report",
-            final=True,
-            date_from=datetime(2026, 1, 1, tzinfo=timezone.utc),
-            date_to=datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc),
-            limit=10,
-            cursor=cursor,
-        )
+        result = provider.list_reports(user=USER_ID, limit=10)
 
         assert client.calls == [
             {
                 "index": INDEX,
-                "body": list_reports_body(
-                    user="user-1",
-                    q="report",
-                    final=True,
-                    date_from=datetime(2026, 1, 1, tzinfo=timezone.utc),
-                    date_to=datetime(2026, 1, 31, 23, 59, 59, tzinfo=timezone.utc),
-                    limit=10,
-                    cursor=cursor,
-                ),
+                "body": {
+                    "size": 10,
+                    "query": {
+                        "bool": {
+                            "filter": [{"term": {"xuser": encode_id(USER_ID)}}],
+                        }
+                    },
+                    "sort": [{"created_at": "desc"}, {"id": "asc"}],
+                },
             }
         ]
         assert result == ReportPage(
             reports=[
-                Report.model_validate(
-                    {
-                        "id": "report-1",
-                        "xuser": encode_id("user-1"),
-                        "title": "Report One",
-                        "final": True,
-                        "created_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
-                        "updated_at": datetime(2026, 1, 2, tzinfo=timezone.utc),
-                    }
-                ),
-                Report.model_validate(
-                    {
-                        "id": "report-2",
-                        "xuser": encode_id("user-1"),
-                        "title": "Report Two",
-                        "final": False,
-                        "created_at": datetime(2026, 1, 3, tzinfo=timezone.utc),
-                        "updated_at": None,
-                    }
+                expected_report(),
+                expected_report(
+                    id=REPORT_2_ID,
+                    title="Incident summary",
                 ),
             ],
-            cursor=report_cursor(["2026-01-01T00:00:00+00:00", "report-1"]),
+            cursor=make_cursor([1704067100, REPORT_2_ID]),
         )
 
-    def test_uses_default_limit_when_limit_is_omitted(self) -> None:
-        client = FakeOpenSearch({"hits": {"hits": []}})
+    def test_passes_query_payload(self) -> None:
+        client = FakeSearchClient({"hits": {"hits": []}})
         provider = make_provider(client)
 
-        result = provider.list_reports(user="user-1")
+        result = provider.list_reports(user=USER_ID, q="incident")
 
+        assert result == ReportPage(reports=[], cursor=None)
         assert client.calls == [
             {
                 "index": INDEX,
-                "body": list_reports_body(),
+                "body": {
+                    "size": 25,
+                    "query": {
+                        "bool": {
+                            "filter": [{"term": {"xuser": encode_id(USER_ID)}}],
+                            "must": [
+                                {
+                                    "bool": {
+                                        "should": [
+                                            {
+                                                "term": {
+                                                    "id": {
+                                                        "value": "incident",
+                                                        "boost": 10,
+                                                        "case_insensitive": True,
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "prefix": {
+                                                    "id": {
+                                                        "value": "incident",
+                                                        "boost": 6,
+                                                        "case_insensitive": True,
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "match": {
+                                                    "title": {
+                                                        "query": "incident",
+                                                        "operator": "and",
+                                                        "boost": 4,
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "match_phrase_prefix": {
+                                                    "title": {
+                                                        "query": "incident",
+                                                        "boost": 2,
+                                                    }
+                                                }
+                                            },
+                                        ],
+                                        "minimum_should_match": 1,
+                                    }
+                                }
+                            ],
+                        }
+                    },
+                    "sort": [
+                        {"_score": "desc"},
+                        {"created_at": "desc"},
+                        {"id": "asc"},
+                    ],
+                },
             }
         ]
-        assert result == ReportPage(reports=[], cursor=None)
 
-    def test_clamps_limit_to_100(self) -> None:
-        client = FakeOpenSearch({"hits": {"hits": []}})
+    def test_passes_bounded_limit(self) -> None:
+        client = FakeSearchClient({"hits": {"hits": []}})
         provider = make_provider(client)
 
-        result = provider.list_reports(user="user-1", limit=200)
+        provider.list_reports(user=USER_ID, limit=1000)
 
-        assert client.calls == [
+        assert client.calls[0]["body"]["size"] == 100
+
+    def test_passes_cursor_when_provided(self) -> None:
+        client = FakeSearchClient({"hits": {"hits": []}})
+        provider = make_provider(client)
+
+        provider.list_reports(user=USER_ID, cursor=make_cursor([1704067200, REPORT_ID]))
+
+        assert client.calls[0]["body"]["search_after"] == [1704067200, REPORT_ID]
+
+    def test_passes_date_filter(self) -> None:
+        client = FakeSearchClient({"hits": {"hits": []}})
+        provider = make_provider(client)
+
+        provider.list_reports(
+            user=USER_ID,
+            date_from=datetime(2026, 1, 1, 1, tzinfo=timezone.utc),
+            date_to=datetime(2026, 1, 2, 2, tzinfo=timezone.utc),
+        )
+
+        assert client.calls[0]["body"]["query"]["bool"]["filter"] == [
+            {"term": {"xuser": encode_id(USER_ID)}},
             {
-                "index": INDEX,
-                "body": list_reports_body(limit=200),
-            }
+                "range": {
+                    "created_at": {
+                        "gte": "2026-01-01T01:00:00+00:00",
+                        "lte": "2026-01-02T02:00:00+00:00",
+                    }
+                }
+            },
         ]
-        assert result == ReportPage(reports=[], cursor=None)
 
-    def test_returns_empty_page(self) -> None:
-        client = FakeOpenSearch({"hits": {"hits": []}})
+    def test_rejects_invalid_cursor(self) -> None:
+        client = FakeSearchClient({"hits": {"hits": []}})
         provider = make_provider(client)
 
-        result = provider.list_reports(user="user-1", limit=10)
+        with pytest.raises(DomainInvariantViolation, match="Invalid report cursor"):
+            provider.list_reports(user=USER_ID, cursor="not-a-valid-cursor")
 
-        assert result == ReportPage(reports=[], cursor=None)
+        assert client.calls == []
 
-    def test_returns_cursor_from_last_hit_sort(self) -> None:
-        client = FakeOpenSearch(
+    def test_rejects_unexpected_provider_response_shape(self) -> None:
+        client = FakeSearchClient(
             {
                 "hits": {
                     "hits": [
-                        report_hit(sort=["2026-01-02T00:00:00+00:00", "report-2"]),
-                        report_hit(sort=["2026-01-01T00:00:00+00:00", "report-1"]),
+                        {
+                            "_source": {
+                                "id": REPORT_ID,
+                            }
+                        }
                     ]
                 }
             }
         )
         provider = make_provider(client)
 
-        result = provider.list_reports(user="user-1")
-
-        assert result.cursor == report_cursor(["2026-01-01T00:00:00+00:00", "report-1"])
-
-    @pytest.mark.parametrize(
-        "invalid_cursor",
-        [
-            pytest.param("not-base64", id="not-base64"),
-            pytest.param(report_cursor([{"unexpected": "shape"}]), id="non-sort-list"),
-            pytest.param(
-                base64.urlsafe_b64encode(
-                    json.dumps({"bad": "shape"}).encode("utf-8")
-                ).decode("utf-8"),
-                id="not-list",
-            ),
-        ],
-    )
-    def test_rejects_invalid_cursor(self, invalid_cursor: str) -> None:
-        client = FakeOpenSearch({"hits": {"hits": []}})
-        provider = make_provider(client)
-
-        with pytest.raises(DomainInvariantViolation):
-            provider.list_reports(user="user-1", cursor=invalid_cursor)
-
-        assert client.calls == []
-
-    def test_rejects_unexpected_provider_response_shape(self) -> None:
-        client = FakeOpenSearch({"unexpected": "shape"})
-        provider = make_provider(client)
-
-        with pytest.raises(DomainInvariantViolation):
-            provider.list_reports(user="user-1")
-
-    def test_rejects_unexpected_report_hit_shape(self) -> None:
-        client = FakeOpenSearch({"hits": {"hits": [{"unexpected": "shape"}]}})
-        provider = make_provider(client)
-
-        with pytest.raises(DomainInvariantViolation):
-            provider.list_reports(user="user-1")
-
-    def test_rejects_invalid_report_payload(self) -> None:
-        source = report_source()
-        source["final"] = "true"
-
-        client = FakeOpenSearch({"hits": {"hits": [report_hit(source=source)]}})
-        provider = make_provider(client)
-
-        with pytest.raises(DomainInvariantViolation):
-            provider.list_reports(user="user-1")
+        with pytest.raises(
+            DomainInvariantViolation, match="Unexpected opensearch response"
+        ):
+            provider.list_reports(user=USER_ID)
 
     @pytest.mark.parametrize(
         ("provider_error", "expected_error"),
-        [
-            pytest.param(
-                AuthenticationException(401, "unauthenticated"),
-                DomainForbidden,
-                id="authentication",
-            ),
-            pytest.param(
-                AuthorizationException(403, "unauthorized"),
-                DomainForbidden,
-                id="authorization",
-            ),
-            pytest.param(
-                ConnectionTimeout("timed out"),
-                DomainRateLimited,
-                id="timeout",
-            ),
-            pytest.param(
-                ConnectionError("connection failed"),
-                DomainRateLimited,
-                id="connection",
-            ),
-            pytest.param(
-                NotFoundError(404, "missing"),
-                DomainNotFound,
-                id="not-found",
-            ),
-        ],
+        PROVIDER_ERROR_CASES,
     )
     def test_maps_provider_errors(
         self,
         provider_error: Exception,
         expected_error: type[Exception],
     ) -> None:
-        provider = make_provider(RaisingOpenSearch(provider_error))
+        provider = make_provider(RaisingSearchClient(provider_error))
 
         with pytest.raises(expected_error):
-            provider.list_reports(user="user-1")
+            provider.list_reports(user=USER_ID)

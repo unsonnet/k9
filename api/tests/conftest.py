@@ -90,7 +90,7 @@ def lambda_context():
 def caller_factory():
     def _build(
         *,
-        id: str = "user-1",
+        id: str = "11111111-1111-1111-1111-111111111111",
         name: str = "Alice",
         groups: tuple[str, ...] = (),
     ) -> Caller:
@@ -106,7 +106,7 @@ def caller_factory():
 @pytest.fixture
 def user_caller(caller_factory):
     return caller_factory(
-        id="user-1",
+        id="11111111-1111-1111-1111-111111111111",
         name="Alice",
         groups=("user",),
     )
@@ -115,7 +115,7 @@ def user_caller(caller_factory):
 @pytest.fixture
 def admin_caller(caller_factory):
     return caller_factory(
-        id="admin-1",
+        id="22222222-2222-2222-2222-222222222222",
         name="Admin",
         groups=("admin",),
     )

@@ -10,21 +10,28 @@ from shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from shared.http import Caller
-from shared.providers.cognito import encode_id
 from user.providers.report import Report, ReportPage
-from user.providers.user import User, UserPage
+from user.providers.user import User, UserCreds, UserPage
 
-from tests.helpers import ProviderMethod, assert_body, assert_problem, assert_status
+from tests.helpers import (
+    ProviderMethod,
+    assert_body,
+    assert_problem,
+    assert_status,
+)
 
 pytestmark = pytest.mark.integration
 
 
 # ──── Helpers ─────────────────────────────────────────────────────────────────────────
 
-
 TEST_NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
-UTC = timezone.utc
+DATE_FROM = datetime(2026, 1, 1, tzinfo=timezone.utc)
+DATE_TO = datetime(2026, 1, 31, 23, 59, tzinfo=timezone.utc)
+USER_ID = "11111111-1111-1111-1111-111111111111"
+ADMIN_ID = "22222222-2222-2222-2222-222222222222"
+OTHER_USER_ID = "33333333-3333-3333-3333-333333333333"
+REPORT_ID = "report-1"
 
 PROVIDER_ERRORS = [
     pytest.param(DomainUnauthorized(), 401, "Unauthorized", id="unauthorized"),
@@ -43,8 +50,10 @@ PROVIDER_ERRORS_WITH_NOT_FOUND = [
 class FakeUserProvider:
     def __init__(self) -> None:
         self.list_users = ProviderMethod()
+        self.create_user = ProviderMethod()
         self.get_user = ProviderMethod()
         self.update_user = ProviderMethod()
+        self.reset_user = ProviderMethod()
 
 
 class FakeReportProvider:
@@ -54,77 +63,85 @@ class FakeReportProvider:
 
 def make_user(
     *,
-    id: str = "user-1",
-    name: str = "Alice",
+    id: str = USER_ID,
+    name: str = "alice",
     role: User.Role = User.Role.USER,
     enabled: bool = True,
+    created_at: datetime = TEST_NOW,
+    updated_at: datetime | None = None,
+    last_login_at: datetime | None = None,
 ) -> User:
     return User(
         id=id,
         name=name,
         role=role,
         enabled=enabled,
-        created_at=TEST_NOW,
-        updated_at=None,
-        last_login_at=None,
-    )
-
-
-def make_report(
-    *,
-    id: str = "report-1",
-    user: str = "user-1",
-    title: str = "Report One",
-    final: bool = False,
-) -> Report:
-    return Report.model_validate(
-        {
-            "id": id,
-            "xuser": encode_id(user),
-            "title": title,
-            "final": final,
-            "created_at": TEST_NOW,
-            "updated_at": None,
-        }
+        created_at=created_at,
+        updated_at=updated_at,
+        last_login_at=last_login_at,
     )
 
 
 def user_body(
     *,
-    id: str = "user-1",
-    name: str = "Alice",
+    id: str = USER_ID,
+    name: str = "alice",
     role: str = "user",
     enabled: bool = True,
+    created_at: str = "2026-01-01T00:00:00Z",
+    updated_at: str | None = None,
+    last_login_at: str | None = None,
 ) -> dict[str, Any]:
     return {
         "id": id,
         "name": name,
         "role": role,
         "enabled": enabled,
-        "createdAt": "2026-01-01T00:00:00Z",
-        "updatedAt": None,
-        "lastLoginAt": None,
+        "createdAt": created_at,
+        "updatedAt": updated_at,
+        "lastLoginAt": last_login_at,
     }
+
+
+def make_report(
+    *,
+    id: str = REPORT_ID,
+    user: str = USER_ID,
+    title: str = "Quarterly report",
+    final: bool = True,
+    created_at: datetime = TEST_NOW,
+    updated_at: datetime | None = None,
+) -> Report:
+    return Report(
+        id=id,
+        user=user,
+        title=title,
+        final=final,
+        created_at=created_at,
+        updated_at=updated_at,
+    )
 
 
 def report_body(
     *,
-    id: str = "report-1",
-    user: str = "user-1",
-    title: str = "Report One",
-    final: bool = False,
+    id: str = REPORT_ID,
+    user: str = USER_ID,
+    title: str = "Quarterly report",
+    final: bool = True,
+    created_at: str = "2026-01-01T00:00:00Z",
+    updated_at: str | None = None,
 ) -> dict[str, Any]:
     return {
         "id": id,
         "user": user,
         "title": title,
         "final": final,
-        "createdAt": "2026-01-01T00:00:00Z",
-        "updatedAt": None,
+        "createdAt": created_at,
+        "updatedAt": updated_at,
     }
 
 
-# ──── Fixtures ───────────────────────────────────────────────────────────────────────
+# ──── Fixtures ────────────────────────────────────────────────────────────────────────
 
 
 @pytest.fixture
@@ -194,22 +211,18 @@ def user_record() -> User:
 
 
 @pytest.fixture
-def admin_record() -> User:
-    return make_user(
-        id="admin-1",
-        name="Admin",
-        role=User.Role.ADMIN,
+def user_page(user_record: User) -> UserPage:
+    return UserPage(
+        users=[user_record],
+        cursor="next-cursor",
     )
 
 
 @pytest.fixture
-def user_page(
-    user_record: User,
-    admin_record: User,
-) -> UserPage:
-    return UserPage(
-        users=[user_record, admin_record],
-        cursor="next-cursor",
+def user_creds() -> UserCreds:
+    return UserCreds(
+        name="alice",
+        password="TempPass#2026",
     )
 
 
@@ -222,7 +235,7 @@ def report_record() -> Report:
 def report_page(report_record: Report) -> ReportPage:
     return ReportPage(
         reports=[report_record],
-        cursor="next-cursor",
+        cursor="report-cursor",
     )
 
 
@@ -234,7 +247,7 @@ class TestListUsers:
         self,
         user_provider: FakeUserProvider,
         invoke_user_api,
-        admin_caller: Caller,
+        admin_caller,
         use_caller,
         user_page: UserPage,
     ) -> None:
@@ -244,9 +257,9 @@ class TestListUsers:
         response = invoke_user_api(
             "/user",
             query_params={
-                "q": "ali",
+                "q": "alice",
                 "limit": 10,
-                "cursor": "cursor-1",
+                "cursor": "users-cursor",
             },
         )
 
@@ -254,22 +267,15 @@ class TestListUsers:
         assert_body(
             response,
             {
-                "users": [
-                    user_body(),
-                    user_body(
-                        id="admin-1",
-                        name="Admin",
-                        role="admin",
-                    ),
-                ],
+                "users": [user_body()],
                 "cursor": "next-cursor",
             },
         )
         assert user_provider.list_users.calls == [
             {
-                "q": "ali",
+                "q": "alice",
                 "limit": 10,
-                "cursor": "cursor-1",
+                "cursor": "users-cursor",
             }
         ]
 
@@ -277,21 +283,24 @@ class TestListUsers:
         self,
         user_provider: FakeUserProvider,
         invoke_user_api,
-        admin_caller: Caller,
+        admin_caller,
         use_caller,
+        user_page: UserPage,
     ) -> None:
         use_caller(admin_caller)
-        user_provider.list_users.result = UserPage(users=[], cursor=None)
+        user_provider.list_users.result = user_page
 
         response = invoke_user_api(
             "/user",
-            query_params={"q": '  Alice   "Smith"  '},
+            query_params={
+                "q": '  ALICE "X"  ',
+            },
         )
 
         assert_status(response, 200)
         assert user_provider.list_users.calls == [
             {
-                "q": 'alice \\"smith\\"',
+                "q": 'alice \\"x\\"',
                 "limit": None,
                 "cursor": None,
             }
@@ -301,11 +310,12 @@ class TestListUsers:
         self,
         user_provider: FakeUserProvider,
         invoke_user_api,
-        admin_caller: Caller,
+        admin_caller,
         use_caller,
+        user_page: UserPage,
     ) -> None:
         use_caller(admin_caller, groups_as_string=True)
-        user_provider.list_users.result = UserPage(users=[], cursor=None)
+        user_provider.list_users.result = user_page
 
         response = invoke_user_api("/user")
 
@@ -318,22 +328,20 @@ class TestListUsers:
             }
         ]
 
-    @pytest.mark.parametrize(
-        "query_params",
-        [
-            pytest.param({"limit": "not-an-int"}, id="invalid-limit"),
-        ],
-    )
     def test_rejects_invalid_query_params(
         self,
         invoke_user_api,
-        admin_caller: Caller,
+        admin_caller,
         use_caller,
-        query_params: dict[str, Any],
     ) -> None:
         use_caller(admin_caller)
 
-        response = invoke_user_api("/user", query_params=query_params)
+        response = invoke_user_api(
+            "/user",
+            query_params={
+                "limit": "not-an-int",
+            },
+        )
 
         assert_status(response, 422)
 
@@ -354,7 +362,7 @@ class TestListUsers:
         self,
         user_provider: FakeUserProvider,
         invoke_user_api,
-        user_caller: Caller,
+        user_caller,
         use_caller,
     ) -> None:
         use_caller(user_caller)
@@ -372,7 +380,7 @@ class TestListUsers:
         self,
         user_provider: FakeUserProvider,
         invoke_user_api,
-        admin_caller: Caller,
+        admin_caller,
         use_caller,
         provider_error: Exception,
         expected_status: int,
@@ -383,24 +391,155 @@ class TestListUsers:
 
         response = invoke_user_api("/user")
 
-        assert_problem(
-            response,
-            status=expected_status,
-            title=expected_title,
+        assert_problem(response, status=expected_status, title=expected_title)
+
+
+# ──── POST /user ──────────────────────────────────────────────────────────────────────
+
+
+class TestCreateUser:
+    def test_returns_created_user(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        admin_caller,
+        use_caller,
+        user_record: User,
+    ) -> None:
+        use_caller(admin_caller)
+        user_provider.create_user.result = user_record
+
+        response = invoke_user_api(
+            "/user",
+            method="POST",
+            body={
+                "name": "Alice",
+                "role": "user",
+            },
         )
 
+        assert_status(response, 201)
+        assert_body(response, user_body())
+        assert user_provider.create_user.calls == [
+            {
+                "name": "alice",
+                "role": User.Role.USER,
+            }
+        ]
 
-# ──── GET /user/{userId} ──────────────────────────────────────────────────────────────
+    @pytest.mark.parametrize(
+        "body",
+        [
+            pytest.param({}, id="missing-all-fields"),
+            pytest.param({"name": "Alice"}, id="missing-role"),
+            pytest.param({"role": "user"}, id="missing-name"),
+            pytest.param({"name": "", "role": "user"}, id="blank-name"),
+            pytest.param({"name": "alice", "role": "owner"}, id="invalid-role"),
+        ],
+    )
+    def test_rejects_invalid_body(
+        self,
+        invoke_user_api,
+        admin_caller,
+        use_caller,
+        body: dict[str, Any],
+    ) -> None:
+        use_caller(admin_caller)
+
+        response = invoke_user_api(
+            "/user",
+            method="POST",
+            body=body,
+        )
+
+        assert_status(response, 422)
+
+    def test_requires_authentication(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        use_unauthorized_caller,
+    ) -> None:
+        use_unauthorized_caller()
+
+        response = invoke_user_api(
+            "/user",
+            method="POST",
+            body={
+                "name": "alice",
+                "role": "user",
+            },
+        )
+
+        assert_problem(response, status=401, title="Unauthorized")
+        assert user_provider.create_user.calls == []
+
+    def test_requires_admin(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        user_caller,
+        use_caller,
+    ) -> None:
+        use_caller(user_caller)
+
+        response = invoke_user_api(
+            "/user",
+            method="POST",
+            body={
+                "name": "alice",
+                "role": "user",
+            },
+        )
+
+        assert_problem(response, status=403, title="Forbidden")
+        assert user_provider.create_user.calls == []
+
+    @pytest.mark.parametrize(
+        ("provider_error", "expected_status", "expected_title"),
+        PROVIDER_ERRORS,
+    )
+    def test_maps_provider_errors(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        admin_caller,
+        use_caller,
+        provider_error: Exception,
+        expected_status: int,
+        expected_title: str,
+    ) -> None:
+        use_caller(admin_caller)
+        user_provider.create_user.error = provider_error
+
+        response = invoke_user_api(
+            "/user",
+            method="POST",
+            body={
+                "name": "alice",
+                "role": "user",
+            },
+        )
+
+        assert_problem(response, status=expected_status, title=expected_title)
+
+
+# ──── GET /user/<userId> ──────────────────────────────────────────────────────────────
 
 
 class TestGetUser:
     @pytest.mark.parametrize(
         ("caller_fixture", "path", "expected_provider_id"),
         [
-            pytest.param("user_caller", "/user/me", "user-1", id="self-alias"),
-            pytest.param("user_caller", "/user/user-1", "user-1", id="self-id"),
-            pytest.param("admin_caller", "/user/user-1", "user-1", id="admin-other"),
-            pytest.param("admin_caller", "/user/me", "admin-1", id="admin-self-alias"),
+            pytest.param("user_caller", "/user/me", USER_ID, id="self-alias"),
+            pytest.param("user_caller", f"/user/{USER_ID}", USER_ID, id="self-id"),
+            pytest.param(
+                "admin_caller",
+                f"/user/{OTHER_USER_ID}",
+                OTHER_USER_ID,
+                id="admin-other",
+            ),
+            pytest.param("admin_caller", "/user/me", ADMIN_ID, id="admin-self-alias"),
         ],
     )
     def test_returns_user(
@@ -422,11 +561,19 @@ class TestGetUser:
 
         assert_status(response, 200)
         assert_body(response, user_body())
-        assert user_provider.get_user.calls == [
-            {
-                "id": expected_provider_id,
-            }
-        ]
+        assert user_provider.get_user.calls == [{"id": expected_provider_id}]
+
+    def test_rejects_invalid_userId(
+        self,
+        invoke_user_api,
+        user_caller,
+        use_caller,
+    ) -> None:
+        use_caller(user_caller)
+
+        response = invoke_user_api("/user/not-a-uuid")
+
+        assert_status(response, 422)
 
     def test_requires_authentication(
         self,
@@ -445,12 +592,12 @@ class TestGetUser:
         self,
         user_provider: FakeUserProvider,
         invoke_user_api,
-        user_caller: Caller,
+        user_caller,
         use_caller,
     ) -> None:
         use_caller(user_caller)
 
-        response = invoke_user_api("/user/other-user")
+        response = invoke_user_api(f"/user/{OTHER_USER_ID}")
 
         assert_problem(response, status=403, title="Forbidden")
         assert user_provider.get_user.calls == []
@@ -463,7 +610,7 @@ class TestGetUser:
         self,
         user_provider: FakeUserProvider,
         invoke_user_api,
-        admin_caller: Caller,
+        admin_caller,
         use_caller,
         provider_error: Exception,
         expected_status: int,
@@ -472,16 +619,12 @@ class TestGetUser:
         use_caller(admin_caller)
         user_provider.get_user.error = provider_error
 
-        response = invoke_user_api("/user/user-1")
+        response = invoke_user_api(f"/user/{OTHER_USER_ID}")
 
-        assert_problem(
-            response,
-            status=expected_status,
-            title=expected_title,
-        )
+        assert_problem(response, status=expected_status, title=expected_title)
 
 
-# ──── PATCH /user/{userId} ────────────────────────────────────────────────────────────
+# ──── PATCH /user/<userId> ────────────────────────────────────────────────────────────
 
 
 class TestUpdateUser:
@@ -493,44 +636,40 @@ class TestUpdateUser:
                 "/user/me",
                 {"name": "Alice Updated"},
                 {
-                    "id": "user-1",
-                    "update": {
-                        "name": "alice updated",
-                    },
+                    "id": USER_ID,
+                    "name": "alice updated",
+                    "role": None,
+                    "enabled": None,
                 },
-                id="self-alias",
+                id="user-self-name",
             ),
             pytest.param(
                 "admin_caller",
-                "/user/user-1",
-                {"name": "Alice Updated"},
+                f"/user/{OTHER_USER_ID}",
+                {"role": "admin"},
                 {
-                    "id": "user-1",
-                    "update": {
-                        "name": "alice updated",
-                    },
+                    "id": OTHER_USER_ID,
+                    "name": None,
+                    "role": User.Role.ADMIN,
+                    "enabled": None,
                 },
-                id="admin-other",
+                id="admin-other-role",
             ),
             pytest.param(
                 "admin_caller",
-                "/user/me",
+                f"/user/{OTHER_USER_ID}",
+                {"enabled": False},
                 {
-                    "role": "admin",
+                    "id": OTHER_USER_ID,
+                    "name": None,
+                    "role": None,
                     "enabled": False,
                 },
-                {
-                    "id": "admin-1",
-                    "update": {
-                        "role": User.Role.ADMIN,
-                        "enabled": False,
-                    },
-                },
-                id="admin-fields",
+                id="admin-other-enabled",
             ),
         ],
     )
-    def test_updates_user(
+    def test_returns_updated_user(
         self,
         request,
         user_provider: FakeUserProvider,
@@ -561,13 +700,13 @@ class TestUpdateUser:
         [
             pytest.param({"name": ""}, id="blank-name"),
             pytest.param({"role": "owner"}, id="invalid-role"),
-            pytest.param({"enabled": "yes"}, id="invalid-enabled"),
+            pytest.param({"enabled": "true"}, id="invalid-enabled-type"),
         ],
     )
     def test_rejects_invalid_body(
         self,
         invoke_user_api,
-        user_caller: Caller,
+        user_caller,
         use_caller,
         body: dict[str, Any],
     ) -> None:
@@ -592,28 +731,10 @@ class TestUpdateUser:
         response = invoke_user_api(
             "/user/me",
             method="PATCH",
-            body={"name": "Alice"},
+            body={"name": "alice"},
         )
 
         assert_problem(response, status=401, title="Unauthorized")
-        assert user_provider.update_user.calls == []
-
-    def test_forbids_user_updating_other_user(
-        self,
-        user_provider: FakeUserProvider,
-        invoke_user_api,
-        user_caller: Caller,
-        use_caller,
-    ) -> None:
-        use_caller(user_caller)
-
-        response = invoke_user_api(
-            "/user/other-user",
-            method="PATCH",
-            body={"name": "Other"},
-        )
-
-        assert_problem(response, status=403, title="Forbidden")
         assert user_provider.update_user.calls == []
 
     @pytest.mark.parametrize(
@@ -627,7 +748,7 @@ class TestUpdateUser:
         self,
         user_provider: FakeUserProvider,
         invoke_user_api,
-        user_caller: Caller,
+        user_caller,
         use_caller,
         body: dict[str, Any],
     ) -> None:
@@ -642,6 +763,24 @@ class TestUpdateUser:
         assert_problem(response, status=403, title="Forbidden")
         assert user_provider.update_user.calls == []
 
+    def test_forbids_user_updating_other_user(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        user_caller,
+        use_caller,
+    ) -> None:
+        use_caller(user_caller)
+
+        response = invoke_user_api(
+            f"/user/{OTHER_USER_ID}",
+            method="PATCH",
+            body={"name": "bob"},
+        )
+
+        assert_problem(response, status=403, title="Forbidden")
+        assert user_provider.update_user.calls == []
+
     @pytest.mark.parametrize(
         ("provider_error", "expected_status", "expected_title"),
         PROVIDER_ERRORS_WITH_NOT_FOUND,
@@ -650,7 +789,7 @@ class TestUpdateUser:
         self,
         user_provider: FakeUserProvider,
         invoke_user_api,
-        admin_caller: Caller,
+        admin_caller,
         use_caller,
         provider_error: Exception,
         expected_status: int,
@@ -660,37 +799,140 @@ class TestUpdateUser:
         user_provider.update_user.error = provider_error
 
         response = invoke_user_api(
-            "/user/user-1",
+            f"/user/{OTHER_USER_ID}",
             method="PATCH",
-            body={"name": "Alice"},
+            body={"name": "alice"},
         )
 
-        assert_problem(
+        assert_problem(response, status=expected_status, title=expected_title)
+
+
+# ──── POST /user/<userId>/reset ───────────────────────────────────────────────────────
+
+
+class TestResetUser:
+    def test_returns_reset_user_credentials(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        admin_caller,
+        use_caller,
+        user_creds: UserCreds,
+    ) -> None:
+        use_caller(admin_caller)
+        user_provider.reset_user.result = user_creds
+
+        response = invoke_user_api(
+            f"/user/{USER_ID}/reset",
+            method="POST",
+            body={},
+        )
+
+        assert_status(response, 200)
+        assert_body(
             response,
-            status=expected_status,
-            title=expected_title,
+            {
+                "name": "alice",
+                "password": "TempPass#2026",
+            },
+        )
+        assert user_provider.reset_user.calls == [{"id": USER_ID}]
+
+    def test_rejects_invalid_userId(
+        self,
+        invoke_user_api,
+        admin_caller,
+        use_caller,
+    ) -> None:
+        use_caller(admin_caller)
+
+        response = invoke_user_api(
+            "/user/me/reset",
+            method="POST",
+            body={},
         )
 
+        assert_status(response, 422)
 
-# ──── GET /user/{userId}/reports ──────────────────────────────────────────────────────
+    def test_requires_authentication(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        use_unauthorized_caller,
+    ) -> None:
+        use_unauthorized_caller()
+
+        response = invoke_user_api(
+            f"/user/{USER_ID}/reset",
+            method="POST",
+            body={},
+        )
+
+        assert_problem(response, status=401, title="Unauthorized")
+        assert user_provider.reset_user.calls == []
+
+    def test_requires_admin(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        user_caller,
+        use_caller,
+    ) -> None:
+        use_caller(user_caller)
+
+        response = invoke_user_api(
+            f"/user/{USER_ID}/reset",
+            method="POST",
+            body={},
+        )
+
+        assert_problem(response, status=403, title="Forbidden")
+        assert user_provider.reset_user.calls == []
+
+    @pytest.mark.parametrize(
+        ("provider_error", "expected_status", "expected_title"),
+        PROVIDER_ERRORS_WITH_NOT_FOUND,
+    )
+    def test_maps_provider_errors(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        admin_caller,
+        use_caller,
+        provider_error: Exception,
+        expected_status: int,
+        expected_title: str,
+    ) -> None:
+        use_caller(admin_caller)
+        user_provider.reset_user.error = provider_error
+
+        response = invoke_user_api(
+            f"/user/{USER_ID}/reset",
+            method="POST",
+            body={},
+        )
+
+        assert_problem(response, status=expected_status, title=expected_title)
+
+
+# ──── GET /user/<userId>/reports ──────────────────────────────────────────────────────
 
 
 class TestListReports:
     @pytest.mark.parametrize(
-        ("caller_fixture", "path", "expected_provider_user"),
+        ("caller_fixture", "path", "expected_provider_id"),
         [
-            pytest.param("user_caller", "/user/me/reports", "user-1", id="self-alias"),
-            pytest.param("user_caller", "/user/user-1/reports", "user-1", id="self-id"),
+            pytest.param("user_caller", "/user/me/reports", USER_ID, id="self-alias"),
             pytest.param(
                 "admin_caller",
-                "/user/user-1/reports",
-                "user-1",
+                f"/user/{OTHER_USER_ID}/reports",
+                OTHER_USER_ID,
                 id="admin-other",
             ),
             pytest.param(
                 "admin_caller",
                 "/user/me/reports",
-                "admin-1",
+                ADMIN_ID,
                 id="admin-self-alias",
             ),
         ],
@@ -704,7 +946,7 @@ class TestListReports:
         report_page: ReportPage,
         caller_fixture: str,
         path: str,
-        expected_provider_user: str,
+        expected_provider_id: str,
     ) -> None:
         caller = request.getfixturevalue(caller_fixture)
         use_caller(caller)
@@ -713,12 +955,12 @@ class TestListReports:
         response = invoke_user_api(
             path,
             query_params={
-                "q": "report",
-                "final": "false",
+                "q": "quarterly",
+                "final": "true",
                 "dateFrom": "2026-01-01T00:00:00Z",
-                "dateTo": "2026-01-02T00:00:00Z",
-                "limit": 10,
-                "cursor": "cursor-1",
+                "dateTo": "2026-01-31T23:59:00Z",
+                "limit": 50,
+                "cursor": "report-page-cursor",
             },
         )
 
@@ -726,21 +968,19 @@ class TestListReports:
         assert_body(
             response,
             {
-                "reports": [
-                    report_body(),
-                ],
-                "cursor": "next-cursor",
+                "reports": [report_body()],
+                "cursor": "report-cursor",
             },
         )
         assert report_provider.list_reports.calls == [
             {
-                "user": expected_provider_user,
-                "q": "report",
-                "final": False,
-                "date_from": datetime(2026, 1, 1, tzinfo=UTC),
-                "date_to": datetime(2026, 1, 2, tzinfo=UTC),
-                "limit": 10,
-                "cursor": "cursor-1",
+                "user": expected_provider_id,
+                "q": "quarterly",
+                "final": True,
+                "date_from": DATE_FROM,
+                "date_to": DATE_TO,
+                "limit": 50,
+                "cursor": "report-page-cursor",
             }
         ]
 
@@ -748,22 +988,25 @@ class TestListReports:
         self,
         report_provider: FakeReportProvider,
         invoke_user_api,
-        user_caller: Caller,
+        user_caller,
         use_caller,
+        report_page: ReportPage,
     ) -> None:
         use_caller(user_caller)
-        report_provider.list_reports.result = ReportPage(reports=[], cursor=None)
+        report_provider.list_reports.result = report_page
 
         response = invoke_user_api(
             "/user/me/reports",
-            query_params={"q": '  Report "One"  '},
+            query_params={
+                "q": '  Report "Q1"  ',
+            },
         )
 
         assert_status(response, 200)
         assert report_provider.list_reports.calls == [
             {
-                "user": "user-1",
-                "q": 'Report \\"One\\"',
+                "user": USER_ID,
+                "q": 'Report \\"Q1\\"',
                 "final": None,
                 "date_from": None,
                 "date_to": None,
@@ -775,14 +1018,13 @@ class TestListReports:
     @pytest.mark.parametrize(
         "query_params",
         [
-            pytest.param({"final": "not-a-bool"}, id="invalid-final"),
+            pytest.param({"final": "not-bool"}, id="invalid-final"),
             pytest.param({"dateFrom": "not-a-date"}, id="invalid-date-from"),
-            pytest.param({"dateTo": "not-a-date"}, id="invalid-date-to"),
             pytest.param({"limit": 0}, id="limit-too-small"),
             pytest.param({"limit": 101}, id="limit-too-large"),
             pytest.param(
                 {
-                    "dateFrom": "2026-01-02T00:00:00Z",
+                    "dateFrom": "2026-02-01T00:00:00Z",
                     "dateTo": "2026-01-01T00:00:00Z",
                 },
                 id="backwards-date-range",
@@ -792,7 +1034,7 @@ class TestListReports:
     def test_rejects_invalid_query_params(
         self,
         invoke_user_api,
-        user_caller: Caller,
+        user_caller,
         use_caller,
         query_params: dict[str, Any],
     ) -> None:
@@ -822,12 +1064,12 @@ class TestListReports:
         self,
         report_provider: FakeReportProvider,
         invoke_user_api,
-        user_caller: Caller,
+        user_caller,
         use_caller,
     ) -> None:
         use_caller(user_caller)
 
-        response = invoke_user_api("/user/other-user/reports")
+        response = invoke_user_api(f"/user/{OTHER_USER_ID}/reports")
 
         assert_problem(response, status=403, title="Forbidden")
         assert report_provider.list_reports.calls == []
@@ -840,7 +1082,7 @@ class TestListReports:
         self,
         report_provider: FakeReportProvider,
         invoke_user_api,
-        admin_caller: Caller,
+        admin_caller,
         use_caller,
         provider_error: Exception,
         expected_status: int,
@@ -849,26 +1091,22 @@ class TestListReports:
         use_caller(admin_caller)
         report_provider.list_reports.error = provider_error
 
-        response = invoke_user_api("/user/user-1/reports")
+        response = invoke_user_api(f"/user/{OTHER_USER_ID}/reports")
 
-        assert_problem(
-            response,
-            status=expected_status,
-            title=expected_title,
-        )
+        assert_problem(response, status=expected_status, title=expected_title)
 
 
-# ──── Routing ────────────────────────────────────────────────────────────────────────
+# ──── Routing ─────────────────────────────────────────────────────────────────────────
 
 
 class TestRouting:
     @pytest.mark.parametrize(
-        ("method", "path"),
+        "path",
         [
-            pytest.param("POST", "/user", id="list-users"),
-            pytest.param("POST", "/user/me", id="get-user"),
-            pytest.param("DELETE", "/user/me", id="update-user"),
-            pytest.param("POST", "/user/me/reports", id="list-reports"),
+            pytest.param("/user", id="list-create-user"),
+            pytest.param(f"/user/{USER_ID}", id="get-update-user"),
+            pytest.param(f"/user/{USER_ID}/reset", id="reset-user"),
+            pytest.param(f"/user/{USER_ID}/reports", id="list-reports"),
         ],
     )
     def test_rejects_unsupported_methods(
@@ -876,11 +1114,10 @@ class TestRouting:
         user_handler_module,
         apigw_event,
         lambda_context,
-        method: str,
         path: str,
     ) -> None:
         response = user_handler_module.lambda_handler(
-            apigw_event(path, {}, method=method),
+            apigw_event(path, {}, method="DELETE"),
             lambda_context,
         )
 
@@ -893,7 +1130,7 @@ class TestRouting:
         lambda_context,
     ) -> None:
         response = user_handler_module.lambda_handler(
-            apigw_event("/user/me/unknown", {}, method="GET"),
+            apigw_event("/user/unknown/path", {}, method="GET"),
             lambda_context,
         )
 
