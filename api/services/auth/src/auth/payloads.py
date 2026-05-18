@@ -70,9 +70,7 @@ class Request:
         @field_validator("accessToken", "refreshToken")
         @classmethod
         def validate_token(cls, value: str | None) -> str | None:
-            if value is not None:
-                return validate_token(value)
-            return value
+            return validate_token(value) if value is not None else None
 
         @model_validator(mode="after")
         def verify_has_token(self) -> Self:

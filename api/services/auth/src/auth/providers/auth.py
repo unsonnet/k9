@@ -15,7 +15,6 @@ from shared.errors import (
     DomainInvariantViolation,
     DomainNotFound,
     DomainRateLimited,
-    assert_unreachable,
 )
 from shared.providers.cognito import encode_name
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
@@ -158,7 +157,7 @@ class CognitoAuthProvider(BaseProvider):
                     refresh_token=refresh_token,
                     id_token=id_token,
                 )
-        raise DomainInvariantViolation(f"Unexpected cognito response: {response}")
+        raise DomainInvariantViolation(f"Unexpected cognito tokens: {response}")
 
     def _challenge(self, session: str, challenge: str) -> Challenge:
         match challenge:
@@ -270,8 +269,6 @@ class CognitoAuthProvider(BaseProvider):
                         },
                     )
                 )
-            case _ as never:
-                assert_unreachable(never)
 
     @private_api
     def refresh_tokens(
