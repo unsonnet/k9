@@ -4,7 +4,7 @@ import unicodedata
 from secrets import SystemRandom
 from string import ascii_lowercase, ascii_uppercase, digits
 from typing import Final
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from shared.errors import DomainInvariantViolation
 
@@ -48,6 +48,15 @@ def decode_id(xid: str) -> str:
     if not xid.startswith(_ID_PREFIX):
         raise DomainInvariantViolation(f"Unexpected Cognito user id format: {xid}")
     return xid.removeprefix(_ID_PREFIX)
+
+
+def validate_id(id: str) -> str:
+    try:
+        UUID(id)
+    except ValueError as exc:
+        raise ValueError("id must be a valid UUID") from exc
+
+    return id
 
 
 # ──── Name ────────────────────────────────────────────────────────────────────────────
@@ -122,6 +131,7 @@ def validate_session(session: str) -> str:
         raise ValueError(
             f"session must be {_SESSION_MIN_LENGTH}-{_SESSION_MAX_LENGTH} characters"
         )
+
     return session
 
 

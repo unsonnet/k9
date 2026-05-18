@@ -46,7 +46,7 @@ class Report(DataModel, frozen=True):
     @field_validator("user", mode="after")
     @classmethod
     def decode_user(cls, value: str) -> str:
-        return decode_id(value)
+        return decode_id(value) if value.startswith("id:") else value
 
     @field_validator("created_at", "updated_at", mode="after")
     @classmethod

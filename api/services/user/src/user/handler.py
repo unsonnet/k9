@@ -1,19 +1,17 @@
-from datetime import datetime
-
 from shared.errors import (
     DomainForbidden,
     DomainNotFound,
     DomainRateLimited,
     DomainUnauthorized,
-    assert_unreachable,
 )
-from shared.http import Body, HttpResolver, Path, Query
+from shared.http import HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
-from shared.http.responses import OK
+from shared.http.responses import OK, Created
 
+from .payloads import Request, Response
 from .providers.report import OpenSearchReportProvider as ReportProvider
 from .providers.user import CognitoUserProvider as UserProvider
-from .service import UserRequest, UserResponse, UserService
+from .service import UserService
 
 app = HttpResolver(enable_validation=True)
 svc = UserService(UserProvider(), ReportProvider())
@@ -32,17 +30,35 @@ svc = UserService(UserProvider(), ReportProvider())
     },
 )
 def list_users(
-    q: Query[str | None] = None,
-    limit: Query[int | None] = None,
-    cursor: Query[str | None] = None,
-) -> OK[UserResponse.UserPage] | Unauthorized | Forbidden | TooManyRequests:
-    request = UserRequest.ListUsers(q=q, limit=limit, cursor=cursor)
+    request: Request.ListUsers,
+) -> OK[Response.UserPage] | Unauthorized | Forbidden | TooManyRequests:
     try:
-        match svc.list_users(app.caller(), request):
-            case UserResponse.UserPage() as page:
-                return OK(page)
-            case _ as never:
-                assert_unreachable(never)
+        return OK(svc.list_users(app.caller(), request))
+    except DomainUnauthorized as exc:
+        return Unauthorized(cause=exc)
+    except DomainForbidden as exc:
+        return Forbidden(cause=exc)
+    except DomainRateLimited as exc:
+        return TooManyRequests(cause=exc)
+
+
+@app.post(
+    "/user",
+    summary="Create user",
+    description="Create a new user. Requires admin role.",
+    tags=["user"],
+    responses={
+        201: "User created",
+        401: "Authentication required",
+        403: "Access denied",
+        429: "Too many requests",
+    },
+)
+def create_user(
+    request: Request.CreateUser,
+) -> Created[Response.User] | Unauthorized | Forbidden | TooManyRequests:
+    try:
+        return Created(svc.create_user(app.caller(), request))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -68,15 +84,10 @@ def list_users(
     },
 )
 def get_user(
-    userId: Path[str],
-) -> OK[UserResponse.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
-    request = UserRequest.GetUser(id=userId)
+    request: Request.GetUser,
+) -> OK[Response.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        match svc.get_user(app.caller(), request):
-            case UserResponse.User() as user:
-                return OK(user)
-            case _ as never:
-                assert_unreachable(never)
+        return OK(svc.get_user(app.caller(), request))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -104,16 +115,41 @@ def get_user(
     },
 )
 def update_user(
-    userId: Path[str],
-    update: Body[UserRequest.UpdateUser.Update],
-) -> OK[UserResponse.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
-    request = UserRequest.UpdateUser(id=userId, update=update)
+    request: Request.UpdateUser,
+) -> OK[Response.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        match svc.update_user(app.caller(), request):
-            case UserResponse.User() as user:
-                return OK(user)
-            case _ as never:
-                assert_unreachable(never)
+        return OK(svc.update_user(app.caller(), request))
+    except DomainUnauthorized as exc:
+        return Unauthorized(cause=exc)
+    except DomainForbidden as exc:
+        return Forbidden(cause=exc)
+    except DomainNotFound as exc:
+        return NotFound(cause=exc)
+    except DomainRateLimited as exc:
+        return TooManyRequests(cause=exc)
+
+
+@app.post(
+    "/user/<userId>/reset",
+    summary="Reset user credentials",
+    description=(
+        "Reset user credentials. Requires admin role. Resets the user's password "
+        "and MFA enrollment state, when present, and returns a new temporary password."
+    ),
+    tags=["user"],
+    responses={
+        200: "User credentials reset",
+        401: "Authentication required",
+        403: "Access denied",
+        404: "User not found",
+        429: "Too many requests",
+    },
+)
+def reset_user(
+    request: Request.ResetUser,
+) -> OK[Response.UserCreds] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+    try:
+        return OK(svc.reset_user(app.caller(), request))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -142,31 +178,10 @@ def update_user(
     },
 )
 def list_reports(
-    userId: Path[str],
-    q: Query[str | None] = None,
-    final: Query[bool | None] = None,
-    dateFrom: Query[datetime | None] = None,
-    dateTo: Query[datetime | None] = None,
-    limit: Query[int | None] = None,
-    cursor: Query[str | None] = None,
-) -> (
-    OK[UserResponse.ReportPage] | Unauthorized | Forbidden | NotFound | TooManyRequests
-):
-    request = UserRequest.ListReports(
-        user=userId,
-        q=q,
-        final=final,
-        dateFrom=dateFrom,
-        dateTo=dateTo,
-        limit=limit,
-        cursor=cursor,
-    )
+    request: Request.ListReports,
+) -> OK[Response.ReportPage] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        match svc.list_reports(app.caller(), request):
-            case UserResponse.ReportPage() as page:
-                return OK(page)
-            case _ as never:
-                assert_unreachable(never)
+        return OK(svc.list_reports(app.caller(), request))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
