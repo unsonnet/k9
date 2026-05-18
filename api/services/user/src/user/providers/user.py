@@ -1,9 +1,8 @@
 from datetime import datetime, timezone
-from enum import StrEnum
 from typing import Any, Mapping, Protocol, Sequence, overload
 
 import boto3
-from shared.abc import BaseProvider, DataModel, ExceptionMap, private_api
+from shared.abc import BaseProvider, DataModel, ExceptionMap, Role, private_api
 from shared.config import settings
 from shared.errors import (
     DomainForbidden,
@@ -20,6 +19,7 @@ from shared.providers.cognito import (
     generate_password,
 )
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
+from types_boto3_cognito_idp.type_defs import AttributeTypeTypeDef
 
 __all__ = [
     "User",
@@ -32,10 +32,6 @@ __all__ = [
 
 
 class User(DataModel, frozen=True):
-    class Role(StrEnum):
-        USER = "user"
-        ADMIN = "admin"
-
     id: str
     name: str
     role: Role
@@ -71,7 +67,7 @@ class UserProvider(Protocol):
         self,
         *,
         name: str,
-        role: User.Role,
+        role: Role,
     ) -> User: ...
 
     def get_user(
@@ -85,7 +81,7 @@ class UserProvider(Protocol):
         *,
         id: str,
         name: str | None = None,
-        role: User.Role | None = None,
+        role: Role | None = None,
         enabled: bool | None = None,
     ) -> User: ...
 
@@ -133,24 +129,13 @@ class CognitoUserProvider(BaseProvider):
 
     # ──── Helper Methods ────
 
-    def _attrs(self, response: Mapping[str, Any]) -> dict[str, Any]:
+    def _attrs(self, response: Mapping[str, Any]) -> Mapping[str, Any]:
         attrs = response.get("UserAttributes", response.get("Attributes", []))
         return {
             attr["Name"]: attr["Value"]
             for attr in attrs
             if "Name" in attr and "Value" in attr
         }
-
-    def _role(self, xid: str) -> User.Role:
-        response = self._client.admin_list_groups_for_user(
-            UserPoolId=self._user_pool_id,
-            Username=xid,
-        )
-        return (
-            User.Role.ADMIN
-            if any(grp.get("GroupName") == "admin" for grp in response["Groups"])
-            else User.Role.USER
-        )
 
     @overload
     def _dt(self, value: datetime) -> datetime: ...
@@ -166,23 +151,28 @@ class CognitoUserProvider(BaseProvider):
                 assert_unreachable(never)
 
     def _user(self, response: Mapping[str, Any]) -> User:
-        match response:
+        match {"UserLastModifiedDate": None, **response}:
             case {
                 "Username": str(xid),
                 "Enabled": bool(enabled),
                 "UserCreateDate": datetime() as created_at,
-                "UserLastModifiedDate": datetime() as updated_at,
+                "UserLastModifiedDate": datetime() | None as updated_at,
             }:
-                attrs = self._attrs(response)
-                return User(
-                    id=decode_id(xid),
-                    name=attrs["name"],
-                    role=self._role(xid),
-                    enabled=enabled,
-                    created_at=self._dt(created_at),
-                    updated_at=self._dt(updated_at),
-                    last_login_at=self._dt(attrs.get("custom:last_login_at")),
-                )
+                match {"custom:last_login_at": None, **self._attrs(response)}:
+                    case {
+                        "name": str(name),
+                        "custom:role": Role.USER | Role.ADMIN as role,
+                        "custom:last_login_at": datetime() | None as last_login_at,
+                    }:
+                        return User(
+                            id=decode_id(xid),
+                            name=name,
+                            role=role,
+                            enabled=enabled,
+                            created_at=self._dt(created_at),
+                            updated_at=self._dt(updated_at),
+                            last_login_at=self._dt(last_login_at),
+                        )
         raise DomainInvariantViolation(f"Unexpected cognito response: {response}")
 
     def _page(self, response: Mapping[str, Any]) -> UserPage:
@@ -215,7 +205,7 @@ class CognitoUserProvider(BaseProvider):
         self,
         *,
         name: str,
-        role: User.Role,
+        role: Role,
     ) -> User:
         xid = encode_id(id := generate_id())
         self._client.admin_create_user(
@@ -230,21 +220,13 @@ class CognitoUserProvider(BaseProvider):
                     "Name": "name",
                     "Value": name,
                 },
+                {
+                    "Name": "custom:role",
+                    "Value": role.value,
+                },
             ],
             MessageAction="SUPPRESS",
         )
-
-        match role:
-            case User.Role.USER:
-                pass
-            case User.Role.ADMIN:
-                self._client.admin_add_user_to_group(
-                    UserPoolId=self._user_pool_id,
-                    Username=xid,
-                    GroupName="admin",
-                )
-            case _ as never:
-                assert_unreachable(never)
 
         return self.get_user(id=id)
 
@@ -268,16 +250,15 @@ class CognitoUserProvider(BaseProvider):
         *,
         id: str,
         name: str | None = None,
-        role: User.Role | None = None,
+        role: Role | None = None,
         enabled: bool | None = None,
     ) -> User:
         xid = encode_id(id)
+        attrs: list[AttributeTypeTypeDef] = []
 
         if name is not None:
-            self._client.admin_update_user_attributes(
-                UserPoolId=self._user_pool_id,
-                Username=xid,
-                UserAttributes=[
+            attrs.extend(
+                [
                     {
                         "Name": "preferred_username",
                         "Value": encode_name(name),
@@ -286,40 +267,35 @@ class CognitoUserProvider(BaseProvider):
                         "Name": "name",
                         "Value": name,
                     },
-                ],
+                ]
             )
 
         if role is not None:
-            match role:
-                case User.Role.USER:
-                    self._client.admin_remove_user_from_group(
-                        UserPoolId=self._user_pool_id,
-                        Username=xid,
-                        GroupName="admin",
-                    )
-                case User.Role.ADMIN:
-                    self._client.admin_add_user_to_group(
-                        UserPoolId=self._user_pool_id,
-                        Username=xid,
-                        GroupName="admin",
-                    )
-                case _ as never:
-                    assert_unreachable(never)
+            attrs.append(
+                {
+                    "Name": "custom:role",
+                    "Value": role.value,
+                }
+            )
+
+        if attrs:
+            self._client.admin_update_user_attributes(
+                UserPoolId=self._user_pool_id,
+                Username=xid,
+                UserAttributes=attrs,
+            )
 
         if enabled is not None:
-            match enabled:
-                case True:
-                    self._client.admin_enable_user(
-                        UserPoolId=self._user_pool_id,
-                        Username=xid,
-                    )
-                case False:
-                    self._client.admin_disable_user(
-                        UserPoolId=self._user_pool_id,
-                        Username=xid,
-                    )
-                case _ as never:
-                    assert_unreachable(never)
+            if enabled:
+                self._client.admin_enable_user(
+                    UserPoolId=self._user_pool_id,
+                    Username=xid,
+                )
+            else:
+                self._client.admin_disable_user(
+                    UserPoolId=self._user_pool_id,
+                    Username=xid,
+                )
 
         return self.get_user(id=id)
 
@@ -330,8 +306,8 @@ class CognitoUserProvider(BaseProvider):
         id: str,
     ) -> UserCreds:
         xid = encode_id(id)
-        password = generate_password()
         user = self.get_user(id=id)
+        password = generate_password()
 
         self._client.admin_set_user_password(
             UserPoolId=self._user_pool_id,

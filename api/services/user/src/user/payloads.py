@@ -7,7 +7,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from shared.abc import ApiModel
+from shared.abc import ApiModel, Role
 from shared.http import Body, Path, Query
 from shared.providers.cognito import normalize_name, validate_id, validate_name
 from shared.providers.opensearch import sanitize_query
@@ -40,7 +40,7 @@ class Request:
 
     class CreateUser(ApiModel, frozen=True):
         name: Body[str]
-        role: Body[ProviderUser.Role]
+        role: Body[Role]
 
         @field_validator("name")
         @classmethod
@@ -58,7 +58,7 @@ class Request:
     class UpdateUser(ApiModel, frozen=True):
         userId: Path[str]
         name: Body[str | None] = None
-        role: Body[ProviderUser.Role | None] = None
+        role: Body[Role | None] = None
         enabled: Body[StrictBool | None] = None
 
         @field_validator("userId")
@@ -114,7 +114,7 @@ class Response:
     class User(ApiModel, frozen=True):
         id: str
         name: str
-        role: ProviderUser.Role
+        role: Role
         enabled: StrictBool
         createdAt: datetime
         updatedAt: datetime | None = None

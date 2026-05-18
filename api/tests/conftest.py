@@ -2,7 +2,7 @@ import json
 from urllib.parse import urlencode
 
 import pytest
-from shared.http import Caller
+from shared.abc import Caller, Role
 from shared.providers.cognito import encode_id
 
 
@@ -92,12 +92,12 @@ def caller_factory():
         *,
         id: str = "11111111-1111-1111-1111-111111111111",
         name: str = "Alice",
-        groups: tuple[str, ...] = (),
+        role: Role = Role.USER,
     ) -> Caller:
         return Caller(
             id=id,
             name=name,
-            groups=groups,
+            role=role,
         )
 
     return _build
@@ -108,7 +108,7 @@ def user_caller(caller_factory):
     return caller_factory(
         id="11111111-1111-1111-1111-111111111111",
         name="Alice",
-        groups=("user",),
+        role=Role.USER,
     )
 
 
@@ -117,18 +117,17 @@ def admin_caller(caller_factory):
     return caller_factory(
         id="22222222-2222-2222-2222-222222222222",
         name="Admin",
-        groups=("admin",),
+        role=Role.ADMIN,
     )
 
 
 @pytest.fixture
 def use_caller(current_caller):
-    def _use(caller: Caller, *, groups_as_string: bool = False):
-        groups = ",".join(caller.groups) if groups_as_string else list(caller.groups)
+    def _use(caller: Caller):
         current_caller["claims"] = {
             "cognito:username": encode_id(caller.id),
             "cognito:name": caller.name,
-            "cognito:groups": groups,
+            "custom:role": caller.role.value,
         }
         return caller
 

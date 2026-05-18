@@ -5,6 +5,7 @@ import boto3
 import pytest
 import user.providers.user as provider_module
 from botocore.stub import Stubber
+from shared.abc import Role
 from shared.errors import (
     DomainForbidden,
     DomainInvariantViolation,
@@ -56,6 +57,7 @@ def add_provider_error(
 def user_attributes(
     *,
     name: str = "alice",
+    role: Role = Role.USER,
 ) -> list[dict[str, str]]:
     return [
         {
@@ -66,6 +68,10 @@ def user_attributes(
             "Name": "name",
             "Value": name,
         },
+        {
+            "Name": "custom:role",
+            "Value": role.value,
+        },
     ]
 
 
@@ -73,6 +79,7 @@ def cognito_list_user(
     *,
     id: str = USER_ID,
     name: str = "alice",
+    role: Role = Role.USER,
     enabled: bool = True,
     created_at: datetime = CREATED_AT,
     updated_at: datetime = UPDATED_AT,
@@ -82,7 +89,7 @@ def cognito_list_user(
         "Enabled": enabled,
         "UserCreateDate": created_at,
         "UserLastModifiedDate": updated_at,
-        "Attributes": user_attributes(name=name),
+        "Attributes": user_attributes(name=name, role=role),
     }
 
 
@@ -90,6 +97,7 @@ def cognito_get_user(
     *,
     id: str = USER_ID,
     name: str = "alice",
+    role: Role = Role.USER,
     enabled: bool = True,
     created_at: datetime = CREATED_AT,
     updated_at: datetime = UPDATED_AT,
@@ -99,7 +107,7 @@ def cognito_get_user(
         "Enabled": enabled,
         "UserCreateDate": created_at,
         "UserLastModifiedDate": updated_at,
-        "UserAttributes": user_attributes(name=name),
+        "UserAttributes": user_attributes(name=name, role=role),
     }
 
 
@@ -107,7 +115,7 @@ def expected_user(
     *,
     id: str = USER_ID,
     name: str = "alice",
-    role: User.Role = User.Role.USER,
+    role: Role = Role.USER,
     enabled: bool = True,
     created_at: datetime = CREATED_AT,
     updated_at: datetime = UPDATED_AT,
@@ -143,7 +151,7 @@ def stub_get_user(
     *,
     id: str = USER_ID,
     name: str = "alice",
-    role: User.Role = User.Role.USER,
+    role: Role = Role.USER,
     enabled: bool = True,
     created_at: datetime = CREATED_AT,
     updated_at: datetime = UPDATED_AT,
@@ -153,24 +161,12 @@ def stub_get_user(
         cognito_get_user(
             id=id,
             name=name,
+            role=role,
             enabled=enabled,
             created_at=created_at,
             updated_at=updated_at,
         ),
         get_user_params(id),
-    )
-    stubber.add_response(
-        "admin_list_groups_for_user",
-        {
-            "Groups": [
-                {
-                    "GroupName": "admin",
-                }
-            ]
-            if role is User.Role.ADMIN
-            else [],
-        },
-        group_params(id),
     )
 
 
@@ -226,8 +222,8 @@ class TestListUsers:
             "list_users",
             {
                 "Users": [
-                    cognito_list_user(id=USER_ID, name="alice"),
-                    cognito_list_user(id=ADMIN_ID, name="admin"),
+                    cognito_list_user(id=USER_ID, name="alice", role=Role.USER),
+                    cognito_list_user(id=ADMIN_ID, name="admin", role=Role.ADMIN),
                 ],
                 "PaginationToken": "next-cursor",
             },
@@ -238,23 +234,13 @@ class TestListUsers:
                 "PaginationToken": "users-cursor",
             },
         )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            {"Groups": []},
-            group_params(USER_ID),
-        )
-        stubber.add_response(
-            "admin_list_groups_for_user",
-            {"Groups": [{"GroupName": "admin"}]},
-            group_params(ADMIN_ID),
-        )
 
         result = provider.list_users(q="alice", limit=10, cursor="users-cursor")
 
         assert result == UserPage(
             users=[
-                expected_user(id=USER_ID, name="alice", role=User.Role.USER),
-                expected_user(id=ADMIN_ID, name="admin", role=User.Role.ADMIN),
+                expected_user(id=USER_ID, name="alice", role=Role.USER),
+                expected_user(id=ADMIN_ID, name="admin", role=Role.ADMIN),
             ],
             cursor="next-cursor",
         )
@@ -345,15 +331,19 @@ class TestCreateUser:
                         "Name": "name",
                         "Value": "alice",
                     },
+                    {
+                        "Name": "custom:role",
+                        "Value": "user",
+                    },
                 ],
                 "MessageAction": "SUPPRESS",
             },
         )
-        stub_get_user(stubber, id=USER_ID, name="alice", role=User.Role.USER)
+        stub_get_user(stubber, id=USER_ID, name="alice", role=Role.USER)
 
-        result = provider.create_user(name="alice", role=User.Role.USER)
+        result = provider.create_user(name="alice", role=Role.USER)
 
-        assert result == expected_user(id=USER_ID, name="alice", role=User.Role.USER)
+        assert result == expected_user(id=USER_ID, name="alice", role=Role.USER)
 
     def test_returns_admin_user(
         self,
@@ -378,24 +368,19 @@ class TestCreateUser:
                         "Name": "name",
                         "Value": "alice",
                     },
+                    {
+                        "Name": "custom:role",
+                        "Value": "admin",
+                    },
                 ],
                 "MessageAction": "SUPPRESS",
             },
         )
-        stubber.add_response(
-            "admin_add_user_to_group",
-            {},
-            {
-                "UserPoolId": USER_POOL_ID,
-                "Username": encode_id(USER_ID),
-                "GroupName": "admin",
-            },
-        )
-        stub_get_user(stubber, id=USER_ID, name="alice", role=User.Role.ADMIN)
+        stub_get_user(stubber, id=USER_ID, name="alice", role=Role.ADMIN)
 
-        result = provider.create_user(name="alice", role=User.Role.ADMIN)
+        result = provider.create_user(name="alice", role=Role.ADMIN)
 
-        assert result == expected_user(id=USER_ID, name="alice", role=User.Role.ADMIN)
+        assert result == expected_user(id=USER_ID, name="alice", role=Role.ADMIN)
 
     @pytest.mark.parametrize(
         ("code", "expected_error"),
@@ -427,13 +412,17 @@ class TestCreateUser:
                         "Name": "name",
                         "Value": "alice",
                     },
+                    {
+                        "Name": "custom:role",
+                        "Value": "user",
+                    },
                 ],
                 "MessageAction": "SUPPRESS",
             },
         )
 
         with pytest.raises(expected_error):
-            provider.create_user(name="alice", role=User.Role.USER)
+            provider.create_user(name="alice", role=Role.USER)
 
 
 # ──── get_user() ──────────────────────────────────────────────────────────────────────
@@ -445,11 +434,11 @@ class TestGetUser:
         provider: provider_module.CognitoUserProvider,
         stubber: Stubber,
     ) -> None:
-        stub_get_user(stubber, id=USER_ID, name="alice", role=User.Role.USER)
+        stub_get_user(stubber, id=USER_ID, name="alice", role=Role.USER)
 
         result = provider.get_user(id=USER_ID)
 
-        assert result == expected_user(id=USER_ID, name="alice", role=User.Role.USER)
+        assert result == expected_user(id=USER_ID, name="alice", role=Role.USER)
 
     def test_normalizes_datetimes_to_utc(
         self,
@@ -461,7 +450,7 @@ class TestGetUser:
             stubber,
             id=USER_ID,
             name="alice",
-            role=User.Role.USER,
+            role=Role.USER,
             created_at=datetime(2026, 1, 1, 10, tzinfo=local_tz),
             updated_at=datetime(2026, 1, 2, 10, tzinfo=local_tz),
         )
@@ -471,7 +460,7 @@ class TestGetUser:
         assert result == expected_user(
             id=USER_ID,
             name="alice",
-            role=User.Role.USER,
+            role=Role.USER,
             created_at=datetime(2026, 1, 1, 1, tzinfo=timezone.utc),
             updated_at=datetime(2026, 1, 2, 1, tzinfo=timezone.utc),
         )
@@ -540,16 +529,11 @@ class TestUpdateUser:
                         "Name": "name",
                         "Value": "alice",
                     },
+                    {
+                        "Name": "custom:role",
+                        "Value": "admin",
+                    },
                 ],
-            },
-        )
-        stubber.add_response(
-            "admin_add_user_to_group",
-            {},
-            {
-                "UserPoolId": USER_POOL_ID,
-                "Username": encode_id(USER_ID),
-                "GroupName": "admin",
             },
         )
         stubber.add_response(
@@ -564,21 +548,21 @@ class TestUpdateUser:
             stubber,
             id=USER_ID,
             name="alice",
-            role=User.Role.ADMIN,
+            role=Role.ADMIN,
             enabled=False,
         )
 
         result = provider.update_user(
             id=USER_ID,
             name="alice",
-            role=User.Role.ADMIN,
+            role=Role.ADMIN,
             enabled=False,
         )
 
         assert result == expected_user(
             id=USER_ID,
             name="alice",
-            role=User.Role.ADMIN,
+            role=Role.ADMIN,
             enabled=False,
         )
 
@@ -587,11 +571,11 @@ class TestUpdateUser:
         provider: provider_module.CognitoUserProvider,
         stubber: Stubber,
     ) -> None:
-        stub_get_user(stubber, id=USER_ID, name="alice", role=User.Role.USER)
+        stub_get_user(stubber, id=USER_ID, name="alice", role=Role.USER)
 
         result = provider.update_user(id=USER_ID)
 
-        assert result == expected_user(id=USER_ID, name="alice", role=User.Role.USER)
+        assert result == expected_user(id=USER_ID, name="alice", role=Role.USER)
 
     @pytest.mark.parametrize(
         ("code", "expected_error"),
@@ -639,7 +623,7 @@ class TestResetUser:
         stubber: Stubber,
     ) -> None:
         monkeypatch.setattr(provider_module, "generate_password", lambda: PASSWORD)
-        stub_get_user(stubber, id=USER_ID, name="alice", role=User.Role.USER)
+        stub_get_user(stubber, id=USER_ID, name="alice", role=Role.USER)
         stubber.add_response(
             "admin_set_user_password",
             {},
@@ -688,7 +672,7 @@ class TestResetUser:
         expected_error: type[Exception],
     ) -> None:
         monkeypatch.setattr(provider_module, "generate_password", lambda: PASSWORD)
-        stub_get_user(stubber, id=USER_ID, name="alice", role=User.Role.USER)
+        stub_get_user(stubber, id=USER_ID, name="alice", role=Role.USER)
         add_provider_error(
             stubber,
             method="admin_set_user_password",

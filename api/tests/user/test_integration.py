@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import pytest
+from shared.abc import Role
 from shared.errors import (
     DomainForbidden,
     DomainNotFound,
@@ -65,7 +66,7 @@ def make_user(
     *,
     id: str = USER_ID,
     name: str = "alice",
-    role: User.Role = User.Role.USER,
+    role: Role = Role.USER,
     enabled: bool = True,
     created_at: datetime = TEST_NOW,
     updated_at: datetime | None = None,
@@ -306,7 +307,7 @@ class TestListUsers:
             }
         ]
 
-    def test_accepts_comma_delimited_groups_claim(
+    def test_accepts_role_claim(
         self,
         user_provider: FakeUserProvider,
         invoke_user_api,
@@ -314,7 +315,7 @@ class TestListUsers:
         use_caller,
         user_page: UserPage,
     ) -> None:
-        use_caller(admin_caller, groups_as_string=True)
+        use_caller(admin_caller)
         user_provider.list_users.result = user_page
 
         response = invoke_user_api("/user")
@@ -423,7 +424,7 @@ class TestCreateUser:
         assert user_provider.create_user.calls == [
             {
                 "name": "alice",
-                "role": User.Role.USER,
+                "role": Role.USER,
             }
         ]
 
@@ -650,7 +651,7 @@ class TestUpdateUser:
                 {
                     "id": OTHER_USER_ID,
                     "name": None,
-                    "role": User.Role.ADMIN,
+                    "role": Role.ADMIN,
                     "enabled": None,
                 },
                 id="admin-other-role",

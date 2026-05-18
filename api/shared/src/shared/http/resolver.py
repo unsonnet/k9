@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from functools import wraps
 from http import HTTPStatus
 from inspect import Parameter, signature
@@ -31,6 +30,7 @@ from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
+from shared.abc import Caller, Role
 from shared.errors import DomainInvalidTokens
 from shared.providers.cognito import decode_id
 
@@ -67,17 +67,6 @@ class RouteDecorator(Protocol):
     ) -> Callable[..., ReturnT]: ...
 
 
-@dataclass(frozen=True)
-class Caller:
-    id: str
-    name: str
-    groups: tuple[str, ...]
-
-    @property
-    def is_admin(self) -> bool:
-        return "admin" in self.groups
-
-
 class HttpResolver(APIGatewayHttpResolver):
     def __init__(self, *args: Any, **kwargs: Any):
         kwargs.setdefault("enable_validation", True)
@@ -100,33 +89,19 @@ class HttpResolver(APIGatewayHttpResolver):
         except (AttributeError, KeyError, TypeError) as exc:
             raise DomainInvalidTokens("Missing JWT claims") from exc
 
-    @staticmethod
-    def _groups(claims: Mapping[str, Any]) -> tuple[str, ...]:
-        match claims.get("cognito:groups", ()):
-            case str() as value:
-                return tuple(
-                    group.strip() for group in value.split(",") if group.strip()
-                )
-            case list() | tuple() as values:
-                return tuple(str(group) for group in values)
-            case _:
-                return ()
-
     def caller(self) -> Caller:
-        claims = self.claims()
-        try:
-            xid = str(claims["cognito:username"])
-        except KeyError as exc:
-            raise DomainInvalidTokens("Missing cognito username claim") from exc
-        try:
-            name = str(claims["cognito:name"])
-        except KeyError as exc:
-            raise DomainInvalidTokens("Missing cognito name claim") from exc
-        return Caller(
-            id=decode_id(xid),
-            name=name,
-            groups=self._groups(claims),
-        )
+        match self.claims():
+            case {
+                "cognito:username": str(xid),
+                "cognito:name": str(name),
+                "custom:role": Role.USER | Role.ADMIN as role,
+            }:
+                return Caller(
+                    id=decode_id(xid),
+                    name=name,
+                    role=role,
+                )
+        raise DomainInvalidTokens("Missing required JWT claims")
 
     def _handle_routing_error(self, exc: NotFoundError) -> NotFound | MethodNotAllowed:
         method = self.current_event.http_method.upper()

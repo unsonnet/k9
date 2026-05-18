@@ -1,6 +1,5 @@
-from shared.abc import BaseService, public_api
+from shared.abc import BaseService, Caller, public_api
 from shared.errors import DomainForbidden
-from shared.http import Caller
 
 from .payloads import Request, Response
 from .providers.report import ReportProvider

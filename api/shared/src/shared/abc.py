@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable
+from enum import StrEnum
 from functools import cached_property, wraps
 from typing import Any, Concatenate, Literal, Protocol, overload
 
 from pydantic import BaseModel
 
 from shared.errors import DomainError, DomainForbidden, DomainUnknown
-from shared.http import Caller
 
 __all__ = [
     "ApiModel",
@@ -17,6 +17,21 @@ __all__ = [
     "BaseProvider",
     "private_api",
 ]
+
+
+class Role(StrEnum):
+    USER = "user"
+    ADMIN = "admin"
+
+
+class Caller(BaseModel, frozen=True):
+    id: str
+    name: str
+    role: Role
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == Role.ADMIN
 
 
 class ApiModel(BaseModel, frozen=True, extra="forbid"): ...
