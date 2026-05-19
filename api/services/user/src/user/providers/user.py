@@ -70,7 +70,7 @@ class UserProvider(Protocol):
         role: Role,
     ) -> UserCreds: ...
 
-    def get_user(
+    def read_user(
         self,
         *,
         id: str,
@@ -84,6 +84,12 @@ class UserProvider(Protocol):
         role: Role | None = None,
         enabled: bool | None = None,
     ) -> User: ...
+
+    def delete_user(
+        self,
+        *,
+        id: str,
+    ) -> None: ...
 
     def reset_user(
         self,
@@ -240,7 +246,7 @@ class CognitoUserProvider(BaseProvider):
         return UserCreds(name=name, password=password)
 
     @private_api
-    def get_user(
+    def read_user(
         self,
         *,
         id: str,
@@ -306,7 +312,21 @@ class CognitoUserProvider(BaseProvider):
                     Username=xid,
                 )
 
-        return self.get_user(id=id)
+        return self.read_user(id=id)
+
+    @private_api
+    def delete_user(
+        self,
+        *,
+        id: str,
+    ) -> None:
+        xid = encode_id(id)
+        self._client.admin_delete_user(
+            UserPoolId=self._user_pool_id,
+            Username=xid,
+        )
+
+        return
 
     @private_api
     def reset_user(
@@ -315,7 +335,7 @@ class CognitoUserProvider(BaseProvider):
         id: str,
     ) -> UserCreds:
         xid = encode_id(id)
-        user = self.get_user(id=id)
+        user = self.read_user(id=id)
         password = generate_password()
 
         self._client.admin_set_user_password(

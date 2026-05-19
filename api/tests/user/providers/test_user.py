@@ -499,10 +499,10 @@ class TestCreateUser:
             provider.create_user(name="alice", role=Role.USER)
 
 
-# ──── get_user() ──────────────────────────────────────────────────────────────────────
+# ──── read_user() ─────────────────────────────────────────────────────────────────────
 
 
-class TestGetUser:
+class TestReadUser:
     def test_returns_user(
         self,
         provider: provider_module.CognitoUserProvider,
@@ -510,7 +510,7 @@ class TestGetUser:
     ) -> None:
         stub_get_user(stubber, id=USER_ID, name="alice", role=Role.USER)
 
-        result = provider.get_user(id=USER_ID)
+        result = provider.read_user(id=USER_ID)
 
         assert result == expected_user(id=USER_ID, name="alice", role=Role.USER)
 
@@ -529,7 +529,7 @@ class TestGetUser:
             updated_at=datetime(2026, 1, 2, 10, tzinfo=local_tz),
         )
 
-        result = provider.get_user(id=USER_ID)
+        result = provider.read_user(id=USER_ID)
 
         assert result == expected_user(
             id=USER_ID,
@@ -555,7 +555,7 @@ class TestGetUser:
         with pytest.raises(
             DomainInvariantViolation, match="Unexpected cognito response"
         ):
-            provider.get_user(id=USER_ID)
+            provider.read_user(id=USER_ID)
 
     @pytest.mark.parametrize(
         ("code", "expected_error"),
@@ -576,7 +576,7 @@ class TestGetUser:
         )
 
         with pytest.raises(expected_error):
-            provider.get_user(id=USER_ID)
+            provider.read_user(id=USER_ID)
 
 
 # ──── update_user() ───────────────────────────────────────────────────────────────────
@@ -684,6 +684,53 @@ class TestUpdateUser:
 
         with pytest.raises(expected_error):
             provider.update_user(id=USER_ID, name="alice")
+
+
+# ──── delete_user() ───────────────────────────────────────────────────────────────────
+
+
+class TestDeleteUser:
+    def test_returns_none(
+        self,
+        provider: provider_module.CognitoUserProvider,
+        stubber: Stubber,
+    ) -> None:
+        stubber.add_response(
+            "admin_delete_user",
+            {},
+            {
+                "UserPoolId": USER_POOL_ID,
+                "Username": encode_id(USER_ID),
+            },
+        )
+
+        result = provider.delete_user(id=USER_ID)
+
+        assert result is None
+
+    @pytest.mark.parametrize(
+        ("code", "expected_error"),
+        PROVIDER_ERROR_CASES,
+    )
+    def test_maps_provider_errors(
+        self,
+        provider: provider_module.CognitoUserProvider,
+        stubber: Stubber,
+        code: str,
+        expected_error: type[Exception],
+    ) -> None:
+        add_provider_error(
+            stubber,
+            method="admin_delete_user",
+            code=code,
+            expected_params={
+                "UserPoolId": USER_POOL_ID,
+                "Username": encode_id(USER_ID),
+            },
+        )
+
+        with pytest.raises(expected_error):
+            provider.delete_user(id=USER_ID)
 
 
 # ──── reset_user() ────────────────────────────────────────────────────────────────────

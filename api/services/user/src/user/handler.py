@@ -6,7 +6,7 @@ from shared.errors import (
 )
 from shared.http import HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
-from shared.http.responses import OK, Created
+from shared.http.responses import OK, Created, NoContent
 
 from .payloads import Request, Response
 from .providers.report import OpenSearchReportProvider as ReportProvider
@@ -29,11 +29,11 @@ svc = UserService(UserProvider(), ReportProvider())
         429: "Too many requests",
     },
 )
-def list_users(
-    request: Request.ListUsers,
+def list(
+    request: Request.List,
 ) -> OK[Response.UserPage] | Unauthorized | Forbidden | TooManyRequests:
     try:
-        return OK(svc.list_users(app.caller(), request))
+        return OK(svc.list(app.caller(), request))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -54,11 +54,11 @@ def list_users(
         429: "Too many requests",
     },
 )
-def create_user(
-    request: Request.CreateUser,
+def create(
+    request: Request.Create,
 ) -> Created[Response.UserCreds] | Unauthorized | Forbidden | TooManyRequests:
     try:
-        return Created(svc.create_user(app.caller(), request))
+        return Created(svc.create(app.caller(), request))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -83,11 +83,11 @@ def create_user(
         429: "Too many requests",
     },
 )
-def get_user(
-    request: Request.GetUser,
+def read(
+    request: Request.Read,
 ) -> OK[Response.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        return OK(svc.get_user(app.caller(), request))
+        return OK(svc.read(app.caller(), request))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -114,17 +114,44 @@ def get_user(
         429: "Too many requests",
     },
 )
-def update_user(
-    request: Request.UpdateUser,
+def update(
+    request: Request.Update,
 ) -> OK[Response.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        return OK(svc.update_user(app.caller(), request))
+        return OK(svc.update(app.caller(), request))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
         return Forbidden(cause=exc)
     except DomainNotFound as exc:
         return NotFound(cause=exc)
+    except DomainRateLimited as exc:
+        return TooManyRequests(cause=exc)
+
+
+@app.delete(
+    "/user/<userId>",
+    summary="Delete user profile",
+    description="Delete a user profile other than self. Requires admin role.",
+    tags=["user"],
+    responses={
+        204: "User deleted",
+        401: "Authentication required",
+        403: "Access denied",
+        429: "Too many requests",
+    },
+)
+def delete(
+    request: Request.Delete,
+) -> NoContent | Unauthorized | Forbidden | TooManyRequests:
+    try:
+        return NoContent(svc.delete(app.caller(), request))
+    except DomainNotFound:
+        return NoContent()
+    except DomainUnauthorized as exc:
+        return Unauthorized(cause=exc)
+    except DomainForbidden as exc:
+        return Forbidden(cause=exc)
     except DomainRateLimited as exc:
         return TooManyRequests(cause=exc)
 
@@ -145,11 +172,11 @@ def update_user(
         429: "Too many requests",
     },
 )
-def reset_user(
-    request: Request.ResetUser,
+def reset(
+    request: Request.Reset,
 ) -> OK[Response.UserCreds] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        return OK(svc.reset_user(app.caller(), request))
+        return OK(svc.reset(app.caller(), request))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:

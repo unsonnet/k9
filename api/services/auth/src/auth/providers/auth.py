@@ -374,3 +374,5 @@ class CognitoAuthProvider(BaseProvider):
                 "PreferredMfa": True,
             },
         )
+
+        return

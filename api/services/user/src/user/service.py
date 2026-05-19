@@ -28,10 +28,10 @@ class UserService(BaseService):
     # ──── Public APIs ────
 
     @public_api(require_admin=True)
-    def list_users(
+    def list(
         self,
         caller: Caller,
-        request: Request.ListUsers,
+        request: Request.List,
     ) -> Response.UserPage:
         return Response.UserPage.from_(
             self.users.list_users(
@@ -42,10 +42,10 @@ class UserService(BaseService):
         )
 
     @public_api(require_admin=True)
-    def create_user(
+    def create(
         self,
         caller: Caller,
-        request: Request.CreateUser,
+        request: Request.Create,
     ) -> Response.UserCreds:
         return Response.UserCreds.from_(
             self.users.create_user(
@@ -55,23 +55,23 @@ class UserService(BaseService):
         )
 
     @public_api(require_owner=True)
-    def get_user(
+    def read(
         self,
         caller: Caller,
-        request: Request.GetUser,
+        request: Request.Read,
     ) -> Response.User:
         id = request.userId if caller.is_admin and request.userId != "me" else caller.id
         return Response.User.from_(
-            self.users.get_user(
+            self.users.read_user(
                 id=id,
             )
         )
 
     @public_api(require_owner=True)
-    def update_user(
+    def update(
         self,
         caller: Caller,
-        request: Request.UpdateUser,
+        request: Request.Update,
     ) -> Response.User:
         if not caller.is_admin:
             if request.role is not None or request.enabled is not None:
@@ -87,10 +87,22 @@ class UserService(BaseService):
         )
 
     @public_api(require_admin=True)
-    def reset_user(
+    def delete(
         self,
         caller: Caller,
-        request: Request.ResetUser,
+        request: Request.Delete,
+    ) -> None:
+        if request.userId == "me" or request.userId == caller.id:
+            raise DomainForbidden("Cannot delete own user profile")
+        return self.users.delete_user(
+            id=request.userId,
+        )
+
+    @public_api(require_admin=True)
+    def reset(
+        self,
+        caller: Caller,
+        request: Request.Reset,
     ) -> Response.UserCreds:
         return Response.UserCreds.from_(
             self.users.reset_user(

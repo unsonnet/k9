@@ -17,6 +17,7 @@ from user.providers.user import User, UserCreds, UserPage
 from tests.helpers import (
     ProviderMethod,
     assert_body,
+    assert_no_body,
     assert_problem,
     assert_status,
 )
@@ -52,8 +53,9 @@ class FakeUserProvider:
     def __init__(self) -> None:
         self.list_users = ProviderMethod()
         self.create_user = ProviderMethod()
-        self.get_user = ProviderMethod()
+        self.read_user = ProviderMethod()
         self.update_user = ProviderMethod()
+        self.delete_user = ProviderMethod(result=None)
         self.reset_user = ProviderMethod()
 
 
@@ -243,7 +245,7 @@ def report_page(report_record: Report) -> ReportPage:
 # ──── GET /user ───────────────────────────────────────────────────────────────────────
 
 
-class TestListUsers:
+class TestList:
     def test_returns_page(
         self,
         user_provider: FakeUserProvider,
@@ -398,7 +400,7 @@ class TestListUsers:
 # ──── POST /user ──────────────────────────────────────────────────────────────────────
 
 
-class TestCreateUser:
+class TestCreate:
     def test_returns_created_user(
         self,
         user_provider: FakeUserProvider,
@@ -534,7 +536,7 @@ class TestCreateUser:
 # ──── GET /user/<userId> ──────────────────────────────────────────────────────────────
 
 
-class TestGetUser:
+class TestRead:
     @pytest.mark.parametrize(
         ("caller_fixture", "path", "expected_provider_id"),
         [
@@ -562,13 +564,13 @@ class TestGetUser:
     ) -> None:
         caller = request.getfixturevalue(caller_fixture)
         use_caller(caller)
-        user_provider.get_user.result = user_record
+        user_provider.read_user.result = user_record
 
         response = invoke_user_api(path)
 
         assert_status(response, 200)
         assert_body(response, user_body())
-        assert user_provider.get_user.calls == [{"id": expected_provider_id}]
+        assert user_provider.read_user.calls == [{"id": expected_provider_id}]
 
     def test_rejects_invalid_userId(
         self,
@@ -593,7 +595,7 @@ class TestGetUser:
         response = invoke_user_api("/user/me")
 
         assert_problem(response, status=401, title="Unauthorized")
-        assert user_provider.get_user.calls == []
+        assert user_provider.read_user.calls == []
 
     def test_forbids_user_reading_other_user(
         self,
@@ -607,7 +609,7 @@ class TestGetUser:
         response = invoke_user_api(f"/user/{OTHER_USER_ID}")
 
         assert_problem(response, status=403, title="Forbidden")
-        assert user_provider.get_user.calls == []
+        assert user_provider.read_user.calls == []
 
     @pytest.mark.parametrize(
         ("provider_error", "expected_status", "expected_title"),
@@ -624,7 +626,7 @@ class TestGetUser:
         expected_title: str,
     ) -> None:
         use_caller(admin_caller)
-        user_provider.get_user.error = provider_error
+        user_provider.read_user.error = provider_error
 
         response = invoke_user_api(f"/user/{OTHER_USER_ID}")
 
@@ -634,7 +636,7 @@ class TestGetUser:
 # ──── PATCH /user/<userId> ────────────────────────────────────────────────────────────
 
 
-class TestUpdateUser:
+class TestUpdate:
     @pytest.mark.parametrize(
         ("caller_fixture", "path", "body", "expected_provider_call"),
         [
@@ -814,10 +816,148 @@ class TestUpdateUser:
         assert_problem(response, status=expected_status, title=expected_title)
 
 
+# ──── DELETE /user/<userId> ──────────────────────────────────────────────────────────
+
+
+class TestDelete:
+    def test_returns_no_content(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        admin_caller,
+        use_caller,
+    ) -> None:
+        use_caller(admin_caller)
+
+        response = invoke_user_api(
+            f"/user/{OTHER_USER_ID}",
+            method="DELETE",
+        )
+
+        assert_status(response, 204)
+        assert_no_body(response)
+        assert user_provider.delete_user.calls == [{"id": OTHER_USER_ID}]
+
+    def test_is_idempotent(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        admin_caller,
+        use_caller,
+    ) -> None:
+        use_caller(admin_caller)
+        user_provider.delete_user.error = DomainNotFound()
+
+        response = invoke_user_api(
+            f"/user/{OTHER_USER_ID}",
+            method="DELETE",
+        )
+
+        assert_status(response, 204)
+        assert_no_body(response)
+
+    def test_rejects_invalid_userId(
+        self,
+        invoke_user_api,
+        admin_caller,
+        use_caller,
+    ) -> None:
+        use_caller(admin_caller)
+
+        response = invoke_user_api(
+            "/user/not!valid",
+            method="DELETE",
+        )
+
+        assert_status(response, 422)
+
+    def test_requires_authentication(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        use_unauthorized_caller,
+    ) -> None:
+        use_unauthorized_caller()
+
+        response = invoke_user_api(
+            f"/user/{OTHER_USER_ID}",
+            method="DELETE",
+        )
+
+        assert_problem(response, status=401, title="Unauthorized")
+        assert user_provider.delete_user.calls == []
+
+    def test_requires_admin(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        user_caller,
+        use_caller,
+    ) -> None:
+        use_caller(user_caller)
+
+        response = invoke_user_api(
+            f"/user/{OTHER_USER_ID}",
+            method="DELETE",
+        )
+
+        assert_problem(response, status=403, title="Forbidden")
+        assert user_provider.delete_user.calls == []
+
+    @pytest.mark.parametrize(
+        "path",
+        [
+            pytest.param("/user/me", id="self-alias"),
+            pytest.param(f"/user/{ADMIN_ID}", id="self-id"),
+        ],
+    )
+    def test_forbids_deleting_own_profile(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        admin_caller,
+        use_caller,
+        path: str,
+    ) -> None:
+        use_caller(admin_caller)
+
+        response = invoke_user_api(
+            path,
+            method="DELETE",
+        )
+
+        assert_problem(response, status=403, title="Forbidden")
+        assert user_provider.delete_user.calls == []
+
+    @pytest.mark.parametrize(
+        ("provider_error", "expected_status", "expected_title"),
+        PROVIDER_ERRORS,
+    )
+    def test_maps_provider_errors(
+        self,
+        user_provider: FakeUserProvider,
+        invoke_user_api,
+        admin_caller,
+        use_caller,
+        provider_error: Exception,
+        expected_status: int,
+        expected_title: str,
+    ) -> None:
+        use_caller(admin_caller)
+        user_provider.delete_user.error = provider_error
+
+        response = invoke_user_api(
+            f"/user/{OTHER_USER_ID}",
+            method="DELETE",
+        )
+
+        assert_problem(response, status=expected_status, title=expected_title)
+
+
 # ──── POST /user/<userId>/reset ───────────────────────────────────────────────────────
 
 
-class TestResetUser:
+class TestReset:
     def test_returns_reset_user_credentials(
         self,
         user_provider: FakeUserProvider,
@@ -1108,12 +1248,12 @@ class TestListReports:
 
 class TestRouting:
     @pytest.mark.parametrize(
-        "path",
+        ("method", "path"),
         [
-            pytest.param("/user", id="list-create-user"),
-            pytest.param(f"/user/{USER_ID}", id="get-update-user"),
-            pytest.param(f"/user/{USER_ID}/reset", id="reset-user"),
-            pytest.param(f"/user/{USER_ID}/reports", id="list-reports"),
+            pytest.param("PATCH", "/user", id="list-create-user"),
+            pytest.param("POST", f"/user/{USER_ID}", id="get-update-delete-user"),
+            pytest.param("GET", f"/user/{USER_ID}/reset", id="reset-user"),
+            pytest.param("DELETE", f"/user/{USER_ID}/reports", id="list-reports"),
         ],
     )
     def test_rejects_unsupported_methods(
@@ -1121,10 +1261,11 @@ class TestRouting:
         user_handler_module,
         apigw_event,
         lambda_context,
+        method: str,
         path: str,
     ) -> None:
         response = user_handler_module.lambda_handler(
-            apigw_event(path, {}, method="DELETE"),
+            apigw_event(path, {}, method=method),
             lambda_context,
         )
 

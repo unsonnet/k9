@@ -28,7 +28,7 @@ __all__ = [
 
 
 class Request:
-    class ListUsers(ApiModel, frozen=True):
+    class List(ApiModel, frozen=True):
         q: Query[str | None] = None
         limit: Query[int | None] = None
         cursor: Query[str | None] = None
@@ -38,7 +38,7 @@ class Request:
         def sanitize_q(cls, value: str | None) -> str | None:
             return sanitize_query(normalize_name(value)) if value else None
 
-    class CreateUser(ApiModel, frozen=True):
+    class Create(ApiModel, frozen=True):
         name: Body[str]
         role: Body[Role]
 
@@ -47,7 +47,7 @@ class Request:
         def validate_name(cls, value: str) -> str:
             return validate_name(value)
 
-    class GetUser(ApiModel, frozen=True):
+    class Read(ApiModel, frozen=True):
         userId: Path[str]
 
         @field_validator("userId")
@@ -55,7 +55,7 @@ class Request:
         def validate_user_id(cls, value: str) -> str:
             return value if value == "me" else validate_id(value)
 
-    class UpdateUser(ApiModel, frozen=True):
+    class Update(ApiModel, frozen=True):
         userId: Path[str]
         name: Body[str | None] = None
         role: Body[Role | None] = None
@@ -71,7 +71,15 @@ class Request:
         def validate_name(cls, value: str | None) -> str | None:
             return validate_name(value) if value is not None else None
 
-    class ResetUser(ApiModel, frozen=True):
+    class Delete(ApiModel, frozen=True):
+        userId: Path[str]
+
+        @field_validator("userId")
+        @classmethod
+        def validate_user_id(cls, value: str) -> str:
+            return value if value == "me" else validate_id(value)
+
+    class Reset(ApiModel, frozen=True):
         userId: Path[str]
 
         @field_validator("userId")
