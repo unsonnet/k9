@@ -13,7 +13,7 @@ from opensearchpy.exceptions import (
     ConnectionTimeout,
     NotFoundError,
 )
-from pydantic import Field, StrictBool, ValidationError, field_validator
+from pydantic import Field, StrictBool, field_validator
 from shared.abc import BaseProvider, DataModel, ExceptionMap, private_api
 from shared.config import settings
 from shared.errors import (
@@ -179,13 +179,24 @@ class OpenSearchReportProvider(BaseProvider):
 
     def _report(self, response: Mapping[str, Any]) -> Report:
         match response:
-            case {"_source": Mapping() as source}:
-                try:
-                    return Report.model_validate(source)
-                except ValidationError as exc:
-                    raise DomainInvariantViolation(
-                        f"Unexpected opensearch response: {response}"
-                    ) from exc
+            case {
+                "_source": {
+                    "id": str(id),
+                    "xuser": str(xuser),
+                    "title": str(title),
+                    "final": bool(final),
+                    "created_at": datetime() as created_at,
+                    "updated_at": datetime() | None as updated_at,
+                }
+            }:
+                return Report(
+                    id=id,
+                    xuser=xuser,  # type: ignore
+                    title=title,
+                    final=final,
+                    created_at=created_at,
+                    updated_at=updated_at,
+                )
         raise DomainInvariantViolation(f"Unexpected opensearch response: {response}")
 
     def _query(
