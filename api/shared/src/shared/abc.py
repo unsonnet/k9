@@ -28,6 +28,7 @@ class Caller(BaseModel, frozen=True):
     id: str
     name: str
     role: Role
+    token: str
 
     @property
     def is_admin(self) -> bool:

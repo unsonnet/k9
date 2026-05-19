@@ -10,7 +10,7 @@ from shared.providers.cognito import (
     validate_token,
 )
 
-from .providers.auth import Challenge, Tokens
+from .providers.auth import MFA, Challenge, Tokens
 
 __all__ = [
     "Request",
@@ -82,6 +82,9 @@ class Request:
                 case _:
                     return self
 
+    class VerifyMFA(ApiModel, frozen=True):
+        code: Body[str]
+
 
 # ──── Response Payloads ───────────────────────────────────────────────────────────────
 
@@ -113,4 +116,15 @@ class Response:
                 session=challenge.session,
                 challenge=challenge.challenge,
                 parameters=challenge.parameters,
+            )
+
+    class MFA(ApiModel, frozen=True):
+        secret: str
+        url: str
+
+        @classmethod
+        def from_(cls, mfa: MFA):
+            return cls(
+                secret=mfa.secret,
+                url=mfa.url,
             )

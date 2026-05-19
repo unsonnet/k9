@@ -3,7 +3,7 @@ from typing import Any
 import auth.providers.auth as provider_module
 import boto3
 import pytest
-from auth.providers.auth import Challenge, Tokens
+from auth.providers.auth import MFA, Challenge, Tokens
 from botocore.stub import Stubber
 from shared.errors import (
     DomainExpiredToken,
@@ -114,6 +114,20 @@ def expected_tokens(
         expires_in=expires_in,
         refresh_token=refresh_token,
         id_token=id_token,
+    )
+
+
+def expected_mfa(
+    *,
+    secret: str = "ABCDEFGHIJKLMNOP",
+    name: str = "Alice",
+) -> MFA:
+    return MFA(
+        secret=secret,
+        url=(
+            "otpauth://totp/Amazon%20Web%20Services:"
+            f"K9%20-%20{name}?secret={secret}&issuer=Amazon%20Web%20Services"
+        ),
     )
 
 
@@ -605,6 +619,167 @@ class TestRevokeTokens:
 
         with pytest.raises(expected_error):
             provider.revoke_tokens(refresh_token="refresh-token")
+
+
+# ──── setup_mfa() ────────────────────────────────────────────────────────────────────
+
+
+class TestSetupMfa:
+    def test_returns_mfa(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        stubber: Stubber,
+    ) -> None:
+        stubber.add_response(
+            "associate_software_token",
+            {
+                "SecretCode": "ABCDEFGHIJKLMNOP",
+            },
+            {
+                "AccessToken": "access-token",
+            },
+        )
+
+        result = provider.setup_mfa(access_token="access-token", name="Alice")
+
+        assert result == expected_mfa()
+
+    @pytest.mark.parametrize(
+        ("code", "expected_error"),
+        PROVIDER_ERROR_CASES,
+    )
+    def test_maps_provider_errors(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        stubber: Stubber,
+        code: str,
+        expected_error: type[Exception],
+    ) -> None:
+        add_provider_error(
+            stubber,
+            method="associate_software_token",
+            code=code,
+            expected_params={
+                "AccessToken": "access-token",
+            },
+        )
+
+        with pytest.raises(expected_error):
+            provider.setup_mfa(access_token="access-token", name="Alice")
+
+    def test_rejects_unexpected_provider_response_shape(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        stubber: Stubber,
+    ) -> None:
+        stubber.add_response(
+            "associate_software_token",
+            {
+                "Session": SESSION,
+            },
+            {
+                "AccessToken": "access-token",
+            },
+        )
+
+        with pytest.raises(
+            DomainInvariantViolation,
+            match="Unexpected cognito MFA",
+        ):
+            provider.setup_mfa(access_token="access-token", name="Alice")
+
+
+# ──── verify_mfa() ───────────────────────────────────────────────────────────────────
+
+
+class TestVerifyMfa:
+    def test_returns_none(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        stubber: Stubber,
+    ) -> None:
+        stubber.add_response(
+            "verify_software_token",
+            {},
+            {
+                "AccessToken": "access-token",
+                "UserCode": "123456",
+            },
+        )
+        stubber.add_response(
+            "set_user_mfa_preference",
+            {},
+            {
+                "AccessToken": "access-token",
+                "SoftwareTokenMfaSettings": {
+                    "Enabled": True,
+                    "PreferredMfa": True,
+                },
+            },
+        )
+
+        result = provider.verify_mfa(access_token="access-token", code="123456")
+
+        assert result is None
+
+    @pytest.mark.parametrize(
+        ("code", "expected_error"),
+        PROVIDER_ERROR_CASES,
+    )
+    def test_maps_verify_token_provider_errors(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        stubber: Stubber,
+        code: str,
+        expected_error: type[Exception],
+    ) -> None:
+        add_provider_error(
+            stubber,
+            method="verify_software_token",
+            code=code,
+            expected_params={
+                "AccessToken": "access-token",
+                "UserCode": "123456",
+            },
+        )
+
+        with pytest.raises(expected_error):
+            provider.verify_mfa(access_token="access-token", code="123456")
+
+    @pytest.mark.parametrize(
+        ("code", "expected_error"),
+        PROVIDER_ERROR_CASES,
+    )
+    def test_maps_set_mfa_preference_provider_errors(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        stubber: Stubber,
+        code: str,
+        expected_error: type[Exception],
+    ) -> None:
+        stubber.add_response(
+            "verify_software_token",
+            {},
+            {
+                "AccessToken": "access-token",
+                "UserCode": "123456",
+            },
+        )
+        add_provider_error(
+            stubber,
+            method="set_user_mfa_preference",
+            code=code,
+            expected_params={
+                "AccessToken": "access-token",
+                "SoftwareTokenMfaSettings": {
+                    "Enabled": True,
+                    "PreferredMfa": True,
+                },
+            },
+        )
+
+        with pytest.raises(expected_error):
+            provider.verify_mfa(access_token="access-token", code="123456")
 
 
 # ──── Provider Responses ──────────────────────────────────────────────────────────────

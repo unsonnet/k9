@@ -89,6 +89,12 @@ class HttpResolver(APIGatewayHttpResolver):
         except (AttributeError, KeyError, TypeError) as exc:
             raise DomainInvalidTokens("Missing JWT claims") from exc
 
+    def access_token(self) -> str:
+        try:
+            return self.current_event.headers["authorization"].removeprefix("Bearer ")
+        except (AttributeError, KeyError, TypeError) as exc:
+            raise DomainInvalidTokens("Missing bearer token") from exc
+
     def caller(self) -> Caller:
         match self.claims():
             case {
@@ -100,8 +106,11 @@ class HttpResolver(APIGatewayHttpResolver):
                     id=decode_id(xid),
                     name=name,
                     role=role,
+                    token=self.access_token().strip(),
                 )
         raise DomainInvalidTokens("Missing required JWT claims")
+
+    # ──── Routes ──────────────────────────────────────────────────────────────────────
 
     def _handle_routing_error(self, exc: NotFoundError) -> NotFound | MethodNotAllowed:
         method = self.current_event.http_method.upper()
@@ -115,8 +124,6 @@ class HttpResolver(APIGatewayHttpResolver):
             return MethodNotAllowed(cause=exc)
 
         return NotFound(cause=exc)
-
-    # ──── Routes ──────────────────────────────────────────────────────────────────────
 
     def route(  # type: ignore[override]
         self,

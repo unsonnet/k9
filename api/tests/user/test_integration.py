@@ -405,10 +405,10 @@ class TestCreateUser:
         invoke_user_api,
         admin_caller,
         use_caller,
-        user_record: User,
+        user_creds: UserCreds,
     ) -> None:
         use_caller(admin_caller)
-        user_provider.create_user.result = user_record
+        user_provider.create_user.result = user_creds
 
         response = invoke_user_api(
             "/user",
@@ -420,7 +420,13 @@ class TestCreateUser:
         )
 
         assert_status(response, 201)
-        assert_body(response, user_body())
+        assert_body(
+            response,
+            {
+                "name": "alice",
+                "password": "TempPass#2026",
+            },
+        )
         assert user_provider.create_user.calls == [
             {
                 "name": "alice",

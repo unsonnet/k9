@@ -308,13 +308,14 @@ class TestListUsers:
 
 
 class TestCreateUser:
-    def test_returns_user(
+    def test_returns_credentials(
         self,
         monkeypatch: pytest.MonkeyPatch,
         provider: provider_module.CognitoUserProvider,
         stubber: Stubber,
     ) -> None:
         monkeypatch.setattr(provider_module, "generate_id", lambda: USER_ID)
+        monkeypatch.setattr(provider_module, "generate_password", lambda: PASSWORD)
 
         stubber.add_response(
             "admin_create_user",
@@ -339,19 +340,29 @@ class TestCreateUser:
                 "MessageAction": "SUPPRESS",
             },
         )
-        stub_get_user(stubber, id=USER_ID, name="alice", role=Role.USER)
+        stubber.add_response(
+            "admin_set_user_password",
+            {},
+            {
+                "UserPoolId": USER_POOL_ID,
+                "Username": encode_id(USER_ID),
+                "Password": PASSWORD,
+                "Permanent": False,
+            },
+        )
 
         result = provider.create_user(name="alice", role=Role.USER)
 
-        assert result == expected_user(id=USER_ID, name="alice", role=Role.USER)
+        assert result == UserCreds(name="alice", password=PASSWORD)
 
-    def test_returns_admin_user(
+    def test_returns_admin_credentials(
         self,
         monkeypatch: pytest.MonkeyPatch,
         provider: provider_module.CognitoUserProvider,
         stubber: Stubber,
     ) -> None:
         monkeypatch.setattr(provider_module, "generate_id", lambda: USER_ID)
+        monkeypatch.setattr(provider_module, "generate_password", lambda: PASSWORD)
 
         stubber.add_response(
             "admin_create_user",
@@ -376,11 +387,20 @@ class TestCreateUser:
                 "MessageAction": "SUPPRESS",
             },
         )
-        stub_get_user(stubber, id=USER_ID, name="alice", role=Role.ADMIN)
+        stubber.add_response(
+            "admin_set_user_password",
+            {},
+            {
+                "UserPoolId": USER_POOL_ID,
+                "Username": encode_id(USER_ID),
+                "Password": PASSWORD,
+                "Permanent": False,
+            },
+        )
 
         result = provider.create_user(name="alice", role=Role.ADMIN)
 
-        assert result == expected_user(id=USER_ID, name="alice", role=Role.ADMIN)
+        assert result == UserCreds(name="alice", password=PASSWORD)
 
     @pytest.mark.parametrize(
         ("code", "expected_error"),
@@ -395,6 +415,7 @@ class TestCreateUser:
         expected_error: type[Exception],
     ) -> None:
         monkeypatch.setattr(provider_module, "generate_id", lambda: USER_ID)
+        monkeypatch.setattr(provider_module, "generate_password", lambda: PASSWORD)
 
         add_provider_error(
             stubber,
@@ -418,6 +439,59 @@ class TestCreateUser:
                     },
                 ],
                 "MessageAction": "SUPPRESS",
+            },
+        )
+
+        with pytest.raises(expected_error):
+            provider.create_user(name="alice", role=Role.USER)
+
+    @pytest.mark.parametrize(
+        ("code", "expected_error"),
+        PROVIDER_ERROR_CASES,
+    )
+    def test_maps_set_password_provider_errors(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        provider: provider_module.CognitoUserProvider,
+        stubber: Stubber,
+        code: str,
+        expected_error: type[Exception],
+    ) -> None:
+        monkeypatch.setattr(provider_module, "generate_id", lambda: USER_ID)
+        monkeypatch.setattr(provider_module, "generate_password", lambda: PASSWORD)
+
+        stubber.add_response(
+            "admin_create_user",
+            {},
+            {
+                "UserPoolId": USER_POOL_ID,
+                "Username": encode_id(USER_ID),
+                "UserAttributes": [
+                    {
+                        "Name": "preferred_username",
+                        "Value": encode_name("alice"),
+                    },
+                    {
+                        "Name": "name",
+                        "Value": "alice",
+                    },
+                    {
+                        "Name": "custom:role",
+                        "Value": "user",
+                    },
+                ],
+                "MessageAction": "SUPPRESS",
+            },
+        )
+        add_provider_error(
+            stubber,
+            method="admin_set_user_password",
+            code=code,
+            expected_params={
+                "UserPoolId": USER_POOL_ID,
+                "Username": encode_id(USER_ID),
+                "Password": PASSWORD,
+                "Permanent": False,
             },
         )
 

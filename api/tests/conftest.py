@@ -8,7 +8,7 @@ from shared.providers.cognito import encode_id
 
 @pytest.fixture
 def current_caller():
-    return {"claims": None}
+    return {"claims": None, "token": None}
 
 
 @pytest.fixture
@@ -29,12 +29,25 @@ def apigw_event(current_caller):
         }
         raw_query_string = urlencode(clean_query_params)
 
+        event_headers = (
+            headers.copy() if headers else {"content-type": "application/json"}
+        )
+
+        claims = current_caller["claims"]
+        token = current_caller["token"]
+        if (
+            claims is not None
+            and token is not None
+            and "authorization" not in event_headers
+        ):
+            event_headers["authorization"] = f"Bearer {token}"
+
         event = {
             "version": "2.0",
             "routeKey": route_key,
             "rawPath": path,
             "rawQueryString": raw_query_string,
-            "headers": headers or {"content-type": "application/json"},
+            "headers": event_headers,
             "requestContext": {
                 "accountId": "000000000000",
                 "apiId": "api-id",
@@ -56,7 +69,6 @@ def apigw_event(current_caller):
             "isBase64Encoded": False,
         }
 
-        claims = current_caller["claims"]
         if claims is not None:
             event["requestContext"]["authorizer"] = {
                 "jwt": {
@@ -93,11 +105,13 @@ def caller_factory():
         id: str = "user_001",
         name: str = "Alice",
         role: Role = Role.USER,
+        token: str = "access-token",
     ) -> Caller:
         return Caller(
             id=id,
             name=name,
             role=role,
+            token=token,
         )
 
     return _build
@@ -129,6 +143,7 @@ def use_caller(current_caller):
             "cognito:name": caller.name,
             "custom:role": caller.role.value,
         }
+        current_caller["token"] = caller.token
         return caller
 
     return _use
@@ -138,5 +153,6 @@ def use_caller(current_caller):
 def use_unauthorized_caller(current_caller):
     def _use():
         current_caller["claims"] = None
+        current_caller["token"] = None
 
     return _use

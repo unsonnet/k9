@@ -25,10 +25,12 @@ shared = { workspace = true }
 
 [dependency-groups]
 dev = [
+    "ipykernel>=7.2.0",
     "moto>=5.2.0",
     "pytest>=9.0.3",
     "pytest-mock>=3.15.1",
     "pyyaml>=6.0.3",
+    "qrcode[pil]>=8.2",
     "ruff>=0.15.8",
 ]
 

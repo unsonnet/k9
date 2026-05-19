@@ -46,8 +46,8 @@ class UserService(BaseService):
         self,
         caller: Caller,
         request: Request.CreateUser,
-    ) -> Response.User:
-        return Response.User.from_(
+    ) -> Response.UserCreds:
+        return Response.UserCreds.from_(
             self.users.create_user(
                 name=request.name,
                 role=request.role,

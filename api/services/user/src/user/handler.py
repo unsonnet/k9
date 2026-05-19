@@ -56,7 +56,7 @@ def list_users(
 )
 def create_user(
     request: Request.CreateUser,
-) -> Created[Response.User] | Unauthorized | Forbidden | TooManyRequests:
+) -> Created[Response.UserCreds] | Unauthorized | Forbidden | TooManyRequests:
     try:
         return Created(svc.create_user(app.caller(), request))
     except DomainUnauthorized as exc:

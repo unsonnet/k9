@@ -68,7 +68,7 @@ class UserProvider(Protocol):
         *,
         name: str,
         role: Role,
-    ) -> User: ...
+    ) -> UserCreds: ...
 
     def get_user(
         self,
@@ -206,8 +206,10 @@ class CognitoUserProvider(BaseProvider):
         *,
         name: str,
         role: Role,
-    ) -> User:
-        xid = encode_id(id := generate_id())
+    ) -> UserCreds:
+        xid = encode_id(generate_id())
+        password = generate_password()
+
         self._client.admin_create_user(
             UserPoolId=self._user_pool_id,
             Username=xid,
@@ -228,7 +230,14 @@ class CognitoUserProvider(BaseProvider):
             MessageAction="SUPPRESS",
         )
 
-        return self.get_user(id=id)
+        self._client.admin_set_user_password(
+            UserPoolId=self._user_pool_id,
+            Username=xid,
+            Password=password,
+            Permanent=False,
+        )
+
+        return UserCreds(name=name, password=password)
 
     @private_api
     def get_user(
