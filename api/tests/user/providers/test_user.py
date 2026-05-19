@@ -22,8 +22,8 @@ pytestmark = pytest.mark.unit
 
 REGION = "us-east-1"
 USER_POOL_ID = "pool-id"
-USER_ID = "11111111-1111-1111-1111-111111111111"
-ADMIN_ID = "22222222-2222-2222-2222-222222222222"
+USER_ID = "user_001"
+ADMIN_ID = "admin_001"
 CREATED_AT = datetime(2026, 1, 1, tzinfo=timezone.utc)
 UPDATED_AT = datetime(2026, 1, 2, tzinfo=timezone.utc)
 PASSWORD = "TempPass#2026"

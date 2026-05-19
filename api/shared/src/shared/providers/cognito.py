@@ -1,10 +1,9 @@
 import base64
 import re
 import unicodedata
-from secrets import SystemRandom
+from secrets import SystemRandom, token_urlsafe
 from string import ascii_lowercase, ascii_uppercase, digits
 from typing import Final
-from uuid import UUID, uuid4
 
 from shared.errors import DomainInvariantViolation
 
@@ -13,6 +12,9 @@ _WHITESPACE_RE: Final = re.compile(r"\s+")
 _TOKEN_RE: Final = re.compile(r"^[A-Za-z0-9-_=.]+$")
 
 _ID_PREFIX: Final = "id:"
+_ID_MIN_LENGTH: Final = 6
+_ID_MAX_LENGTH: Final = 64
+_ID_RE: Final = re.compile(r"^[A-Za-z0-9_-]+$")
 
 _NAME_PREFIX: Final = "name:"
 _NAME_MIN_LENGTH: Final = 1
@@ -37,7 +39,7 @@ _TOKEN_MAX_LENGTH: Final = 131072
 
 
 def generate_id() -> str:
-    return str(uuid4())
+    return validate_id(token_urlsafe(6))
 
 
 def encode_id(id: str) -> str:
@@ -51,10 +53,10 @@ def decode_id(xid: str) -> str:
 
 
 def validate_id(id: str) -> str:
-    try:
-        UUID(id)
-    except ValueError as exc:
-        raise ValueError("id must be a valid UUID") from exc
+    if not _ID_MIN_LENGTH <= len(id) <= _ID_MAX_LENGTH:
+        raise ValueError(f"id must be {_ID_MIN_LENGTH}-{_ID_MAX_LENGTH} characters")
+    if not _ID_RE.fullmatch(id):
+        raise ValueError("id contains invalid characters")
 
     return id
 

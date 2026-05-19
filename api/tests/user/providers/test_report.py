@@ -27,7 +27,7 @@ pytestmark = pytest.mark.unit
 # ──── Helpers ─────────────────────────────────────────────────────────────────────────
 
 INDEX = "reports"
-USER_ID = "11111111-1111-1111-1111-111111111111"
+USER_ID = "user_001"
 REPORT_ID = "report-1"
 REPORT_2_ID = "report-2"
 CREATED_AT = datetime(2026, 1, 1, tzinfo=timezone.utc)

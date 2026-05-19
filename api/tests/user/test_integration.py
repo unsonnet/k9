@@ -29,9 +29,9 @@ pytestmark = pytest.mark.integration
 TEST_NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
 DATE_FROM = datetime(2026, 1, 1, tzinfo=timezone.utc)
 DATE_TO = datetime(2026, 1, 31, 23, 59, tzinfo=timezone.utc)
-USER_ID = "11111111-1111-1111-1111-111111111111"
-ADMIN_ID = "22222222-2222-2222-2222-222222222222"
-OTHER_USER_ID = "33333333-3333-3333-3333-333333333333"
+USER_ID = "user_001"
+ADMIN_ID = "admin_001"
+OTHER_USER_ID = "user_002"
 REPORT_ID = "report-1"
 
 PROVIDER_ERRORS = [
@@ -572,7 +572,7 @@ class TestGetUser:
     ) -> None:
         use_caller(user_caller)
 
-        response = invoke_user_api("/user/not-a-uuid")
+        response = invoke_user_api("/user/not!valid")
 
         assert_status(response, 422)
 
