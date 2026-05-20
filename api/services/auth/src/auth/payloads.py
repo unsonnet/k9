@@ -55,6 +55,9 @@ class Request:
                 case _:
                     return value
 
+    class Verify(ApiModel, frozen=True):
+        code: Body[str]
+
     class Refresh(ApiModel, frozen=True):
         refreshToken: Body[str]
 
@@ -81,9 +84,6 @@ class Request:
                     raise ValueError("Either accessToken or refreshToken is required")
                 case _:
                     return self
-
-    class VerifyMFA(ApiModel, frozen=True):
-        code: Body[str]
 
 
 # ──── Response Payloads ───────────────────────────────────────────────────────────────

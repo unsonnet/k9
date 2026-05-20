@@ -107,10 +107,10 @@ class FakeAuthProvider:
     def __init__(self) -> None:
         self.authenticate = ProviderMethod()
         self.respond_to_challenge = ProviderMethod()
-        self.refresh_tokens = ProviderMethod()
-        self.revoke_tokens = ProviderMethod(result=None)
         self.setup_mfa = ProviderMethod()
         self.verify_mfa = ProviderMethod(result=None)
+        self.refresh_tokens = ProviderMethod()
+        self.revoke_tokens = ProviderMethod(result=None)
 
 
 def tokens_body(
@@ -528,6 +528,182 @@ class TestChallenge:
         )
 
 
+# ──── POST /auth/mfa/setup ──────────────────────────────────────────────────────────
+
+
+class TestSetup:
+    def test_returns_mfa(
+        self,
+        auth_provider: FakeAuthProvider,
+        invoke_auth_api,
+        user_caller,
+        use_caller,
+        mfa_record: MFA,
+    ) -> None:
+        use_caller(user_caller)
+        auth_provider.setup_mfa.result = mfa_record
+
+        response = invoke_auth_api(
+            "/auth/mfa/setup",
+            {},
+        )
+
+        assert_status(response, 200)
+        assert_body(response, mfa_body())
+        assert auth_provider.setup_mfa.calls == [
+            {
+                "access_token": "access-token",
+                "name": "Alice",
+            }
+        ]
+
+    def test_requires_authentication(
+        self,
+        auth_provider: FakeAuthProvider,
+        invoke_auth_api,
+        use_unauthorized_caller,
+    ) -> None:
+        use_unauthorized_caller()
+
+        response = invoke_auth_api(
+            "/auth/mfa/setup",
+            {},
+        )
+
+        assert_problem(response, status=401, title="Unauthorized")
+        assert auth_provider.setup_mfa.calls == []
+
+    @pytest.mark.parametrize(
+        ("provider_error", "expected_status", "expected_title"),
+        MFA_SETUP_ERRORS,
+    )
+    def test_maps_provider_errors(
+        self,
+        auth_provider: FakeAuthProvider,
+        invoke_auth_api,
+        user_caller,
+        use_caller,
+        provider_error: Exception,
+        expected_status: int,
+        expected_title: str,
+    ) -> None:
+        use_caller(user_caller)
+        auth_provider.setup_mfa.error = provider_error
+
+        response = invoke_auth_api(
+            "/auth/mfa/setup",
+            {},
+        )
+
+        assert_problem(
+            response,
+            status=expected_status,
+            title=expected_title,
+        )
+
+
+# ──── POST /auth/mfa/verify ─────────────────────────────────────────────────────────
+
+
+class TestVerify:
+    def test_returns_no_content(
+        self,
+        auth_provider: FakeAuthProvider,
+        invoke_auth_api,
+        user_caller,
+        use_caller,
+    ) -> None:
+        use_caller(user_caller)
+
+        response = invoke_auth_api(
+            "/auth/mfa/verify",
+            {
+                "code": "123456",
+            },
+        )
+
+        assert_status(response, 204)
+        assert_no_body(response)
+        assert auth_provider.verify_mfa.calls == [
+            {
+                "access_token": "access-token",
+                "code": "123456",
+            }
+        ]
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            pytest.param({}, id="missing-code"),
+        ],
+    )
+    def test_rejects_invalid_body(
+        self,
+        invoke_auth_api,
+        user_caller,
+        use_caller,
+        body: dict[str, Any],
+    ) -> None:
+        use_caller(user_caller)
+
+        response = invoke_auth_api(
+            "/auth/mfa/verify",
+            body,
+        )
+
+        assert_status(response, 422)
+
+    def test_requires_authentication(
+        self,
+        auth_provider: FakeAuthProvider,
+        invoke_auth_api,
+        use_unauthorized_caller,
+    ) -> None:
+        use_unauthorized_caller()
+
+        response = invoke_auth_api(
+            "/auth/mfa/verify",
+            {
+                "code": "123456",
+            },
+        )
+
+        assert_problem(response, status=401, title="Unauthorized")
+        assert auth_provider.verify_mfa.calls == []
+
+    @pytest.mark.parametrize(
+        ("provider_error", "expected_status", "expected_title", "expected_detail"),
+        VERIFY_MFA_ERRORS,
+    )
+    def test_maps_provider_errors(
+        self,
+        auth_provider: FakeAuthProvider,
+        invoke_auth_api,
+        user_caller,
+        use_caller,
+        provider_error: Exception,
+        expected_status: int,
+        expected_title: str,
+        expected_detail: str | None,
+    ) -> None:
+        use_caller(user_caller)
+        auth_provider.verify_mfa.error = provider_error
+
+        response = invoke_auth_api(
+            "/auth/mfa/verify",
+            {
+                "code": "123456",
+            },
+        )
+
+        assert_problem(
+            response,
+            status=expected_status,
+            title=expected_title,
+            detail=expected_detail,
+        )
+
+
 # ──── POST /auth/refresh ──────────────────────────────────────────────────────────────
 
 
@@ -718,182 +894,6 @@ class TestLogout:
             response,
             status=expected_status,
             title=expected_title,
-        )
-
-
-# ──── POST /auth/mfa/setup ──────────────────────────────────────────────────────────
-
-
-class TestSetupMfa:
-    def test_returns_mfa(
-        self,
-        auth_provider: FakeAuthProvider,
-        invoke_auth_api,
-        user_caller,
-        use_caller,
-        mfa_record: MFA,
-    ) -> None:
-        use_caller(user_caller)
-        auth_provider.setup_mfa.result = mfa_record
-
-        response = invoke_auth_api(
-            "/auth/mfa/setup",
-            {},
-        )
-
-        assert_status(response, 200)
-        assert_body(response, mfa_body())
-        assert auth_provider.setup_mfa.calls == [
-            {
-                "access_token": "access-token",
-                "name": "Alice",
-            }
-        ]
-
-    def test_requires_authentication(
-        self,
-        auth_provider: FakeAuthProvider,
-        invoke_auth_api,
-        use_unauthorized_caller,
-    ) -> None:
-        use_unauthorized_caller()
-
-        response = invoke_auth_api(
-            "/auth/mfa/setup",
-            {},
-        )
-
-        assert_problem(response, status=401, title="Unauthorized")
-        assert auth_provider.setup_mfa.calls == []
-
-    @pytest.mark.parametrize(
-        ("provider_error", "expected_status", "expected_title"),
-        MFA_SETUP_ERRORS,
-    )
-    def test_maps_provider_errors(
-        self,
-        auth_provider: FakeAuthProvider,
-        invoke_auth_api,
-        user_caller,
-        use_caller,
-        provider_error: Exception,
-        expected_status: int,
-        expected_title: str,
-    ) -> None:
-        use_caller(user_caller)
-        auth_provider.setup_mfa.error = provider_error
-
-        response = invoke_auth_api(
-            "/auth/mfa/setup",
-            {},
-        )
-
-        assert_problem(
-            response,
-            status=expected_status,
-            title=expected_title,
-        )
-
-
-# ──── POST /auth/mfa/verify ─────────────────────────────────────────────────────────
-
-
-class TestVerifyMfa:
-    def test_returns_no_content(
-        self,
-        auth_provider: FakeAuthProvider,
-        invoke_auth_api,
-        user_caller,
-        use_caller,
-    ) -> None:
-        use_caller(user_caller)
-
-        response = invoke_auth_api(
-            "/auth/mfa/verify",
-            {
-                "code": "123456",
-            },
-        )
-
-        assert_status(response, 204)
-        assert_no_body(response)
-        assert auth_provider.verify_mfa.calls == [
-            {
-                "access_token": "access-token",
-                "code": "123456",
-            }
-        ]
-
-    @pytest.mark.parametrize(
-        "body",
-        [
-            pytest.param({}, id="missing-code"),
-        ],
-    )
-    def test_rejects_invalid_body(
-        self,
-        invoke_auth_api,
-        user_caller,
-        use_caller,
-        body: dict[str, Any],
-    ) -> None:
-        use_caller(user_caller)
-
-        response = invoke_auth_api(
-            "/auth/mfa/verify",
-            body,
-        )
-
-        assert_status(response, 422)
-
-    def test_requires_authentication(
-        self,
-        auth_provider: FakeAuthProvider,
-        invoke_auth_api,
-        use_unauthorized_caller,
-    ) -> None:
-        use_unauthorized_caller()
-
-        response = invoke_auth_api(
-            "/auth/mfa/verify",
-            {
-                "code": "123456",
-            },
-        )
-
-        assert_problem(response, status=401, title="Unauthorized")
-        assert auth_provider.verify_mfa.calls == []
-
-    @pytest.mark.parametrize(
-        ("provider_error", "expected_status", "expected_title", "expected_detail"),
-        VERIFY_MFA_ERRORS,
-    )
-    def test_maps_provider_errors(
-        self,
-        auth_provider: FakeAuthProvider,
-        invoke_auth_api,
-        user_caller,
-        use_caller,
-        provider_error: Exception,
-        expected_status: int,
-        expected_title: str,
-        expected_detail: str | None,
-    ) -> None:
-        use_caller(user_caller)
-        auth_provider.verify_mfa.error = provider_error
-
-        response = invoke_auth_api(
-            "/auth/mfa/verify",
-            {
-                "code": "123456",
-            },
-        )
-
-        assert_problem(
-            response,
-            status=expected_status,
-            title=expected_title,
-            detail=expected_detail,
         )
 
 

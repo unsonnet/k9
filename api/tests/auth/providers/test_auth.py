@@ -461,166 +461,6 @@ class TestRespondToChallenge:
             )
 
 
-# ──── refresh_tokens() ────────────────────────────────────────────────────────────────
-
-
-class TestRefreshTokens:
-    def test_returns_tokens(
-        self,
-        provider: provider_module.CognitoAuthProvider,
-        stubber: Stubber,
-    ) -> None:
-        stubber.add_response(
-            "get_tokens_from_refresh_token",
-            tokens_response(),
-            {
-                "ClientId": CLIENT_ID,
-                "ClientSecret": CLIENT_SECRET,
-                "RefreshToken": "refresh-token",
-            },
-        )
-
-        result = provider.refresh_tokens(refresh_token="refresh-token")
-
-        assert result == expected_tokens()
-
-    @pytest.mark.parametrize(
-        ("code", "expected_error"),
-        PROVIDER_ERROR_CASES,
-    )
-    def test_maps_provider_errors(
-        self,
-        provider: provider_module.CognitoAuthProvider,
-        stubber: Stubber,
-        code: str,
-        expected_error: type[Exception],
-    ) -> None:
-        add_provider_error(
-            stubber,
-            method="get_tokens_from_refresh_token",
-            code=code,
-            expected_params={
-                "ClientId": CLIENT_ID,
-                "ClientSecret": CLIENT_SECRET,
-                "RefreshToken": "refresh-token",
-            },
-        )
-
-        with pytest.raises(expected_error):
-            provider.refresh_tokens(refresh_token="refresh-token")
-
-
-# ──── revoke_tokens() ─────────────────────────────────────────────────────────────────
-
-
-class TestRevokeTokens:
-    def test_returns_none_for_access_token(
-        self,
-        provider: provider_module.CognitoAuthProvider,
-        stubber: Stubber,
-    ) -> None:
-        stubber.add_response(
-            "global_sign_out",
-            {},
-            {
-                "AccessToken": "access-token",
-            },
-        )
-
-        result = provider.revoke_tokens(access_token="access-token")
-
-        assert result is None
-
-    def test_returns_none_for_refresh_token(
-        self,
-        provider: provider_module.CognitoAuthProvider,
-        stubber: Stubber,
-    ) -> None:
-        stubber.add_response(
-            "revoke_token",
-            {},
-            {
-                "ClientId": CLIENT_ID,
-                "ClientSecret": CLIENT_SECRET,
-                "Token": "refresh-token",
-            },
-        )
-
-        result = provider.revoke_tokens(refresh_token="refresh-token")
-
-        assert result is None
-
-    @pytest.mark.parametrize(
-        ("access_token", "refresh_token"),
-        [
-            pytest.param(None, None, id="missing-both"),
-            pytest.param("access-token", "refresh-token", id="provided-both"),
-        ],
-    )
-    def test_rejects_invalid_token_combination(
-        self,
-        provider: provider_module.CognitoAuthProvider,
-        access_token: str | None,
-        refresh_token: str | None,
-    ) -> None:
-        with pytest.raises(
-            DomainInvariantViolation,
-            match="Unexpected combination of access and refresh tokens",
-        ):
-            provider.revoke_tokens(
-                access_token=access_token,
-                refresh_token=refresh_token,
-            )
-
-    @pytest.mark.parametrize(
-        ("code", "expected_error"),
-        PROVIDER_ERROR_CASES,
-    )
-    def test_maps_access_token_provider_errors(
-        self,
-        provider: provider_module.CognitoAuthProvider,
-        stubber: Stubber,
-        code: str,
-        expected_error: type[Exception],
-    ) -> None:
-        add_provider_error(
-            stubber,
-            method="global_sign_out",
-            code=code,
-            expected_params={
-                "AccessToken": "access-token",
-            },
-        )
-
-        with pytest.raises(expected_error):
-            provider.revoke_tokens(access_token="access-token")
-
-    @pytest.mark.parametrize(
-        ("code", "expected_error"),
-        PROVIDER_ERROR_CASES,
-    )
-    def test_maps_refresh_token_provider_errors(
-        self,
-        provider: provider_module.CognitoAuthProvider,
-        stubber: Stubber,
-        code: str,
-        expected_error: type[Exception],
-    ) -> None:
-        add_provider_error(
-            stubber,
-            method="revoke_token",
-            code=code,
-            expected_params={
-                "ClientId": CLIENT_ID,
-                "ClientSecret": CLIENT_SECRET,
-                "Token": "refresh-token",
-            },
-        )
-
-        with pytest.raises(expected_error):
-            provider.revoke_tokens(refresh_token="refresh-token")
-
-
 # ──── setup_mfa() ────────────────────────────────────────────────────────────────────
 
 
@@ -780,6 +620,166 @@ class TestVerifyMfa:
 
         with pytest.raises(expected_error):
             provider.verify_mfa(access_token="access-token", code="123456")
+
+
+# ──── refresh_tokens() ────────────────────────────────────────────────────────────────
+
+
+class TestRefreshTokens:
+    def test_returns_tokens(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        stubber: Stubber,
+    ) -> None:
+        stubber.add_response(
+            "get_tokens_from_refresh_token",
+            tokens_response(),
+            {
+                "ClientId": CLIENT_ID,
+                "ClientSecret": CLIENT_SECRET,
+                "RefreshToken": "refresh-token",
+            },
+        )
+
+        result = provider.refresh_tokens(refresh_token="refresh-token")
+
+        assert result == expected_tokens()
+
+    @pytest.mark.parametrize(
+        ("code", "expected_error"),
+        PROVIDER_ERROR_CASES,
+    )
+    def test_maps_provider_errors(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        stubber: Stubber,
+        code: str,
+        expected_error: type[Exception],
+    ) -> None:
+        add_provider_error(
+            stubber,
+            method="get_tokens_from_refresh_token",
+            code=code,
+            expected_params={
+                "ClientId": CLIENT_ID,
+                "ClientSecret": CLIENT_SECRET,
+                "RefreshToken": "refresh-token",
+            },
+        )
+
+        with pytest.raises(expected_error):
+            provider.refresh_tokens(refresh_token="refresh-token")
+
+
+# ──── revoke_tokens() ─────────────────────────────────────────────────────────────────
+
+
+class TestRevokeTokens:
+    def test_returns_none_for_access_token(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        stubber: Stubber,
+    ) -> None:
+        stubber.add_response(
+            "global_sign_out",
+            {},
+            {
+                "AccessToken": "access-token",
+            },
+        )
+
+        result = provider.revoke_tokens(access_token="access-token")
+
+        assert result is None
+
+    def test_returns_none_for_refresh_token(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        stubber: Stubber,
+    ) -> None:
+        stubber.add_response(
+            "revoke_token",
+            {},
+            {
+                "ClientId": CLIENT_ID,
+                "ClientSecret": CLIENT_SECRET,
+                "Token": "refresh-token",
+            },
+        )
+
+        result = provider.revoke_tokens(refresh_token="refresh-token")
+
+        assert result is None
+
+    @pytest.mark.parametrize(
+        ("access_token", "refresh_token"),
+        [
+            pytest.param(None, None, id="missing-both"),
+            pytest.param("access-token", "refresh-token", id="provided-both"),
+        ],
+    )
+    def test_rejects_invalid_token_combination(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        access_token: str | None,
+        refresh_token: str | None,
+    ) -> None:
+        with pytest.raises(
+            DomainInvariantViolation,
+            match="Unexpected combination of access and refresh tokens",
+        ):
+            provider.revoke_tokens(
+                access_token=access_token,
+                refresh_token=refresh_token,
+            )
+
+    @pytest.mark.parametrize(
+        ("code", "expected_error"),
+        PROVIDER_ERROR_CASES,
+    )
+    def test_maps_access_token_provider_errors(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        stubber: Stubber,
+        code: str,
+        expected_error: type[Exception],
+    ) -> None:
+        add_provider_error(
+            stubber,
+            method="global_sign_out",
+            code=code,
+            expected_params={
+                "AccessToken": "access-token",
+            },
+        )
+
+        with pytest.raises(expected_error):
+            provider.revoke_tokens(access_token="access-token")
+
+    @pytest.mark.parametrize(
+        ("code", "expected_error"),
+        PROVIDER_ERROR_CASES,
+    )
+    def test_maps_refresh_token_provider_errors(
+        self,
+        provider: provider_module.CognitoAuthProvider,
+        stubber: Stubber,
+        code: str,
+        expected_error: type[Exception],
+    ) -> None:
+        add_provider_error(
+            stubber,
+            method="revoke_token",
+            code=code,
+            expected_params={
+                "ClientId": CLIENT_ID,
+                "ClientSecret": CLIENT_SECRET,
+                "Token": "refresh-token",
+            },
+        )
+
+        with pytest.raises(expected_error):
+            provider.revoke_tokens(refresh_token="refresh-token")
 
 
 # ──── Provider Responses ──────────────────────────────────────────────────────────────

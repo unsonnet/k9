@@ -49,6 +49,29 @@ class AuthService(BaseService):
                 return Response.Challenge.from_(challenge)
 
     @public_api
+    def setup(
+        self,
+        caller: Caller,
+    ) -> Response.MFA:
+        return Response.MFA.from_(
+            self.provider.setup_mfa(
+                access_token=caller.token,
+                name=caller.name,
+            )
+        )
+
+    @public_api
+    def verify(
+        self,
+        caller: Caller,
+        request: Request.Verify,
+    ) -> None:
+        return self.provider.verify_mfa(
+            access_token=caller.token,
+            code=request.code,
+        )
+
+    @public_api
     def refresh(
         self,
         request: Request.Refresh,
@@ -67,27 +90,4 @@ class AuthService(BaseService):
         return self.provider.revoke_tokens(
             access_token=request.accessToken,
             refresh_token=request.refreshToken,
-        )
-
-    @public_api
-    def setup_mfa(
-        self,
-        caller: Caller,
-    ) -> Response.MFA:
-        return Response.MFA.from_(
-            self.provider.setup_mfa(
-                access_token=caller.token,
-                name=caller.name,
-            )
-        )
-
-    @public_api
-    def verify_mfa(
-        self,
-        caller: Caller,
-        request: Request.VerifyMFA,
-    ) -> None:
-        return self.provider.verify_mfa(
-            access_token=caller.token,
-            code=request.code,
         )

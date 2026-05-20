@@ -72,19 +72,6 @@ class AuthProvider(Protocol):
         response: Mapping[str, str],
     ) -> Tokens | Challenge: ...
 
-    def refresh_tokens(
-        self,
-        *,
-        refresh_token: str,
-    ) -> Tokens: ...
-
-    def revoke_tokens(
-        self,
-        *,
-        access_token: str | None = None,
-        refresh_token: str | None = None,
-    ) -> None: ...
-
     def setup_mfa(
         self,
         *,
@@ -97,6 +84,19 @@ class AuthProvider(Protocol):
         *,
         access_token: str,
         code: str,
+    ) -> None: ...
+
+    def refresh_tokens(
+        self,
+        *,
+        refresh_token: str,
+    ) -> Tokens: ...
+
+    def revoke_tokens(
+        self,
+        *,
+        access_token: str | None = None,
+        refresh_token: str | None = None,
     ) -> None: ...
 
 
@@ -304,6 +304,41 @@ class CognitoAuthProvider(BaseProvider):
                 )
 
     @private_api
+    def setup_mfa(
+        self,
+        *,
+        access_token: str,
+        name: str,
+    ) -> MFA:
+        return self._mfa(
+            self._client.associate_software_token(
+                AccessToken=access_token,
+            ),
+            name,
+        )
+
+    @private_api
+    def verify_mfa(
+        self,
+        *,
+        access_token: str,
+        code: str,
+    ) -> None:
+        self._client.verify_software_token(
+            AccessToken=access_token,
+            UserCode=code,
+        )
+
+        self._client.set_user_mfa_preference(
+            AccessToken=access_token,
+            SoftwareTokenMfaSettings={
+                "Enabled": True,
+                "PreferredMfa": True,
+            },
+        )
+        return
+
+    @private_api
     def refresh_tokens(
         self,
         *,
@@ -340,39 +375,3 @@ class CognitoAuthProvider(BaseProvider):
         raise DomainInvariantViolation(
             "Unexpected combination of access and refresh tokens"
         )
-
-    @private_api
-    def setup_mfa(
-        self,
-        *,
-        access_token: str,
-        name: str,
-    ) -> MFA:
-        return self._mfa(
-            self._client.associate_software_token(
-                AccessToken=access_token,
-            ),
-            name,
-        )
-
-    @private_api
-    def verify_mfa(
-        self,
-        *,
-        access_token: str,
-        code: str,
-    ) -> None:
-        self._client.verify_software_token(
-            AccessToken=access_token,
-            UserCode=code,
-        )
-
-        self._client.set_user_mfa_preference(
-            AccessToken=access_token,
-            SoftwareTokenMfaSettings={
-                "Enabled": True,
-                "PreferredMfa": True,
-            },
-        )
-
-        return

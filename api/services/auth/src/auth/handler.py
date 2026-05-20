@@ -84,6 +84,54 @@ def challenge(
 
 
 @app.post(
+    "/auth/mfa/setup",
+    summary="Start MFA enrollment",
+    description="Start TOTP MFA enrollment for the authenticated user.",
+    tags=["auth"],
+    responses={
+        200: "MFA setup started",
+        401: "Authentication required",
+        403: "Access denied",
+        429: "Too many requests",
+    },
+)
+def setup() -> OK[Response.MFA] | Unauthorized | Forbidden | TooManyRequests:
+    try:
+        return OK(svc.setup(app.caller()))
+    except DomainUnauthorized as exc:
+        return Unauthorized(cause=exc)
+    except DomainForbidden as exc:
+        return Forbidden(cause=exc)
+    except DomainRateLimited as exc:
+        return TooManyRequests(cause=exc)
+
+
+@app.post(
+    "/auth/mfa/verify",
+    summary="Verify MFA enrollment",
+    description="Verify TOTP MFA code and enable MFA for the authenticated user.",
+    tags=["auth"],
+    responses={
+        204: "MFA enabled",
+        401: "Invalid MFA code",
+        403: "Access denied",
+        429: "Too many requests",
+    },
+)
+def verify(
+    request: Request.Verify,
+) -> NoContent | Unauthorized | Forbidden | TooManyRequests:
+    try:
+        return NoContent(svc.verify(app.caller(), request))
+    except DomainUnauthorized as exc:
+        return Unauthorized("Invalid MFA code", cause=exc)
+    except DomainForbidden as exc:
+        return Forbidden(cause=exc)
+    except DomainRateLimited as exc:
+        return TooManyRequests(cause=exc)
+
+
+@app.post(
     "/auth/refresh",
     summary="Refresh tokens",
     description="Refresh access token using refresh token.",
@@ -126,54 +174,6 @@ def logout(
         return NoContent(svc.logout(request))
     except DomainUnauthorized:
         return NoContent()
-    except DomainForbidden as exc:
-        return Forbidden(cause=exc)
-    except DomainRateLimited as exc:
-        return TooManyRequests(cause=exc)
-
-
-@app.post(
-    "/auth/mfa/setup",
-    summary="Start MFA enrollment",
-    description="Start TOTP MFA enrollment for the authenticated user.",
-    tags=["auth"],
-    responses={
-        200: "MFA setup started",
-        401: "Authentication required",
-        403: "Access denied",
-        429: "Too many requests",
-    },
-)
-def setup_mfa() -> OK[Response.MFA] | Unauthorized | Forbidden | TooManyRequests:
-    try:
-        return OK(svc.setup_mfa(app.caller()))
-    except DomainUnauthorized as exc:
-        return Unauthorized(cause=exc)
-    except DomainForbidden as exc:
-        return Forbidden(cause=exc)
-    except DomainRateLimited as exc:
-        return TooManyRequests(cause=exc)
-
-
-@app.post(
-    "/auth/mfa/verify",
-    summary="Verify MFA enrollment",
-    description="Verify TOTP MFA code and enable MFA for the authenticated user.",
-    tags=["auth"],
-    responses={
-        204: "MFA enabled",
-        401: "Invalid MFA code",
-        403: "Access denied",
-        429: "Too many requests",
-    },
-)
-def verify_mfa(
-    request: Request.VerifyMFA,
-) -> NoContent | Unauthorized | Forbidden | TooManyRequests:
-    try:
-        return NoContent(svc.verify_mfa(app.caller(), request))
-    except DomainUnauthorized as exc:
-        return Unauthorized("Invalid MFA code", cause=exc)
     except DomainForbidden as exc:
         return Forbidden(cause=exc)
     except DomainRateLimited as exc:
