@@ -7,12 +7,12 @@ from .payloads import Request, Response
 from .provider import CognitoAuthProvider as AuthProvider
 from .service import AuthService
 
-app = HttpResolver(enable_validation=True)
+app = HttpResolver(strip_prefixes=["/auth"], enable_validation=True)
 svc = AuthService(AuthProvider())
 
 
 @app.post(
-    "/auth/login",
+    "/login",
     summary="Authenticate user",
     description="Authenticate user with username and password.",
     tags=["auth"],
@@ -48,7 +48,7 @@ def login(
 
 
 @app.post(
-    "/auth/challenge",
+    "/challenge",
     summary="Respond to auth challenge",
     description="Submit challenge response and continue authentication flow.",
     tags=["auth"],
@@ -84,7 +84,7 @@ def challenge(
 
 
 @app.post(
-    "/auth/mfa/setup",
+    "/mfa/setup",
     summary="Start MFA enrollment",
     description="Start TOTP MFA enrollment for the authenticated user.",
     tags=["auth"],
@@ -107,7 +107,7 @@ def setup() -> OK[Response.MFA] | Unauthorized | Forbidden | TooManyRequests:
 
 
 @app.post(
-    "/auth/mfa/verify",
+    "/mfa/verify",
     summary="Verify MFA enrollment",
     description="Verify TOTP MFA code and enable MFA for the authenticated user.",
     tags=["auth"],
@@ -132,7 +132,7 @@ def verify(
 
 
 @app.post(
-    "/auth/refresh",
+    "/refresh",
     summary="Refresh tokens",
     description="Refresh access token using refresh token.",
     tags=["auth"],
@@ -157,7 +157,7 @@ def refresh(
 
 
 @app.post(
-    "/auth/logout",
+    "/logout",
     summary="Logout user",
     description="Logout user by invalidating their tokens.",
     tags=["auth"],

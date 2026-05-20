@@ -12,12 +12,12 @@ from .payloads import Request, Response
 from .provider import CognitoUserProvider as UserProvider
 from .service import UserService
 
-app = HttpResolver(enable_validation=True)
+app = HttpResolver(strip_prefixes=["/user"], enable_validation=True)
 svc = UserService(UserProvider())
 
 
 @app.get(
-    "/user",
+    "/",
     summary="List users",
     description="List or search users. Requires admin role.",
     tags=["user"],
@@ -42,7 +42,7 @@ def list(
 
 
 @app.post(
-    "/user",
+    "/",
     summary="Create user",
     description="Create a new user. Requires admin role.",
     tags=["user"],
@@ -67,7 +67,7 @@ def create(
 
 
 @app.get(
-    "/user/<userId>",
+    "/<userId>",
     summary="Read user profile",
     description=(
         "Read a user profile. The special userId value 'me' resolves to the "
@@ -98,7 +98,7 @@ def read(
 
 
 @app.patch(
-    "/user/<userId>",
+    "/<userId>",
     summary="Update user profile",
     description=(
         "Update a user profile. The special userId value 'me' resolves to the "
@@ -129,7 +129,7 @@ def update(
 
 
 @app.delete(
-    "/user/<userId>",
+    "/<userId>",
     summary="Delete user profile",
     description="Delete a user profile other than self. Requires admin role.",
     tags=["user"],
@@ -156,7 +156,7 @@ def delete(
 
 
 @app.post(
-    "/user/<userId>/reset",
+    "/<userId>/reset",
     summary="Reset user credentials",
     description=(
         "Reset user credentials. Requires admin role. Resets the user's password "
