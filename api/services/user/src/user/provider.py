@@ -47,6 +47,7 @@ class UserPage(DataModel, frozen=True):
 
 
 class UserCreds(DataModel, frozen=True):
+    id: str
     name: str
     password: str
 
@@ -68,6 +69,7 @@ class UserProvider(Protocol):
         *,
         name: str,
         role: Role,
+        enabled: bool = True,
     ) -> UserCreds: ...
 
     def read_user(
@@ -212,8 +214,9 @@ class CognitoUserProvider(BaseProvider):
         *,
         name: str,
         role: Role,
+        enabled: bool = True,
     ) -> UserCreds:
-        xid = encode_id(generate_id())
+        xid = encode_id(id := generate_id())
         password = generate_password()
 
         self._client.admin_create_user(
@@ -243,7 +246,13 @@ class CognitoUserProvider(BaseProvider):
             Permanent=False,
         )
 
-        return UserCreds(name=name, password=password)
+        if not enabled:
+            self._client.admin_disable_user(
+                UserPoolId=self._user_pool_id,
+                Username=xid,
+            )
+
+        return UserCreds(id=id, name=name, password=password)
 
     @private_api
     def read_user(
@@ -359,4 +368,4 @@ class CognitoUserProvider(BaseProvider):
             Username=xid,
         )
 
-        return UserCreds(name=user.name, password=password)
+        return UserCreds(id=id, name=user.name, password=password)

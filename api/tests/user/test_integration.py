@@ -167,6 +167,7 @@ def user_page(user_record: User) -> UserPage:
 @pytest.fixture
 def user_creds() -> UserCreds:
     return UserCreds(
+        id=USER_ID,
         name="alice",
         password="TempPass#2026",
     )
@@ -355,6 +356,7 @@ class TestCreate:
         assert_body(
             response,
             {
+                "id": USER_ID,
                 "name": "alice",
                 "password": "TempPass#2026",
             },
@@ -363,6 +365,7 @@ class TestCreate:
             {
                 "name": "alice",
                 "role": Role.USER,
+                "enabled": True,
             }
         ]
 
@@ -909,6 +912,7 @@ class TestReset:
         assert_body(
             response,
             {
+                "id": USER_ID,
                 "name": "alice",
                 "password": "TempPass#2026",
             },

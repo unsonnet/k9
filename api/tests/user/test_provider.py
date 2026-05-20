@@ -353,7 +353,7 @@ class TestCreateUser:
 
         result = provider.create_user(name="alice", role=Role.USER)
 
-        assert result == UserCreds(name="alice", password=PASSWORD)
+        assert result == UserCreds(id=USER_ID, name="alice", password=PASSWORD)
 
     def test_returns_admin_credentials(
         self,
@@ -400,7 +400,62 @@ class TestCreateUser:
 
         result = provider.create_user(name="alice", role=Role.ADMIN)
 
-        assert result == UserCreds(name="alice", password=PASSWORD)
+        assert result == UserCreds(id=USER_ID, name="alice", password=PASSWORD)
+
+    def test_returns_disabled_user_credentials(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        provider: provider_module.CognitoUserProvider,
+        stubber: Stubber,
+    ) -> None:
+        monkeypatch.setattr(provider_module, "generate_id", lambda: USER_ID)
+        monkeypatch.setattr(provider_module, "generate_password", lambda: PASSWORD)
+
+        stubber.add_response(
+            "admin_create_user",
+            {},
+            {
+                "UserPoolId": USER_POOL_ID,
+                "Username": encode_id(USER_ID),
+                "UserAttributes": [
+                    {
+                        "Name": "preferred_username",
+                        "Value": encode_name("alice"),
+                    },
+                    {
+                        "Name": "name",
+                        "Value": "alice",
+                    },
+                    {
+                        "Name": "custom:role",
+                        "Value": "user",
+                    },
+                ],
+                "MessageAction": "SUPPRESS",
+            },
+        )
+        stubber.add_response(
+            "admin_set_user_password",
+            {},
+            {
+                "UserPoolId": USER_POOL_ID,
+                "Username": encode_id(USER_ID),
+                "Password": PASSWORD,
+                "Permanent": False,
+            },
+        )
+        stubber.add_response(
+            "admin_disable_user",
+            {},
+            {
+                "UserPoolId": USER_POOL_ID,
+                "Username": encode_id(USER_ID),
+            },
+        )
+
+        result = provider.create_user(name="alice", role=Role.USER, enabled=False)
+
+        assert result == UserCreds(id=USER_ID, name="alice", password=PASSWORD)
 
     @pytest.mark.parametrize(
         ("code", "expected_error"),
@@ -778,7 +833,7 @@ class TestResetUser:
 
         result = provider.reset_user(id=USER_ID)
 
-        assert result == UserCreds(name="alice", password=PASSWORD)
+        assert result == UserCreds(id=USER_ID, name="alice", password=PASSWORD)
 
     @pytest.mark.parametrize(
         ("code", "expected_error"),

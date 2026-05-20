@@ -44,6 +44,7 @@ class UserService(BaseService):
             self.provider.create_user(
                 name=request.name,
                 role=request.role,
+                enabled=request.enabled,
             )
         )
 

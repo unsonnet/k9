@@ -34,6 +34,7 @@ class Request:
     class Create(ApiModel, frozen=True):
         name: Body[str]
         role: Body[Role]
+        enabled: Body[StrictBool] = True
 
         @field_validator("name")
         @classmethod
@@ -118,9 +119,10 @@ class Response:
             )
 
     class UserCreds(ApiModel, frozen=True):
+        id: str
         name: str
         password: str
 
         @classmethod
         def from_(cls, creds: ProviderUserCreds) -> Self:
-            return cls(name=creds.name, password=creds.password)
+            return cls(id=creds.id, name=creds.name, password=creds.password)
