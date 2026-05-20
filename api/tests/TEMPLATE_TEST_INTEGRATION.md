@@ -299,7 +299,7 @@ def example_handler_module(
     monkeypatch: pytest.MonkeyPatch,
     example_provider: FakeExampleProvider,
 ):
-    import example.providers.example as example_provider_module
+    import example.provider as example_provider_module
 
     monkeypatch.setattr(
         example_provider_module,

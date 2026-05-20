@@ -3,7 +3,7 @@ from collections.abc import Callable
 from typing import Any
 
 import pytest
-from auth.providers.auth import MFA, Challenge, Tokens
+from auth.provider import MFA, Challenge, Tokens
 from shared.errors import DomainForbidden, DomainRateLimited, DomainUnauthorized
 
 from tests.helpers import (
@@ -165,7 +165,7 @@ def auth_handler_module(
     monkeypatch: pytest.MonkeyPatch,
     auth_provider: FakeAuthProvider,
 ):
-    import auth.providers.auth as auth_provider_module
+    import auth.provider as auth_provider_module
 
     monkeypatch.setattr(
         auth_provider_module,

@@ -2,7 +2,7 @@ from shared.abc import BaseService, Caller, public_api
 from shared.errors import DomainForbidden
 
 from .payloads import Request, Response
-from .providers.user import UserProvider
+from .provider import UserProvider
 
 __all__ = [
     "UserService",

@@ -1,7 +1,7 @@
 from shared.abc import BaseService, Caller, public_api
 
 from .payloads import Request, Response
-from .providers.auth import AuthProvider, Challenge, Tokens
+from .provider import AuthProvider, Challenge, Tokens
 
 __all__ = [
     "AuthService",

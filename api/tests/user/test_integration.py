@@ -11,7 +11,7 @@ from shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from user.providers.user import User, UserCreds, UserPage
+from user.provider import User, UserCreds, UserPage
 
 from tests.helpers import (
     ProviderMethod,
@@ -112,7 +112,7 @@ def user_handler_module(
     monkeypatch: pytest.MonkeyPatch,
     user_provider: FakeUserProvider,
 ):
-    import user.providers.user as user_provider_module
+    import user.provider as user_provider_module
 
     monkeypatch.setattr(
         user_provider_module,

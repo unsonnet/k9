@@ -4,7 +4,7 @@ from shared.http.errors import Forbidden, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Accepted, NoContent
 
 from .payloads import Request, Response
-from .providers.auth import CognitoAuthProvider as AuthProvider
+from .provider import CognitoAuthProvider as AuthProvider
 from .service import AuthService
 
 app = HttpResolver(enable_validation=True)

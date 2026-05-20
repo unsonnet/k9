@@ -3,7 +3,7 @@ from typing import Any
 
 import boto3
 import pytest
-import user.providers.user as provider_module
+import user.provider as provider_module
 from botocore.stub import Stubber
 from shared.abc import Role
 from shared.errors import (
@@ -13,7 +13,7 @@ from shared.errors import (
     DomainRateLimited,
 )
 from shared.providers.cognito import encode_id, encode_name
-from user.providers.user import User, UserCreds, UserPage
+from user.provider import User, UserCreds, UserPage
 
 pytestmark = pytest.mark.unit
 

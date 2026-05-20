@@ -7,9 +7,9 @@ from shared.http import Body, Path, Query
 from shared.providers.cognito import normalize_name, validate_id, validate_name
 from shared.providers.opensearch import sanitize_query
 
-from .providers.user import User as ProviderUser
-from .providers.user import UserCreds as ProviderUserCreds
-from .providers.user import UserPage as ProviderUserPage
+from .provider import User as ProviderUser
+from .provider import UserCreds as ProviderUserCreds
+from .provider import UserPage as ProviderUserPage
 
 __all__ = [
     "Request",

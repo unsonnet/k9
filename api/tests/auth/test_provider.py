@@ -1,9 +1,9 @@
 from typing import Any
 
-import auth.providers.auth as provider_module
+import auth.provider as provider_module
 import boto3
 import pytest
-from auth.providers.auth import MFA, Challenge, Tokens
+from auth.provider import MFA, Challenge, Tokens
 from botocore.stub import Stubber
 from shared.errors import (
     DomainExpiredToken,

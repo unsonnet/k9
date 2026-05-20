@@ -71,8 +71,8 @@ import pytest
 from botocore.stub import Stubber  # only when needed
 # other third-party client exceptions/types
 
-import service.providers.provider as provider_module
-from service.providers.provider import ProviderModel, ProviderPage
+import service.provider as provider_module
+from service.provider import ProviderModel, ProviderPage
 from shared.errors import DomainForbidden, DomainInvariantViolation, DomainNotFound
 # other application imports
 

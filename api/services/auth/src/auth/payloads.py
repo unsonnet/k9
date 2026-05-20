@@ -10,7 +10,7 @@ from shared.providers.cognito import (
     validate_token,
 )
 
-from .providers.auth import MFA, Challenge, Tokens
+from .provider import MFA, Challenge, Tokens
 
 __all__ = [
     "Request",

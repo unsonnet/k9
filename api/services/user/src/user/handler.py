@@ -9,7 +9,7 @@ from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorize
 from shared.http.responses import OK, Created, NoContent
 
 from .payloads import Request, Response
-from .providers.user import CognitoUserProvider as UserProvider
+from .provider import CognitoUserProvider as UserProvider
 from .service import UserService
 
 app = HttpResolver(enable_validation=True)
