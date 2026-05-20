@@ -11,7 +11,7 @@ from shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from user.provider import User, UserCreds, UserPage
+from user.provider import Credentials, Page, Profile
 
 from tests.helpers import (
     ADMIN_ID,
@@ -66,8 +66,8 @@ def make_user(
     created_at: datetime = TEST_NOW,
     updated_at: datetime | None = None,
     last_login_at: datetime | None = None,
-) -> User:
-    return User(
+) -> Profile:
+    return Profile(
         id=id,
         name=name,
         role=role,
@@ -152,21 +152,21 @@ def invoke_user_api(
 
 
 @pytest.fixture
-def user_record() -> User:
+def user_profile() -> Profile:
     return make_user()
 
 
 @pytest.fixture
-def user_page(user_record: User) -> UserPage:
-    return UserPage(
-        users=[user_record],
+def user_page(user_profile: Profile) -> Page:
+    return Page(
+        users=[user_profile],
         cursor="next-cursor",
     )
 
 
 @pytest.fixture
-def user_creds() -> UserCreds:
-    return UserCreds(
+def user_creds() -> Credentials:
+    return Credentials(
         id=USER_ID,
         name="alice",
         password="TempPass#2026",
@@ -183,7 +183,7 @@ class TestList:
         invoke_user_api,
         admin_caller,
         use_caller,
-        user_page: UserPage,
+        user_page: Page,
     ) -> None:
         use_caller(admin_caller)
         user_provider.list_users.result = user_page
@@ -219,7 +219,7 @@ class TestList:
         invoke_user_api,
         admin_caller,
         use_caller,
-        user_page: UserPage,
+        user_page: Page,
     ) -> None:
         use_caller(admin_caller)
         user_provider.list_users.result = user_page
@@ -246,7 +246,7 @@ class TestList:
         invoke_user_api,
         admin_caller,
         use_caller,
-        user_page: UserPage,
+        user_page: Page,
     ) -> None:
         use_caller(admin_caller)
         user_provider.list_users.result = user_page
@@ -338,7 +338,7 @@ class TestCreate:
         invoke_user_api,
         admin_caller,
         use_caller,
-        user_creds: UserCreds,
+        user_creds: Credentials,
     ) -> None:
         use_caller(admin_caller)
         user_provider.create_user.result = user_creds
@@ -490,14 +490,14 @@ class TestRead:
         user_provider: FakeUserProvider,
         invoke_user_api,
         use_caller,
-        user_record: User,
+        user_profile: Profile,
         caller_fixture: str,
         path: str,
         expected_provider_id: str,
     ) -> None:
         caller = request.getfixturevalue(caller_fixture)
         use_caller(caller)
-        user_provider.read_user.result = user_record
+        user_provider.read_user.result = user_profile
 
         response = invoke_user_api(path)
 
@@ -617,7 +617,7 @@ class TestUpdate:
         user_provider: FakeUserProvider,
         invoke_user_api,
         use_caller,
-        user_record: User,
+        user_profile: Profile,
         caller_fixture: str,
         path: str,
         body: dict[str, Any],
@@ -625,7 +625,7 @@ class TestUpdate:
     ) -> None:
         caller = request.getfixturevalue(caller_fixture)
         use_caller(caller)
-        user_provider.update_user.result = user_record
+        user_provider.update_user.result = user_profile
 
         response = invoke_user_api(
             path,
@@ -897,7 +897,7 @@ class TestReset:
         invoke_user_api,
         admin_caller,
         use_caller,
-        user_creds: UserCreds,
+        user_creds: Credentials,
     ) -> None:
         use_caller(admin_caller)
         user_provider.reset_user.result = user_creds

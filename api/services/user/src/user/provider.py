@@ -22,8 +22,8 @@ from types_boto3_cognito_idp import CognitoIdentityProviderClient
 from types_boto3_cognito_idp.type_defs import AttributeTypeTypeDef
 
 __all__ = [
-    "User",
-    "UserPage",
+    "Profile",
+    "Page",
     "UserProvider",
     "CognitoUserProvider",
 ]
@@ -31,7 +31,7 @@ __all__ = [
 # ──── User Models ─────────────────────────────────────────────────────────────────────
 
 
-class User(DataModel, frozen=True):
+class Profile(DataModel, frozen=True):
     id: str
     name: str
     role: Role
@@ -41,12 +41,12 @@ class User(DataModel, frozen=True):
     last_login_at: datetime | None = None
 
 
-class UserPage(DataModel, frozen=True):
-    users: Sequence[User]
+class Page(DataModel, frozen=True):
+    users: Sequence[Profile]
     cursor: str | None = None
 
 
-class UserCreds(DataModel, frozen=True):
+class Credentials(DataModel, frozen=True):
     id: str
     name: str
     password: str
@@ -62,7 +62,7 @@ class UserProvider(Protocol):
         q: str | None = None,
         limit: int | None = None,
         cursor: str | None = None,
-    ) -> UserPage: ...
+    ) -> Page: ...
 
     def create_user(
         self,
@@ -70,13 +70,13 @@ class UserProvider(Protocol):
         name: str,
         role: Role,
         enabled: bool = True,
-    ) -> UserCreds: ...
+    ) -> Credentials: ...
 
     def read_user(
         self,
         *,
         id: str,
-    ) -> User: ...
+    ) -> Profile: ...
 
     def update_user(
         self,
@@ -85,7 +85,7 @@ class UserProvider(Protocol):
         name: str | None = None,
         role: Role | None = None,
         enabled: bool | None = None,
-    ) -> User: ...
+    ) -> Profile: ...
 
     def delete_user(
         self,
@@ -97,7 +97,7 @@ class UserProvider(Protocol):
         self,
         *,
         id: str,
-    ) -> UserCreds: ...
+    ) -> Credentials: ...
 
 
 # ──── AWS User Provider ───────────────────────────────────────────────────────────────
@@ -158,7 +158,7 @@ class CognitoUserProvider(BaseProvider):
             case _ as never:
                 assert_unreachable(never)
 
-    def _user(self, response: Mapping[str, Any]) -> User:
+    def _user(self, response: Mapping[str, Any]) -> Profile:
         match {"UserLastModifiedDate": None, **response}:
             case {
                 "Username": str(xid),
@@ -172,7 +172,7 @@ class CognitoUserProvider(BaseProvider):
                         "custom:role": Role.USER | Role.ADMIN as role,
                         "custom:last_login_at": datetime() | None as last_login_at,
                     }:
-                        return User(
+                        return Profile(
                             id=decode_id(xid),
                             name=name,
                             role=role,
@@ -183,8 +183,8 @@ class CognitoUserProvider(BaseProvider):
                         )
         raise DomainInvariantViolation(f"Unexpected cognito response: {response}")
 
-    def _page(self, response: Mapping[str, Any]) -> UserPage:
-        return UserPage(
+    def _page(self, response: Mapping[str, Any]) -> Page:
+        return Page(
             users=[self._user(raw) for raw in response.get("Users", [])],
             cursor=response.get("PaginationToken"),
         )
@@ -198,7 +198,7 @@ class CognitoUserProvider(BaseProvider):
         q: str | None = None,
         limit: int | None = None,
         cursor: str | None = None,
-    ) -> UserPage:
+    ) -> Page:
         return self._page(
             self._client.list_users(
                 UserPoolId=self._user_pool_id,
@@ -215,7 +215,7 @@ class CognitoUserProvider(BaseProvider):
         name: str,
         role: Role,
         enabled: bool = True,
-    ) -> UserCreds:
+    ) -> Credentials:
         xid = encode_id(id := generate_id())
         password = generate_password()
 
@@ -252,14 +252,14 @@ class CognitoUserProvider(BaseProvider):
                 Username=xid,
             )
 
-        return UserCreds(id=id, name=name, password=password)
+        return Credentials(id=id, name=name, password=password)
 
     @private_api
     def read_user(
         self,
         *,
         id: str,
-    ) -> User:
+    ) -> Profile:
         xid = encode_id(id)
         return self._user(
             self._client.admin_get_user(
@@ -276,7 +276,7 @@ class CognitoUserProvider(BaseProvider):
         name: str | None = None,
         role: Role | None = None,
         enabled: bool | None = None,
-    ) -> User:
+    ) -> Profile:
         xid = encode_id(id)
         attrs: list[AttributeTypeTypeDef] = []
 
@@ -342,7 +342,7 @@ class CognitoUserProvider(BaseProvider):
         self,
         *,
         id: str,
-    ) -> UserCreds:
+    ) -> Credentials:
         xid = encode_id(id)
         user = self.read_user(id=id)
         password = generate_password()
@@ -368,4 +368,4 @@ class CognitoUserProvider(BaseProvider):
             Username=xid,
         )
 
-        return UserCreds(id=id, name=user.name, password=password)
+        return Credentials(id=id, name=user.name, password=password)

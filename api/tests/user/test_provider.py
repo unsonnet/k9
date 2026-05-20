@@ -13,7 +13,7 @@ from shared.errors import (
     DomainRateLimited,
 )
 from shared.providers.cognito import encode_id, encode_name
-from user.provider import User, UserCreds, UserPage
+from user.provider import Credentials, Page, Profile
 
 pytestmark = pytest.mark.unit
 
@@ -120,8 +120,8 @@ def expected_user(
     created_at: datetime = CREATED_AT,
     updated_at: datetime = UPDATED_AT,
     last_login_at: datetime | None = None,
-) -> User:
-    return User(
+) -> Profile:
+    return Profile(
         id=id,
         name=name,
         role=role,
@@ -237,7 +237,7 @@ class TestListUsers:
 
         result = provider.list_users(q="alice", limit=10, cursor="users-cursor")
 
-        assert result == UserPage(
+        assert result == Page(
             users=[
                 expected_user(id=USER_ID, name="alice", role=Role.USER),
                 expected_user(id=ADMIN_ID, name="admin", role=Role.ADMIN),
@@ -261,7 +261,7 @@ class TestListUsers:
 
         result = provider.list_users()
 
-        assert result == UserPage(users=[], cursor=None)
+        assert result == Page(users=[], cursor=None)
 
     def test_passes_bounded_limit(
         self,
@@ -353,7 +353,7 @@ class TestCreateUser:
 
         result = provider.create_user(name="alice", role=Role.USER)
 
-        assert result == UserCreds(id=USER_ID, name="alice", password=PASSWORD)
+        assert result == Credentials(id=USER_ID, name="alice", password=PASSWORD)
 
     def test_returns_admin_credentials(
         self,
@@ -400,7 +400,7 @@ class TestCreateUser:
 
         result = provider.create_user(name="alice", role=Role.ADMIN)
 
-        assert result == UserCreds(id=USER_ID, name="alice", password=PASSWORD)
+        assert result == Credentials(id=USER_ID, name="alice", password=PASSWORD)
 
     def test_returns_disabled_user_credentials(
         self,
@@ -455,7 +455,7 @@ class TestCreateUser:
 
         result = provider.create_user(name="alice", role=Role.USER, enabled=False)
 
-        assert result == UserCreds(id=USER_ID, name="alice", password=PASSWORD)
+        assert result == Credentials(id=USER_ID, name="alice", password=PASSWORD)
 
     @pytest.mark.parametrize(
         ("code", "expected_error"),
@@ -833,7 +833,7 @@ class TestResetUser:
 
         result = provider.reset_user(id=USER_ID)
 
-        assert result == UserCreds(id=USER_ID, name="alice", password=PASSWORD)
+        assert result == Credentials(id=USER_ID, name="alice", password=PASSWORD)
 
     @pytest.mark.parametrize(
         ("code", "expected_error"),

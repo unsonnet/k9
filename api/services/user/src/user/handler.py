@@ -30,7 +30,7 @@ svc = UserService(UserProvider())
 )
 def list(
     request: Request.List,
-) -> OK[Response.UserPage] | Unauthorized | Forbidden | TooManyRequests:
+) -> OK[Response.Page] | Unauthorized | Forbidden | TooManyRequests:
     try:
         return OK(svc.list(app.caller(), request))
     except DomainUnauthorized as exc:
@@ -43,8 +43,8 @@ def list(
 
 @app.post(
     "/",
-    summary="Create user",
-    description="Create a new user. Requires admin role.",
+    summary="Create user profile",
+    description="Create a new user profile. Requires admin role.",
     tags=["user"],
     responses={
         201: "User created",
@@ -55,7 +55,7 @@ def list(
 )
 def create(
     request: Request.Create,
-) -> Created[Response.UserCreds] | Unauthorized | Forbidden | TooManyRequests:
+) -> Created[Response.Credentials] | Unauthorized | Forbidden | TooManyRequests:
     try:
         return Created(svc.create(app.caller(), request))
     except DomainUnauthorized as exc:
@@ -70,8 +70,8 @@ def create(
     "/<userId>",
     summary="Read user profile",
     description=(
-        "Read a user profile. The special userId value 'me' resolves to the "
-        "authenticated caller. Reading another user's profile requires admin role."
+        "Read a user profile. Reading another user's profile requires admin role. "
+        "The special userId value 'me' resolves to the authenticated caller."
     ),
     tags=["user"],
     responses={
@@ -84,7 +84,7 @@ def create(
 )
 def read(
     request: Request.Read,
-) -> OK[Response.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+) -> OK[Response.Profile] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
         return OK(svc.read(app.caller(), request))
     except DomainUnauthorized as exc:
@@ -101,8 +101,8 @@ def read(
     "/<userId>",
     summary="Update user profile",
     description=(
-        "Update a user profile. The special userId value 'me' resolves to the "
-        "authenticated caller. Updating another user's profile requires admin role."
+        "Update a user profile. Updating another user's profile requires admin role. "
+        "The special userId value 'me' resolves to the authenticated caller. "
     ),
     tags=["user"],
     responses={
@@ -115,7 +115,7 @@ def read(
 )
 def update(
     request: Request.Update,
-) -> OK[Response.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+) -> OK[Response.Profile] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
         return OK(svc.update(app.caller(), request))
     except DomainUnauthorized as exc:
@@ -158,10 +158,7 @@ def delete(
 @app.post(
     "/<userId>/reset",
     summary="Reset user credentials",
-    description=(
-        "Reset user credentials. Requires admin role. Resets the user's password "
-        "and MFA enrollment state, when present, and returns a new temporary password."
-    ),
+    description="Reset a user's password and disable MFA device. Requires admin role.",
     tags=["user"],
     responses={
         200: "User credentials reset",
@@ -173,7 +170,7 @@ def delete(
 )
 def reset(
     request: Request.Reset,
-) -> OK[Response.UserCreds] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+) -> OK[Response.Credentials] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
         return OK(svc.reset(app.caller(), request))
     except DomainUnauthorized as exc:

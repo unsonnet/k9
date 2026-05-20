@@ -25,8 +25,8 @@ class UserService(BaseService):
         self,
         caller: Caller,
         request: Request.List,
-    ) -> Response.UserPage:
-        return Response.UserPage.from_(
+    ) -> Response.Page:
+        return Response.Page.from_(
             self.provider.list_users(
                 q=request.q,
                 limit=request.limit,
@@ -39,8 +39,8 @@ class UserService(BaseService):
         self,
         caller: Caller,
         request: Request.Create,
-    ) -> Response.UserCreds:
-        return Response.UserCreds.from_(
+    ) -> Response.Credentials:
+        return Response.Credentials.from_(
             self.provider.create_user(
                 name=request.name,
                 role=request.role,
@@ -53,9 +53,9 @@ class UserService(BaseService):
         self,
         caller: Caller,
         request: Request.Read,
-    ) -> Response.User:
+    ) -> Response.Profile:
         id = request.userId if caller.is_admin and request.userId != "me" else caller.id
-        return Response.User.from_(
+        return Response.Profile.from_(
             self.provider.read_user(
                 id=id,
             )
@@ -66,12 +66,12 @@ class UserService(BaseService):
         self,
         caller: Caller,
         request: Request.Update,
-    ) -> Response.User:
+    ) -> Response.Profile:
         if not caller.is_admin:
             if request.role is not None or request.enabled is not None:
                 raise DomainForbidden("Cannot update `role` or `enabled`")
         id = request.userId if caller.is_admin and request.userId != "me" else caller.id
-        return Response.User.from_(
+        return Response.Profile.from_(
             self.provider.update_user(
                 id=id,
                 name=request.name,
@@ -97,8 +97,8 @@ class UserService(BaseService):
         self,
         caller: Caller,
         request: Request.Reset,
-    ) -> Response.UserCreds:
-        return Response.UserCreds.from_(
+    ) -> Response.Credentials:
+        return Response.Credentials.from_(
             self.provider.reset_user(
                 id=request.userId,
             )

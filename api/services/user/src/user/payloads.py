@@ -7,9 +7,9 @@ from shared.http import Body, Path, Query
 from shared.providers.cognito import normalize_name, validate_id, validate_name
 from shared.providers.opensearch import sanitize_query
 
-from .provider import User as ProviderUser
-from .provider import UserCreds as ProviderUserCreds
-from .provider import UserPage as ProviderUserPage
+from .provider import Credentials as ProviderCredentials
+from .provider import Page as ProviderPage
+from .provider import Profile as ProviderProfile
 
 __all__ = [
     "Request",
@@ -86,7 +86,7 @@ class Request:
 
 
 class Response:
-    class User(ApiModel, frozen=True):
+    class Profile(ApiModel, frozen=True):
         id: str
         name: str
         role: Role
@@ -96,7 +96,7 @@ class Response:
         lastLoginAt: datetime | None = None
 
         @classmethod
-        def from_(cls, user: ProviderUser) -> Self:
+        def from_(cls, user: ProviderProfile) -> Self:
             return cls(
                 id=user.id,
                 name=user.name,
@@ -107,22 +107,22 @@ class Response:
                 lastLoginAt=user.last_login_at,
             )
 
-    class UserPage(ApiModel, frozen=True):
-        users: list["Response.User"]
+    class Page(ApiModel, frozen=True):
+        users: list["Response.Profile"]
         cursor: str | None = None
 
         @classmethod
-        def from_(cls, page: ProviderUserPage) -> Self:
+        def from_(cls, page: ProviderPage) -> Self:
             return cls(
-                users=[Response.User.from_(user) for user in page.users],
+                users=[Response.Profile.from_(user) for user in page.users],
                 cursor=page.cursor,
             )
 
-    class UserCreds(ApiModel, frozen=True):
+    class Credentials(ApiModel, frozen=True):
         id: str
         name: str
         password: str
 
         @classmethod
-        def from_(cls, creds: ProviderUserCreds) -> Self:
+        def from_(cls, creds: ProviderCredentials) -> Self:
             return cls(id=creds.id, name=creds.name, password=creds.password)
