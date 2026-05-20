@@ -5,6 +5,8 @@ import pytest
 from shared.abc import Caller, Role
 from shared.providers.cognito import encode_id
 
+from .helpers import ADMIN_ID, USER_ID
+
 
 @pytest.fixture
 def current_caller():
@@ -102,7 +104,7 @@ def lambda_context():
 def caller_factory():
     def _build(
         *,
-        id: str = "user_001",
+        id: str = USER_ID,
         name: str = "Alice",
         role: Role = Role.USER,
         token: str = "access-token",
@@ -120,7 +122,7 @@ def caller_factory():
 @pytest.fixture
 def user_caller(caller_factory):
     return caller_factory(
-        id="user_001",
+        id=USER_ID,
         name="Alice",
         role=Role.USER,
     )
@@ -129,7 +131,7 @@ def user_caller(caller_factory):
 @pytest.fixture
 def admin_caller(caller_factory):
     return caller_factory(
-        id="admin_001",
+        id=ADMIN_ID,
         name="Admin",
         role=Role.ADMIN,
     )

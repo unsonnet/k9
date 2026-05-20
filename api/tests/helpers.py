@@ -3,6 +3,8 @@ from dataclasses import dataclass, field
 from typing import Any
 
 UNSET = object()
+ADMIN_ID = "abc001"
+USER_ID = "xyz001"
 
 
 @dataclass

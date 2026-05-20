@@ -14,6 +14,8 @@ from shared.errors import (
 from user.provider import User, UserCreds, UserPage
 
 from tests.helpers import (
+    ADMIN_ID,
+    USER_ID,
     ProviderMethod,
     assert_body,
     assert_no_body,
@@ -29,9 +31,7 @@ pytestmark = pytest.mark.integration
 TEST_NOW = datetime(2026, 1, 1, tzinfo=timezone.utc)
 DATE_FROM = datetime(2026, 1, 1, tzinfo=timezone.utc)
 DATE_TO = datetime(2026, 1, 31, 23, 59, tzinfo=timezone.utc)
-USER_ID = "user_001"
-ADMIN_ID = "admin_001"
-OTHER_USER_ID = "user_002"
+OTHER_USER_ID = "xyz002"
 
 PROVIDER_ERRORS = [
     pytest.param(DomainUnauthorized(), 401, "Unauthorized", id="unauthorized"),
