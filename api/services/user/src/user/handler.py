@@ -9,12 +9,11 @@ from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorize
 from shared.http.responses import OK, Created, NoContent
 
 from .payloads import Request, Response
-from .providers.report import OpenSearchReportProvider as ReportProvider
 from .providers.user import CognitoUserProvider as UserProvider
 from .service import UserService
 
 app = HttpResolver(enable_validation=True)
-svc = UserService(UserProvider(), ReportProvider())
+svc = UserService(UserProvider())
 
 
 @app.get(
@@ -177,38 +176,6 @@ def reset(
 ) -> OK[Response.UserCreds] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
         return OK(svc.reset(app.caller(), request))
-    except DomainUnauthorized as exc:
-        return Unauthorized(cause=exc)
-    except DomainForbidden as exc:
-        return Forbidden(cause=exc)
-    except DomainNotFound as exc:
-        return NotFound(cause=exc)
-    except DomainRateLimited as exc:
-        return TooManyRequests(cause=exc)
-
-
-@app.get(
-    "/user/<userId>/reports",
-    summary="List user reports",
-    description=(
-        "List or search reports associated with a user. The special userId value 'me' "
-        "resolves to the authenticated caller. Listing another user's reports requires "
-        "admin role."
-    ),
-    tags=["user"],
-    responses={
-        200: "Reports found",
-        401: "Authentication required",
-        403: "Access denied",
-        404: "User not found",
-        429: "Too many requests",
-    },
-)
-def list_reports(
-    request: Request.ListReports,
-) -> OK[Response.ReportPage] | Unauthorized | Forbidden | NotFound | TooManyRequests:
-    try:
-        return OK(svc.list_reports(app.caller(), request))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:

@@ -2,7 +2,6 @@ from shared.abc import BaseService, Caller, public_api
 from shared.errors import DomainForbidden
 
 from .payloads import Request, Response
-from .providers.report import ReportProvider
 from .providers.user import UserProvider
 
 __all__ = [
@@ -14,16 +13,10 @@ __all__ = [
 
 
 class UserService(BaseService):
-    users: UserProvider
-    reports: ReportProvider
+    provider: UserProvider
 
-    def __init__(
-        self,
-        users: UserProvider,
-        reports: ReportProvider,
-    ) -> None:
-        self.users = users
-        self.reports = reports
+    def __init__(self, provider: UserProvider) -> None:
+        self.provider = provider
 
     # ──── Public APIs ────
 
@@ -34,7 +27,7 @@ class UserService(BaseService):
         request: Request.List,
     ) -> Response.UserPage:
         return Response.UserPage.from_(
-            self.users.list_users(
+            self.provider.list_users(
                 q=request.q,
                 limit=request.limit,
                 cursor=request.cursor,
@@ -48,7 +41,7 @@ class UserService(BaseService):
         request: Request.Create,
     ) -> Response.UserCreds:
         return Response.UserCreds.from_(
-            self.users.create_user(
+            self.provider.create_user(
                 name=request.name,
                 role=request.role,
             )
@@ -62,7 +55,7 @@ class UserService(BaseService):
     ) -> Response.User:
         id = request.userId if caller.is_admin and request.userId != "me" else caller.id
         return Response.User.from_(
-            self.users.read_user(
+            self.provider.read_user(
                 id=id,
             )
         )
@@ -78,7 +71,7 @@ class UserService(BaseService):
                 raise DomainForbidden("Cannot update `role` or `enabled`")
         id = request.userId if caller.is_admin and request.userId != "me" else caller.id
         return Response.User.from_(
-            self.users.update_user(
+            self.provider.update_user(
                 id=id,
                 name=request.name,
                 role=request.role,
@@ -94,7 +87,7 @@ class UserService(BaseService):
     ) -> None:
         if request.userId == "me" or request.userId == caller.id:
             raise DomainForbidden("Cannot delete own user profile")
-        return self.users.delete_user(
+        return self.provider.delete_user(
             id=request.userId,
         )
 
@@ -105,26 +98,7 @@ class UserService(BaseService):
         request: Request.Reset,
     ) -> Response.UserCreds:
         return Response.UserCreds.from_(
-            self.users.reset_user(
+            self.provider.reset_user(
                 id=request.userId,
-            )
-        )
-
-    @public_api(require_owner=True)
-    def list_reports(
-        self,
-        caller: Caller,
-        request: Request.ListReports,
-    ) -> Response.ReportPage:
-        id = request.userId if caller.is_admin and request.userId != "me" else caller.id
-        return Response.ReportPage.from_(
-            self.reports.list_reports(
-                user=id,
-                q=request.q,
-                final=request.final,
-                date_from=request.dateFrom,
-                date_to=request.dateTo,
-                limit=request.limit,
-                cursor=request.cursor,
             )
         )

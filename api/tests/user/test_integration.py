@@ -11,7 +11,6 @@ from shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from user.providers.report import Report, ReportPage
 from user.providers.user import User, UserCreds, UserPage
 
 from tests.helpers import (
@@ -33,7 +32,6 @@ DATE_TO = datetime(2026, 1, 31, 23, 59, tzinfo=timezone.utc)
 USER_ID = "user_001"
 ADMIN_ID = "admin_001"
 OTHER_USER_ID = "user_002"
-REPORT_ID = "report-1"
 
 PROVIDER_ERRORS = [
     pytest.param(DomainUnauthorized(), 401, "Unauthorized", id="unauthorized"),
@@ -57,11 +55,6 @@ class FakeUserProvider:
         self.update_user = ProviderMethod()
         self.delete_user = ProviderMethod(result=None)
         self.reset_user = ProviderMethod()
-
-
-class FakeReportProvider:
-    def __init__(self) -> None:
-        self.list_reports = ProviderMethod()
 
 
 def make_user(
@@ -106,44 +99,6 @@ def user_body(
     }
 
 
-def make_report(
-    *,
-    id: str = REPORT_ID,
-    user: str = USER_ID,
-    title: str = "Quarterly report",
-    final: bool = True,
-    created_at: datetime = TEST_NOW,
-    updated_at: datetime | None = None,
-) -> Report:
-    return Report(
-        id=id,
-        user=user,
-        title=title,
-        final=final,
-        created_at=created_at,
-        updated_at=updated_at,
-    )
-
-
-def report_body(
-    *,
-    id: str = REPORT_ID,
-    user: str = USER_ID,
-    title: str = "Quarterly report",
-    final: bool = True,
-    created_at: str = "2026-01-01T00:00:00Z",
-    updated_at: str | None = None,
-) -> dict[str, Any]:
-    return {
-        "id": id,
-        "user": user,
-        "title": title,
-        "final": final,
-        "createdAt": created_at,
-        "updatedAt": updated_at,
-    }
-
-
 # ──── Fixtures ────────────────────────────────────────────────────────────────────────
 
 
@@ -153,28 +108,16 @@ def user_provider() -> FakeUserProvider:
 
 
 @pytest.fixture
-def report_provider() -> FakeReportProvider:
-    return FakeReportProvider()
-
-
-@pytest.fixture
 def user_handler_module(
     monkeypatch: pytest.MonkeyPatch,
     user_provider: FakeUserProvider,
-    report_provider: FakeReportProvider,
 ):
-    import user.providers.report as report_provider_module
     import user.providers.user as user_provider_module
 
     monkeypatch.setattr(
         user_provider_module,
         "CognitoUserProvider",
         lambda: user_provider,
-    )
-    monkeypatch.setattr(
-        report_provider_module,
-        "OpenSearchReportProvider",
-        lambda: report_provider,
     )
 
     import user.handler as handler
@@ -226,19 +169,6 @@ def user_creds() -> UserCreds:
     return UserCreds(
         name="alice",
         password="TempPass#2026",
-    )
-
-
-@pytest.fixture
-def report_record() -> Report:
-    return make_report()
-
-
-@pytest.fixture
-def report_page(report_record: Report) -> ReportPage:
-    return ReportPage(
-        reports=[report_record],
-        cursor="report-cursor",
     )
 
 
@@ -1062,187 +992,6 @@ class TestReset:
         assert_problem(response, status=expected_status, title=expected_title)
 
 
-# ──── GET /user/<userId>/reports ──────────────────────────────────────────────────────
-
-
-class TestListReports:
-    @pytest.mark.parametrize(
-        ("caller_fixture", "path", "expected_provider_id"),
-        [
-            pytest.param("user_caller", "/user/me/reports", USER_ID, id="self-alias"),
-            pytest.param(
-                "admin_caller",
-                f"/user/{OTHER_USER_ID}/reports",
-                OTHER_USER_ID,
-                id="admin-other",
-            ),
-            pytest.param(
-                "admin_caller",
-                "/user/me/reports",
-                ADMIN_ID,
-                id="admin-self-alias",
-            ),
-        ],
-    )
-    def test_returns_page(
-        self,
-        request,
-        report_provider: FakeReportProvider,
-        invoke_user_api,
-        use_caller,
-        report_page: ReportPage,
-        caller_fixture: str,
-        path: str,
-        expected_provider_id: str,
-    ) -> None:
-        caller = request.getfixturevalue(caller_fixture)
-        use_caller(caller)
-        report_provider.list_reports.result = report_page
-
-        response = invoke_user_api(
-            path,
-            query_params={
-                "q": "quarterly",
-                "final": "true",
-                "dateFrom": "2026-01-01T00:00:00Z",
-                "dateTo": "2026-01-31T23:59:00Z",
-                "limit": 50,
-                "cursor": "report-page-cursor",
-            },
-        )
-
-        assert_status(response, 200)
-        assert_body(
-            response,
-            {
-                "reports": [report_body()],
-                "cursor": "report-cursor",
-            },
-        )
-        assert report_provider.list_reports.calls == [
-            {
-                "user": expected_provider_id,
-                "q": "quarterly",
-                "final": True,
-                "date_from": DATE_FROM,
-                "date_to": DATE_TO,
-                "limit": 50,
-                "cursor": "report-page-cursor",
-            }
-        ]
-
-    def test_passes_normalized_query_to_provider(
-        self,
-        report_provider: FakeReportProvider,
-        invoke_user_api,
-        user_caller,
-        use_caller,
-        report_page: ReportPage,
-    ) -> None:
-        use_caller(user_caller)
-        report_provider.list_reports.result = report_page
-
-        response = invoke_user_api(
-            "/user/me/reports",
-            query_params={
-                "q": '  Report "Q1"  ',
-            },
-        )
-
-        assert_status(response, 200)
-        assert report_provider.list_reports.calls == [
-            {
-                "user": USER_ID,
-                "q": 'Report \\"Q1\\"',
-                "final": None,
-                "date_from": None,
-                "date_to": None,
-                "limit": None,
-                "cursor": None,
-            }
-        ]
-
-    @pytest.mark.parametrize(
-        "query_params",
-        [
-            pytest.param({"final": "not-bool"}, id="invalid-final"),
-            pytest.param({"dateFrom": "not-a-date"}, id="invalid-date-from"),
-            pytest.param({"limit": 0}, id="limit-too-small"),
-            pytest.param({"limit": 101}, id="limit-too-large"),
-            pytest.param(
-                {
-                    "dateFrom": "2026-02-01T00:00:00Z",
-                    "dateTo": "2026-01-01T00:00:00Z",
-                },
-                id="backwards-date-range",
-            ),
-        ],
-    )
-    def test_rejects_invalid_query_params(
-        self,
-        invoke_user_api,
-        user_caller,
-        use_caller,
-        query_params: dict[str, Any],
-    ) -> None:
-        use_caller(user_caller)
-
-        response = invoke_user_api(
-            "/user/me/reports",
-            query_params=query_params,
-        )
-
-        assert_status(response, 422)
-
-    def test_requires_authentication(
-        self,
-        report_provider: FakeReportProvider,
-        invoke_user_api,
-        use_unauthorized_caller,
-    ) -> None:
-        use_unauthorized_caller()
-
-        response = invoke_user_api("/user/me/reports")
-
-        assert_problem(response, status=401, title="Unauthorized")
-        assert report_provider.list_reports.calls == []
-
-    def test_forbids_user_reading_other_users_reports(
-        self,
-        report_provider: FakeReportProvider,
-        invoke_user_api,
-        user_caller,
-        use_caller,
-    ) -> None:
-        use_caller(user_caller)
-
-        response = invoke_user_api(f"/user/{OTHER_USER_ID}/reports")
-
-        assert_problem(response, status=403, title="Forbidden")
-        assert report_provider.list_reports.calls == []
-
-    @pytest.mark.parametrize(
-        ("provider_error", "expected_status", "expected_title"),
-        PROVIDER_ERRORS_WITH_NOT_FOUND,
-    )
-    def test_maps_provider_errors(
-        self,
-        report_provider: FakeReportProvider,
-        invoke_user_api,
-        admin_caller,
-        use_caller,
-        provider_error: Exception,
-        expected_status: int,
-        expected_title: str,
-    ) -> None:
-        use_caller(admin_caller)
-        report_provider.list_reports.error = provider_error
-
-        response = invoke_user_api(f"/user/{OTHER_USER_ID}/reports")
-
-        assert_problem(response, status=expected_status, title=expected_title)
-
-
 # ──── Routing ─────────────────────────────────────────────────────────────────────────
 
 
@@ -1253,7 +1002,6 @@ class TestRouting:
             pytest.param("PATCH", "/user", id="list-create-user"),
             pytest.param("POST", f"/user/{USER_ID}", id="get-update-delete-user"),
             pytest.param("GET", f"/user/{USER_ID}/reset", id="reset-user"),
-            pytest.param("DELETE", f"/user/{USER_ID}/reports", id="list-reports"),
         ],
     )
     def test_rejects_unsupported_methods(
