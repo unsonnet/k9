@@ -1462,6 +1462,9 @@ wheels = [
 cognito-idp = [
     { name = "types-boto3-cognito-idp" },
 ]
+s3 = [
+    { name = "types-boto3-s3" },
+]
 ssm = [
     { name = "types-boto3-ssm" },
 ]
@@ -1473,6 +1476,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a9/ab/893bcd36e509f23b00b903146ec653a8d9f39ff1524c1eda087373359e05/types_boto3_cognito_idp-1.42.59.tar.gz", hash = "sha256:45dbb82696e397850f663aeced3d4d6a9d3b5e660187fc83eff7f616a3c2390d", size = 52515, upload-time = "2026-02-27T20:47:12.513Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/48/3e4107f694ed42000c4e2923068157530bf40a133da0893af25f36c3fc72/types_boto3_cognito_idp-1.42.59-py3-none-any.whl", hash = "sha256:f178ff6cf548ab3d4a6c64ba76c3a822a4347734e9cedfaef940a03d2e0cfc1f", size = 58343, upload-time = "2026-02-27T20:47:09.358Z" },
+]
+
+[[package]]
+name = "types-boto3-s3"
+version = "1.42.94"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/32/c1/98254ef0d372b6d3fc2cff6af1e769032f5ba885be7402fd0770c6f9102e/types_boto3_s3-1.42.94.tar.gz", hash = "sha256:0a9f5e5ee4e2ee6df0a0bfce2cf31a7d2752cacb5d5a783dd2050e86894d510f", size = 76888, upload-time = "2026-04-22T21:30:47.003Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4e/f8/5fff2d7811f0e4ad09f3cbeeb6d329c03ccddc247965d8ebcc8a67767b76/types_boto3_s3-1.42.94-py3-none-any.whl", hash = "sha256:b68fa16004000a4aeca9249e679f54c41b8ef9ccf24f8a3212fddc077042bbe0", size = 84098, upload-time = "2026-04-22T21:30:45.399Z" },
 ]
 
 [[package]]
@@ -1532,7 +1544,7 @@ dependencies = [
     { name = "opensearch-py" },
     { name = "pydantic" },
     { name = "shared" },
-    { name = "types-boto3", extra = ["cognito-idp"] },
+    { name = "types-boto3", extra = ["cognito-idp", "s3"] },
 ]
 
 [package.metadata]
@@ -1541,7 +1553,7 @@ requires-dist = [
     { name = "opensearch-py", specifier = ">=3.2.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "shared", editable = "shared" },
-    { name = "types-boto3", extras = ["cognito-idp"], specifier = ">=1.42.85" },
+    { name = "types-boto3", extras = ["cognito-idp", "s3"], specifier = ">=1.42.85" },
 ]
 
 [[package]]

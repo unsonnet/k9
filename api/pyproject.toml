@@ -35,9 +35,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = [
-    "tests",
-]
+testpaths = []
 addopts = "-ra --strict-markers"
 markers = [
     "unit: provider and service contract tests with isolated dependencies",
