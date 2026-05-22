@@ -1,7 +1,7 @@
 from shared.abc import BaseService, Caller, public_api
 
-from .payloads import Request, Response
-from .provider import AuthProvider, Challenge, Tokens
+from .models import Provider, Request, Response
+from .provider import AuthProvider
 
 __all__ = [
     "AuthService",
@@ -28,10 +28,10 @@ class AuthService(BaseService):
             name=request.name,
             password=request.password,
         ):
-            case Tokens() as tokens:
-                return Response.Tokens.from_(tokens)
-            case Challenge() as challenge:
-                return Response.Challenge.from_(challenge)
+            case Provider.Tokens() as tokens:
+                return Response.Tokens.from_provider(tokens)
+            case Provider.Challenge() as challenge:
+                return Response.Challenge.from_provider(challenge)
 
     @public_api
     def challenge(
@@ -43,17 +43,17 @@ class AuthService(BaseService):
             challenge=request.challenge,
             response=request.response,
         ):
-            case Tokens() as tokens:
-                return Response.Tokens.from_(tokens)
-            case Challenge() as challenge:
-                return Response.Challenge.from_(challenge)
+            case Provider.Tokens() as tokens:
+                return Response.Tokens.from_provider(tokens)
+            case Provider.Challenge() as challenge:
+                return Response.Challenge.from_provider(challenge)
 
     @public_api
     def setup(
         self,
         caller: Caller,
     ) -> Response.MFA:
-        return Response.MFA.from_(
+        return Response.MFA.from_provider(
             self.provider.setup_mfa(
                 access_token=caller.token,
                 name=caller.name,
@@ -76,7 +76,7 @@ class AuthService(BaseService):
         self,
         request: Request.Refresh,
     ) -> Response.Tokens:
-        return Response.Tokens.from_(
+        return Response.Tokens.from_provider(
             self.provider.refresh_tokens(
                 refresh_token=request.refreshToken,
             )

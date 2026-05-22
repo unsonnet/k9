@@ -3,7 +3,7 @@ from shared.http import HttpResolver
 from shared.http.errors import Forbidden, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Accepted, NoContent
 
-from .payloads import Request, Response
+from .models import Request, Response
 from .provider import CognitoAuthProvider as AuthProvider
 from .service import AuthService
 
