@@ -1,55 +1,20 @@
-from datetime import datetime, timezone
-from typing import Any, Mapping, Protocol, Sequence, overload
+from typing import Protocol
 
 import boto3
-from shared.abc import BaseProvider, DataModel, ExceptionMap, Role, private_api
+from shared.abc import BaseProvider, ExceptionMap, Role, private_api
 from shared.config import settings
-from shared.errors import (
-    DomainForbidden,
-    DomainInvariantViolation,
-    DomainNotFound,
-    DomainRateLimited,
-    assert_unreachable,
-)
-from shared.providers.cognito import (
-    decode_id,
-    encode_id,
-    encode_name,
-    generate_id,
-    generate_password,
-)
+from shared.errors import DomainForbidden, DomainNotFound, DomainRateLimited
+from shared.providers.cognito import encode_id, encode_name
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 from types_boto3_cognito_idp.type_defs import AttributeTypeTypeDef
+from types_boto3_s3 import S3Client
+
+from .models import Provider
 
 __all__ = [
-    "Profile",
-    "Page",
     "UserProvider",
     "CognitoUserProvider",
 ]
-
-# ──── User Models ─────────────────────────────────────────────────────────────────────
-
-
-class Profile(DataModel, frozen=True):
-    id: str
-    name: str
-    role: Role
-    enabled: bool
-    created_at: datetime
-    updated_at: datetime | None = None
-    last_login_at: datetime | None = None
-
-
-class Page(DataModel, frozen=True):
-    users: Sequence[Profile]
-    cursor: str | None = None
-
-
-class Credentials(DataModel, frozen=True):
-    id: str
-    name: str
-    password: str
 
 
 # ──── User Protocol ───────────────────────────────────────────────────────────────────
@@ -59,33 +24,35 @@ class UserProvider(Protocol):
     def list_users(
         self,
         *,
-        q: str | None = None,
-        limit: int | None = None,
-        cursor: str | None = None,
-    ) -> Page: ...
+        q: str | None,
+        limit: int,
+        cursor: str | None,
+    ) -> Provider.Page: ...
 
     def create_user(
         self,
         *,
+        id: str,
         name: str,
+        password: str,
         role: Role,
-        enabled: bool = True,
-    ) -> Credentials: ...
+        enabled: bool,
+    ) -> Provider.Credentials: ...
 
     def read_user(
         self,
         *,
         id: str,
-    ) -> Profile: ...
+    ) -> Provider.Profile: ...
 
     def update_user(
         self,
         *,
         id: str,
-        name: str | None = None,
-        role: Role | None = None,
-        enabled: bool | None = None,
-    ) -> Profile: ...
+        name: str | None,
+        role: Role | None,
+        enabled: bool | None,
+    ) -> Provider.Profile: ...
 
     def delete_user(
         self,
@@ -93,33 +60,50 @@ class UserProvider(Protocol):
         id: str,
     ) -> None: ...
 
+    def generate_upload_form(
+        self,
+        *,
+        id: str,
+        content_type: str,
+        max_bytes: int,
+        max_seconds: int,
+    ) -> Provider.UploadForm: ...
+
     def reset_user(
         self,
         *,
         id: str,
-    ) -> Credentials: ...
+        password: str,
+    ) -> Provider.Credentials: ...
 
 
 # ──── AWS User Provider ───────────────────────────────────────────────────────────────
 
 
 class CognitoUserProvider(BaseProvider):
-    _client: CognitoIdentityProviderClient
-    _user_pool_id: str
+    _cognito: CognitoIdentityProviderClient
+    _pool_id: str
+    _s3: S3Client
+    _bucket: str
+    _bucket_url: str
 
     def __init__(
         self,
         *,
         region: str | None = None,
         user_pool_id: str | None = None,
+        user_bucket: str | None = None,
     ) -> None:
         region = region or settings.aws_region
-        self._client = boto3.client("cognito-idp", region_name=region)
-        self._user_pool_id = user_pool_id or settings.cognito_user_pool_id
+        self._cognito = boto3.client("cognito-idp", region_name=region)
+        self._pool_id = user_pool_id or settings.cognito_user_pool_id
+        self._s3 = boto3.client("s3", region_name=region)
+        self._bucket = user_bucket or settings.s3_user_bucket
+        self._bucket_url = f"https://{self._bucket}.s3.{region}.amazonaws.com"
 
     @property
     def _exception_map(self) -> ExceptionMap:
-        cx = self._client.exceptions
+        cx = self._cognito.exceptions
         return {
             DomainForbidden: [
                 cx.ForbiddenException,
@@ -135,74 +119,20 @@ class CognitoUserProvider(BaseProvider):
             ],
         }
 
-    # ──── Helper Methods ────
-
-    def _attrs(self, response: Mapping[str, Any]) -> Mapping[str, Any]:
-        attrs = response.get("UserAttributes", response.get("Attributes", []))
-        return {
-            attr["Name"]: attr["Value"]
-            for attr in attrs
-            if "Name" in attr and "Value" in attr
-        }
-
-    @overload
-    def _dt(self, value: datetime) -> datetime: ...
-    @overload
-    def _dt(self, value: None) -> None: ...
-    def _dt(self, value: datetime | None) -> datetime | None:
-        match value:
-            case datetime() as dt:
-                return dt.astimezone(timezone.utc)
-            case None:
-                return None
-            case _ as never:
-                assert_unreachable(never)
-
-    def _user(self, response: Mapping[str, Any]) -> Profile:
-        match {"UserLastModifiedDate": None, **response}:
-            case {
-                "Username": str(xid),
-                "Enabled": bool(enabled),
-                "UserCreateDate": datetime() as created_at,
-                "UserLastModifiedDate": datetime() | None as updated_at,
-            }:
-                match {"custom:last_login_at": None, **self._attrs(response)}:
-                    case {
-                        "name": str(name),
-                        "custom:role": Role.USER | Role.ADMIN as role,
-                        "custom:last_login_at": datetime() | None as last_login_at,
-                    }:
-                        return Profile(
-                            id=decode_id(xid),
-                            name=name,
-                            role=role,
-                            enabled=enabled,
-                            created_at=self._dt(created_at),
-                            updated_at=self._dt(updated_at),
-                            last_login_at=self._dt(last_login_at),
-                        )
-        raise DomainInvariantViolation(f"Unexpected cognito response: {response}")
-
-    def _page(self, response: Mapping[str, Any]) -> Page:
-        return Page(
-            users=[self._user(raw) for raw in response.get("Users", [])],
-            cursor=response.get("PaginationToken"),
-        )
-
     # ──── Private APIs ────
 
     @private_api
     def list_users(
         self,
         *,
-        q: str | None = None,
-        limit: int | None = None,
-        cursor: str | None = None,
-    ) -> Page:
-        return self._page(
-            self._client.list_users(
-                UserPoolId=self._user_pool_id,
-                Limit=min(limit or 25, 60),
+        q: str | None,
+        limit: int,
+        cursor: str | None,
+    ) -> Provider.Page:
+        return Provider.Page.from_cognito(
+            self._cognito.list_users(
+                UserPoolId=self._pool_id,
+                Limit=limit,
                 **({"Filter": f'name ^= "{q}"'} if q else {}),
                 **({"PaginationToken": cursor} if cursor else {}),
             )
@@ -212,59 +142,59 @@ class CognitoUserProvider(BaseProvider):
     def create_user(
         self,
         *,
+        id: str,
         name: str,
+        password: str,
         role: Role,
-        enabled: bool = True,
-    ) -> Credentials:
-        xid = encode_id(id := generate_id())
-        password = generate_password()
-
-        self._client.admin_create_user(
-            UserPoolId=self._user_pool_id,
+        enabled: bool,
+    ) -> Provider.Credentials:
+        xid = encode_id(id)
+        self._cognito.admin_create_user(
+            UserPoolId=self._pool_id,
             Username=xid,
             UserAttributes=[
-                {
-                    "Name": "preferred_username",
-                    "Value": encode_name(name),
-                },
-                {
-                    "Name": "name",
-                    "Value": name,
-                },
-                {
-                    "Name": "custom:role",
-                    "Value": role.value,
-                },
+                {"Name": "preferred_username", "Value": encode_name(name)},
+                {"Name": "name", "Value": name},
+                {"Name": "picture", "Value": f"{self._bucket_url}/users/{id}/picture"},
+                {"Name": "custom:role", "Value": role.value},
             ],
             MessageAction="SUPPRESS",
         )
-
-        self._client.admin_set_user_password(
-            UserPoolId=self._user_pool_id,
+        self._cognito.admin_set_user_password(
+            UserPoolId=self._pool_id,
             Username=xid,
             Password=password,
             Permanent=False,
         )
-
+        self._s3.copy_object(
+            Bucket=self._bucket,
+            Key=f"users/{id}/picture",
+            CopySource={
+                "Bucket": self._bucket,
+                "Key": "users/default/picture",
+            },
+        )
         if not enabled:
-            self._client.admin_disable_user(
-                UserPoolId=self._user_pool_id,
+            self._cognito.admin_disable_user(
+                UserPoolId=self._pool_id,
                 Username=xid,
             )
-
-        return Credentials(id=id, name=name, password=password)
+        return Provider.Credentials(
+            id=id,
+            name=name,
+            password=password,
+        )
 
     @private_api
     def read_user(
         self,
         *,
         id: str,
-    ) -> Profile:
-        xid = encode_id(id)
-        return self._user(
-            self._client.admin_get_user(
-                UserPoolId=self._user_pool_id,
-                Username=xid,
+    ) -> Provider.Profile:
+        return Provider.Profile.from_cognito(
+            self._cognito.admin_get_user(
+                UserPoolId=self._pool_id,
+                Username=encode_id(id),
             )
         )
 
@@ -273,54 +203,34 @@ class CognitoUserProvider(BaseProvider):
         self,
         *,
         id: str,
-        name: str | None = None,
-        role: Role | None = None,
-        enabled: bool | None = None,
-    ) -> Profile:
+        name: str | None,
+        role: Role | None,
+        enabled: bool | None,
+    ) -> Provider.Profile:
         xid = encode_id(id)
-        attrs: list[AttributeTypeTypeDef] = []
-
-        if name is not None:
-            attrs.extend(
-                [
-                    {
-                        "Name": "preferred_username",
-                        "Value": encode_name(name),
-                    },
-                    {
-                        "Name": "name",
-                        "Value": name,
-                    },
-                ]
-            )
-
-        if role is not None:
-            attrs.append(
-                {
-                    "Name": "custom:role",
-                    "Value": role.value,
-                }
-            )
-
-        if attrs:
-            self._client.admin_update_user_attributes(
-                UserPoolId=self._user_pool_id,
+        if name is not None or role is not None:
+            attrs: list[AttributeTypeTypeDef] = []
+            if name is not None:
+                attrs.append({"Name": "preferred_username", "Value": encode_name(name)})
+                attrs.append({"Name": "name", "Value": name})
+            if role is not None:
+                attrs.append({"Name": "custom:role", "Value": role.value})
+            self._cognito.admin_update_user_attributes(
+                UserPoolId=self._pool_id,
                 Username=xid,
                 UserAttributes=attrs,
             )
-
         if enabled is not None:
             if enabled:
-                self._client.admin_enable_user(
-                    UserPoolId=self._user_pool_id,
+                self._cognito.admin_enable_user(
+                    UserPoolId=self._pool_id,
                     Username=xid,
                 )
             else:
-                self._client.admin_disable_user(
-                    UserPoolId=self._user_pool_id,
+                self._cognito.admin_disable_user(
+                    UserPoolId=self._pool_id,
                     Username=xid,
                 )
-
         return self.read_user(id=id)
 
     @private_api
@@ -329,43 +239,62 @@ class CognitoUserProvider(BaseProvider):
         *,
         id: str,
     ) -> None:
-        xid = encode_id(id)
-        self._client.admin_delete_user(
-            UserPoolId=self._user_pool_id,
-            Username=xid,
+        self._cognito.admin_delete_user(
+            UserPoolId=self._pool_id,
+            Username=encode_id(id),
         )
+        return None
 
-        return
+    @private_api
+    def generate_upload_form(
+        self,
+        *,
+        id: str,
+        content_type: str,
+        max_bytes: int,
+        max_seconds: int,
+    ) -> Provider.UploadForm:
+        return Provider.UploadForm.from_cognito(
+            self._s3.generate_presigned_post(
+                Bucket=self._bucket,
+                Key=f"users/{id}/picture",
+                Fields={"Content-Type": content_type},
+                Conditions=[
+                    {"Content-Type": content_type},
+                    ["content-length-range", 1, max_bytes],
+                ],
+                ExpiresIn=max_seconds,
+            )
+        )
 
     @private_api
     def reset_user(
         self,
         *,
         id: str,
-    ) -> Credentials:
+        password: str,
+    ) -> Provider.Credentials:
         xid = encode_id(id)
-        user = self.read_user(id=id)
-        password = generate_password()
-
-        self._client.admin_set_user_password(
-            UserPoolId=self._user_pool_id,
+        self._cognito.admin_set_user_password(
+            UserPoolId=self._pool_id,
             Username=xid,
             Password=password,
             Permanent=False,
         )
-
-        self._client.admin_set_user_mfa_preference(
-            UserPoolId=self._user_pool_id,
+        self._cognito.admin_set_user_mfa_preference(
+            UserPoolId=self._pool_id,
             Username=xid,
             SoftwareTokenMfaSettings={
                 "Enabled": False,
                 "PreferredMfa": False,
             },
         )
-
-        self._client.admin_user_global_sign_out(
-            UserPoolId=self._user_pool_id,
+        self._cognito.admin_user_global_sign_out(
+            UserPoolId=self._pool_id,
             Username=xid,
         )
-
-        return Credentials(id=id, name=user.name, password=password)
+        return Provider.Credentials(
+            id=id,
+            name=self.read_user(id=id).name,
+            password=password,
+        )

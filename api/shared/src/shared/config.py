@@ -56,6 +56,10 @@ class Settings:
         return self.env_or_parameter("COGNITO_USER_POOL_ID")
 
     @cached_property
+    def s3_user_bucket(self) -> str:
+        return self.env_or_parameter("S3_USER_BUCKET")
+
+    @cached_property
     def opensearch_endpoint(self) -> str:
         return self.env_or_parameter("OPENSEARCH_ENDPOINT")
 

@@ -8,7 +8,7 @@ from shared.http import HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Created, NoContent
 
-from .payloads import Request, Response
+from .models import Request, Response
 from .provider import CognitoUserProvider as UserProvider
 from .service import UserService
 
@@ -70,7 +70,8 @@ def create(
     "/<userId>",
     summary="Read user profile",
     description=(
-        "Read a user profile. Reading another user's profile requires admin role. "
+        "Read a user profile. "
+        "Reading another user's profile requires admin role. "
         "The special userId value 'me' resolves to the authenticated caller."
     ),
     tags=["user"],
@@ -101,7 +102,8 @@ def read(
     "/<userId>",
     summary="Update user profile",
     description=(
-        "Update a user profile. Updating another user's profile requires admin role. "
+        "Update a user profile. "
+        "Updating another user's profile requires admin role. "
         "The special userId value 'me' resolves to the authenticated caller. "
     ),
     tags=["user"],
@@ -156,9 +158,45 @@ def delete(
 
 
 @app.post(
+    "/<userId>/picture",
+    summary="Create user picture upload form",
+    description=(
+        "Create a user picture upload form. "
+        "Uploading another user's picture requires admin role. "
+        "The special userId value 'me' resolves to the authenticated caller."
+    ),
+    tags=["user"],
+    responses={
+        200: "User picture upload form created",
+        401: "Authentication required",
+        403: "Access denied",
+        404: "User not found",
+        429: "Too many requests",
+    },
+)
+def picture(
+    request: Request.Picture,
+) -> OK[Response.UploadForm] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+    try:
+        return OK(svc.picture(app.caller(), request))
+    except DomainUnauthorized as exc:
+        return Unauthorized(cause=exc)
+    except DomainForbidden as exc:
+        return Forbidden(cause=exc)
+    except DomainNotFound as exc:
+        return NotFound(cause=exc)
+    except DomainRateLimited as exc:
+        return TooManyRequests(cause=exc)
+
+
+@app.post(
     "/<userId>/reset",
     summary="Reset user credentials",
-    description="Reset a user's password and disable MFA device. Requires admin role.",
+    description=(
+        "Reset a user's password and disable their MFA device. "
+        "Requires admin role. "
+        "The special userId value 'me' resolves to the authenticated caller. "
+    ),
     tags=["user"],
     responses={
         200: "User credentials reset",

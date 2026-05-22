@@ -37,10 +37,8 @@ def decode_id(xid: str) -> str:
 def validate_id(id: str) -> str:
     if len(id) != _ID_LENGTH:
         raise ValueError(f"id must be exactly {_ID_LENGTH} characters")
-
     if not _ID_RE.fullmatch(id):
         raise ValueError("id contains invalid characters")
-
     return id
 
 
@@ -68,12 +66,10 @@ def decode_name(xname: str) -> str:
 
 
 def validate_name(name: str) -> str:
-    name = normalize_name(name)
     if not _NAME_MIN <= len(name) <= _NAME_MAX:
         raise ValueError(f"name must be {_NAME_MIN}-{_NAME_MAX} characters")
     if len(encode_name(name)) > _NAME_MAX:
         raise ValueError(f"encoded name cannot exceed {_NAME_MAX} characters")
-
     return name
 
 
@@ -113,7 +109,6 @@ def validate_password(password: str) -> str:
         raise ValueError("password must contain a number")
     if not any(char in _PASSWORD_SPECIALS for char in password):
         raise ValueError("password must contain a symbol")
-
     return password
 
 
@@ -127,7 +122,6 @@ _SESSION_MAX: Final = 2048
 def validate_session(session: str) -> str:
     if not _SESSION_MIN <= len(session) <= _SESSION_MAX:
         raise ValueError(f"session must be {_SESSION_MIN}-{_SESSION_MAX} characters")
-
     return session
 
 
@@ -142,8 +136,6 @@ _TOKEN_RE: Final = re.compile(r"^[A-Za-z0-9-_=.]+$")
 def validate_token(token: str) -> str:
     if not _TOKEN_MIN <= len(token) <= _TOKEN_MAX:
         raise ValueError(f"token must be {_TOKEN_MIN}-{_TOKEN_MAX} characters")
-
     if not _TOKEN_RE.fullmatch(token):
         raise ValueError("token contains invalid characters")
-
     return token
