@@ -218,7 +218,7 @@ class CognitoAuthProvider(BaseProvider):
             self._client.associate_software_token(
                 AccessToken=access_token,
             ),
-            name,
+            name=name,
         )
 
     @private_api
@@ -232,7 +232,6 @@ class CognitoAuthProvider(BaseProvider):
             AccessToken=access_token,
             UserCode=code,
         )
-
         self._client.set_user_mfa_preference(
             AccessToken=access_token,
             SoftwareTokenMfaSettings={

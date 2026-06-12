@@ -67,12 +67,12 @@ def create(
 
 
 @app.get(
-    "/<userId>",
+    "/<id>",
     summary="Read user profile",
     description=(
         "Read a user profile. "
         "Reading another user's profile requires admin role. "
-        "The special userId value 'me' resolves to the authenticated caller."
+        "The special id value 'me' resolves to the authenticated caller."
     ),
     tags=["user"],
     responses={
@@ -99,12 +99,12 @@ def read(
 
 
 @app.patch(
-    "/<userId>",
+    "/<id>",
     summary="Update user profile",
     description=(
         "Update a user profile. "
         "Updating another user's profile requires admin role. "
-        "The special userId value 'me' resolves to the authenticated caller. "
+        "The special id value 'me' resolves to the authenticated caller. "
     ),
     tags=["user"],
     responses={
@@ -131,7 +131,7 @@ def update(
 
 
 @app.delete(
-    "/<userId>",
+    "/<id>",
     summary="Delete user profile",
     description="Delete a user profile other than self. Requires admin role.",
     tags=["user"],
@@ -158,12 +158,12 @@ def delete(
 
 
 @app.post(
-    "/<userId>/picture",
+    "/<id>/picture",
     summary="Create user picture upload form",
     description=(
         "Create a user picture upload form. "
         "Uploading another user's picture requires admin role. "
-        "The special userId value 'me' resolves to the authenticated caller."
+        "The special id value 'me' resolves to the authenticated caller."
     ),
     tags=["user"],
     responses={
@@ -190,12 +190,12 @@ def picture(
 
 
 @app.post(
-    "/<userId>/reset",
+    "/<id>/reset",
     summary="Reset user credentials",
     description=(
         "Reset a user's password and disable their MFA device. "
         "Requires admin role. "
-        "The special userId value 'me' resolves to the authenticated caller. "
+        "The special id value 'me' resolves to the authenticated caller. "
     ),
     tags=["user"],
     responses={

@@ -144,7 +144,7 @@ class Provider:
         url: str
 
         @classmethod
-        def from_cognito(cls, response: Mapping[str, Any], name: str) -> Self:
+        def from_cognito(cls, response: Mapping[str, Any], *, name: str) -> Self:
             match response:
                 case {
                     "SecretCode": str(secret),

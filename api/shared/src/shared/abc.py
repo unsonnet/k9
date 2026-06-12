@@ -58,7 +58,7 @@ class BaseService(ABC):
 
 class UserOwnedRequest(Protocol):
     @property
-    def userId(self) -> str: ...
+    def id(self) -> str: ...
 
 
 type AnyCallable = Callable[..., Any]
@@ -130,7 +130,7 @@ def public_api(
                 self.require_admin(caller)
             elif require_owner:
                 request = args[0]
-                self.require_owner(caller, request.userId)
+                self.require_owner(caller, request.id)
             return method(self, caller, *args, **kwargs)
 
         return wrapper

@@ -61,22 +61,22 @@ class Request:
             return validate_name(normalize_name(value))
 
     class Read(ApiModel, frozen=True):
-        userId: Path[str]
+        id: Path[str]
 
-        @field_validator("userId")
+        @field_validator("id")
         @classmethod
-        def validate_user_id(cls, value: str) -> str:
+        def validate_id(cls, value: str) -> str:
             return value if value == "me" else validate_id(value)
 
     class Update(ApiModel, frozen=True):
-        userId: Path[str]
+        id: Path[str]
         name: Body[str | None] = None
         role: Body[Role | None] = None
         enabled: Body[StrictBool | None] = None
 
-        @field_validator("userId")
+        @field_validator("id")
         @classmethod
-        def validate_user_id(cls, value: str) -> str:
+        def validate_id(cls, value: str) -> str:
             return value if value == "me" else validate_id(value)
 
         @field_validator("name")
@@ -85,28 +85,28 @@ class Request:
             return validate_name(normalize_name(value)) if value else None
 
     class Delete(ApiModel, frozen=True):
-        userId: Path[str]
+        id: Path[str]
 
-        @field_validator("userId")
+        @field_validator("id")
         @classmethod
-        def validate_user_id(cls, value: str) -> str:
+        def validate_id(cls, value: str) -> str:
             return validate_id(value)
 
     class Picture(ApiModel, frozen=True):
-        userId: Path[str]
+        id: Path[str]
         contentType: Body[ImageMIMEType]
 
-        @field_validator("userId")
+        @field_validator("id")
         @classmethod
-        def validate_user_id(cls, value: str) -> str:
+        def validate_id(cls, value: str) -> str:
             return value if value == "me" else validate_id(value)
 
     class Reset(ApiModel, frozen=True):
-        userId: Path[str]
+        id: Path[str]
 
-        @field_validator("userId")
+        @field_validator("id")
         @classmethod
-        def validate_user_id(cls, value: str) -> str:
+        def validate_id(cls, value: str) -> str:
             return value if value == "me" else validate_id(value)
 
 

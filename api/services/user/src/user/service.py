@@ -63,7 +63,7 @@ class UserService(BaseService):
     ) -> Response.Profile:
         return Response.Profile.from_provider(
             self.provider.read_user(
-                id=request.userId if request.userId != "me" else caller.id,
+                id=request.id if request.id != "me" else caller.id,
             )
         )
 
@@ -73,12 +73,12 @@ class UserService(BaseService):
         caller: Caller,
         request: Request.Update,
     ) -> Response.Profile:
-        if not caller.is_admin or request.userId in ["me", caller.id]:
+        if not caller.is_admin or request.id in ["me", caller.id]:
             if request.role is not None or request.enabled is not None:
                 raise DomainForbidden("Cannot update own `role` or `enabled` status")
         return Response.Profile.from_provider(
             self.provider.update_user(
-                id=request.userId if request.userId != "me" else caller.id,
+                id=request.id if request.id != "me" else caller.id,
                 name=request.name,
                 role=request.role,
                 enabled=request.enabled,
@@ -91,10 +91,10 @@ class UserService(BaseService):
         caller: Caller,
         request: Request.Delete,
     ) -> None:
-        if request.userId == caller.id:
+        if request.id == caller.id:
             raise DomainForbidden("Cannot delete own user profile")
         return self.provider.delete_user(
-            id=request.userId,
+            id=request.id,
         )
 
     @public_api(require_owner=True)
@@ -105,7 +105,7 @@ class UserService(BaseService):
     ) -> Response.UploadForm:
         return Response.UploadForm.from_provider(
             self.provider.generate_upload_form(
-                id=request.userId if request.userId != "me" else caller.id,
+                id=request.id if request.id != "me" else caller.id,
                 content_type=request.contentType,
                 max_bytes=PICTURE_MAX_SIZE,
                 max_seconds=PICTURE_EXPIRES_IN,
@@ -120,7 +120,7 @@ class UserService(BaseService):
     ) -> Response.Credentials:
         return Response.Credentials.from_provider(
             self.provider.reset_user(
-                id=request.userId if request.userId != "me" else caller.id,
+                id=request.id if request.id != "me" else caller.id,
                 password=generate_password(),
             )
         )
