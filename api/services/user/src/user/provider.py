@@ -4,7 +4,7 @@ import boto3
 from shared.abc import BaseProvider, ExceptionMap, Role, private_api
 from shared.config import settings
 from shared.errors import DomainForbidden, DomainNotFound, DomainRateLimited
-from shared.providers.cognito import encode_id, encode_name
+from shared.providers.user import encode_id, encode_name
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 from types_boto3_cognito_idp.type_defs import AttributeTypeTypeDef
 from types_boto3_s3 import S3Client

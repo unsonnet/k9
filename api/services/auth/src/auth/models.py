@@ -6,13 +6,8 @@ from pydantic import Field, field_validator, model_validator
 from shared.abc import ApiModel, DataModel
 from shared.errors import DomainInvariantViolation
 from shared.http.requests import Body
-from shared.providers.cognito import (
-    normalize_name,
-    validate_name,
-    validate_password,
-    validate_session,
-    validate_token,
-)
+from shared.providers.auth import validate_session, validate_token
+from shared.providers.user import normalize_name, validate_name, validate_password
 
 __all__ = [
     "Request",

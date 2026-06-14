@@ -6,13 +6,13 @@ from shared.abc import ApiModel, DataModel, Role
 from shared.errors import DomainInvariantViolation
 from shared.helpers import dt
 from shared.http import Body, ImageMIMEType, Path, Query
-from shared.providers.cognito import (
+from shared.providers.opensearch import sanitize_query
+from shared.providers.user import (
     decode_id,
     normalize_name,
     validate_id,
     validate_name,
 )
-from shared.providers.opensearch import sanitize_query
 
 __all__ = [
     "Request",

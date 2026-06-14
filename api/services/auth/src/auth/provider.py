@@ -15,7 +15,7 @@ from shared.errors import (
     DomainNotFound,
     DomainRateLimited,
 )
-from shared.providers.cognito import encode_name
+from shared.providers.user import encode_name
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 
 from .models import ChallengeKey, Provider
