@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Mapping, Self, Sequence
 
-from pydantic import StrictBool, field_validator
+from pydantic import HttpUrl, StrictBool, field_validator
 from shared.abc import ApiModel, DataModel, Role
 from shared.errors import DomainInvariantViolation
 from shared.helpers import dt
@@ -106,7 +106,7 @@ class Provider:
     class User(DataModel, frozen=True):
         id: str
         name: str
-        picture: str
+        picture: HttpUrl
         role: Role
         enabled: bool
         created_at: datetime
@@ -142,8 +142,8 @@ class Provider:
                             return cls(
                                 id=decode_id(xid),
                                 name=name,
-                                picture=picture,
-                                role=role,
+                                picture=HttpUrl(picture),
+                                role=Role(role),
                                 enabled=enabled,
                                 created_at=dt(created_at),
                                 updated_at=dt(updated_at),
@@ -200,7 +200,7 @@ class Response:
     class User(ApiModel, frozen=True):
         id: str
         name: str
-        picture: str
+        picture: HttpUrl
         role: Role
         enabled: StrictBool
         createdAt: datetime

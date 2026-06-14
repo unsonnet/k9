@@ -2,7 +2,7 @@ from typing import Final
 
 from shared.abc import BaseService, Caller, public_api
 from shared.errors import DomainForbidden
-from shared.providers.cognito import generate_id, generate_password
+from shared.providers.user import generate_id, generate_password
 
 from .models import Request, Response
 from .provider import UserProvider
