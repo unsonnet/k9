@@ -56,13 +56,14 @@ class Request:
         @field_validator("response")
         @classmethod
         def validate_response(cls, value: dict[str, str]) -> dict[str, str]:
-            match value:
-                case {"name": str(name)}:
-                    return {**value, "name": validate_name(normalize_name(name))}
+            if "name" in value:
+                value["name"] = validate_name(normalize_name(value["name"]))
+            if "password" in value:
+                value["password"] = validate_password(value["password"])
             return value
 
     class Verify(ApiModel, frozen=True):
-        code: Body[str]
+        code: Body[str] = Field(min_length=1)
 
     class Refresh(ApiModel, frozen=True):
         refreshToken: Body[str]

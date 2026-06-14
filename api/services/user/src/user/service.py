@@ -60,8 +60,8 @@ class UserService(BaseService):
         self,
         caller: Caller,
         request: Request.Read,
-    ) -> Response.Profile:
-        return Response.Profile.from_provider(
+    ) -> Response.User:
+        return Response.User.from_provider(
             self.provider.read_user(
                 id=request.id if request.id != "me" else caller.id,
             )
@@ -72,11 +72,11 @@ class UserService(BaseService):
         self,
         caller: Caller,
         request: Request.Update,
-    ) -> Response.Profile:
+    ) -> Response.User:
         if not caller.is_admin or request.id in ["me", caller.id]:
             if request.role is not None or request.enabled is not None:
                 raise DomainForbidden("Cannot update own `role` or `enabled` status")
-        return Response.Profile.from_provider(
+        return Response.User.from_provider(
             self.provider.update_user(
                 id=request.id if request.id != "me" else caller.id,
                 name=request.name,

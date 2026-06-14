@@ -43,7 +43,7 @@ class UserProvider(Protocol):
         self,
         *,
         id: str,
-    ) -> Provider.Profile: ...
+    ) -> Provider.User: ...
 
     def update_user(
         self,
@@ -52,7 +52,7 @@ class UserProvider(Protocol):
         name: str | None,
         role: Role | None,
         enabled: bool | None,
-    ) -> Provider.Profile: ...
+    ) -> Provider.User: ...
 
     def delete_user(
         self,
@@ -155,7 +155,10 @@ class CognitoUserProvider(BaseProvider):
             UserAttributes=[
                 {"Name": "preferred_username", "Value": encode_name(name)},
                 {"Name": "name", "Value": name},
-                {"Name": "picture", "Value": f"{self._bucket_url}/users/{id}/picture"},
+                {
+                    "Name": "picture",
+                    "Value": f"{self._bucket_url}/users/{id}/picture.jxl",
+                },
                 {"Name": "custom:role", "Value": role.value},
             ],
             MessageAction="SUPPRESS",
@@ -168,10 +171,10 @@ class CognitoUserProvider(BaseProvider):
         )
         self._s3.copy_object(
             Bucket=self._bucket,
-            Key=f"users/{id}/picture",
+            Key=f"users/{id}/picture.jxl",
             CopySource={
                 "Bucket": self._bucket,
-                "Key": "users/default/picture",
+                "Key": "users/default/picture.jxl",
             },
         )
         if not enabled:
@@ -190,8 +193,8 @@ class CognitoUserProvider(BaseProvider):
         self,
         *,
         id: str,
-    ) -> Provider.Profile:
-        return Provider.Profile.from_cognito(
+    ) -> Provider.User:
+        return Provider.User.from_cognito(
             self._cognito.admin_get_user(
                 UserPoolId=self._pool_id,
                 Username=encode_id(id),
@@ -206,7 +209,7 @@ class CognitoUserProvider(BaseProvider):
         name: str | None,
         role: Role | None,
         enabled: bool | None,
-    ) -> Provider.Profile:
+    ) -> Provider.User:
         xid = encode_id(id)
         if name is not None or role is not None:
             attrs: list[AttributeTypeTypeDef] = []
@@ -257,7 +260,7 @@ class CognitoUserProvider(BaseProvider):
         return Provider.UploadForm.from_cognito(
             self._s3.generate_presigned_post(
                 Bucket=self._bucket,
-                Key=f"users/{id}/picture",
+                Key=f"users/{id}/picture.jxl",
                 Fields={"Content-Type": content_type},
                 Conditions=[
                     {"Content-Type": content_type},

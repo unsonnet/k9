@@ -7,9 +7,6 @@ from .responses import Response
 
 
 class ImageMIMEType(StrEnum):
-    JPEG = "image/jpeg"
-    PNG = "image/png"
-    GIF = "image/gif"
     JPEGXL = "image/jxl"
 
 

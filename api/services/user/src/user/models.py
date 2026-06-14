@@ -1,9 +1,10 @@
-from datetime import datetime, timezone
-from typing import Any, Mapping, Self, Sequence, overload
+from datetime import datetime
+from typing import Any, Mapping, Self, Sequence
 
 from pydantic import StrictBool, field_validator
 from shared.abc import ApiModel, DataModel, Role
 from shared.errors import DomainInvariantViolation
+from shared.helpers import dt
 from shared.http import Body, ImageMIMEType, Path, Query
 from shared.providers.cognito import (
     decode_id,
@@ -17,18 +18,6 @@ __all__ = [
     "Request",
     "Response",
 ]
-
-
-@overload
-def dt(value: datetime) -> datetime: ...
-@overload
-def dt(value: None) -> None: ...
-def dt(value: datetime | None) -> datetime | None:
-    match value:
-        case datetime() as dt:
-            return dt.astimezone(timezone.utc)
-        case None:
-            return None
 
 
 # ──── Request Payloads ────────────────────────────────────────────────────────────────
@@ -114,7 +103,7 @@ class Request:
 
 
 class Provider:
-    class Profile(DataModel, frozen=True):
+    class User(DataModel, frozen=True):
         id: str
         name: str
         picture: str
@@ -163,7 +152,7 @@ class Provider:
             raise DomainInvariantViolation(f"Unexpected cognito profile: {response}")
 
     class Page(DataModel, frozen=True):
-        users: list["Provider.Profile"]
+        users: list["Provider.User"]
         cursor: str | None = None
 
         @classmethod
@@ -176,7 +165,7 @@ class Provider:
                     "PaginationToken": str() | None as cursor,
                 }:
                     return cls(
-                        users=[Provider.Profile.from_cognito(raw) for raw in users],
+                        users=[Provider.User.from_cognito(raw) for raw in users],
                         cursor=cursor,
                     )
             raise DomainInvariantViolation(f"Unexpected cognito page: {response}")
@@ -208,7 +197,7 @@ class Provider:
 
 
 class Response:
-    class Profile(ApiModel, frozen=True):
+    class User(ApiModel, frozen=True):
         id: str
         name: str
         picture: str
@@ -219,7 +208,7 @@ class Response:
         lastLoginAt: datetime | None = None
 
         @classmethod
-        def from_provider(cls, user: Provider.Profile) -> Self:
+        def from_provider(cls, user: Provider.User) -> Self:
             return cls(
                 id=user.id,
                 name=user.name,
@@ -232,13 +221,13 @@ class Response:
             )
 
     class Page(ApiModel, frozen=True):
-        users: list["Response.Profile"]
+        users: list["Response.User"]
         cursor: str | None = None
 
         @classmethod
         def from_provider(cls, page: Provider.Page) -> Self:
             return cls(
-                users=[Response.Profile.from_provider(user) for user in page.users],
+                users=[Response.User.from_provider(user) for user in page.users],
                 cursor=page.cursor,
             )
 

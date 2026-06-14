@@ -85,7 +85,7 @@ def create(
 )
 def read(
     request: Request.Read,
-) -> OK[Response.Profile] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+) -> OK[Response.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
         return OK(svc.read(app.caller(), request))
     except DomainUnauthorized as exc:
@@ -104,7 +104,7 @@ def read(
     description=(
         "Update a user profile. "
         "Updating another user's profile requires admin role. "
-        "The special id value 'me' resolves to the authenticated caller. "
+        "The special id value 'me' resolves to the authenticated caller."
     ),
     tags=["user"],
     responses={
@@ -117,7 +117,7 @@ def read(
 )
 def update(
     request: Request.Update,
-) -> OK[Response.Profile] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+) -> OK[Response.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
         return OK(svc.update(app.caller(), request))
     except DomainUnauthorized as exc:
@@ -195,7 +195,7 @@ def picture(
     description=(
         "Reset a user's password and disable their MFA device. "
         "Requires admin role. "
-        "The special id value 'me' resolves to the authenticated caller. "
+        "The special id value 'me' resolves to the authenticated caller."
     ),
     tags=["user"],
     responses={
