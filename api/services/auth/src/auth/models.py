@@ -12,6 +12,7 @@ from shared.providers.user import normalize_name, validate_name, validate_passwo
 __all__ = [
     "Request",
     "Response",
+    "ChallengeKey",
 ]
 
 

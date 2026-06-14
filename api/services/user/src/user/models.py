@@ -37,7 +37,7 @@ class Request:
         @field_validator("limit")
         @classmethod
         def clamp_limit(cls, value: int | None) -> int | None:
-            return min(value, 60) if value is not None else None
+            return max(min(value, 60), 0) if value is not None else None
 
     class Create(ApiModel, frozen=True):
         name: Body[str]
@@ -103,6 +103,12 @@ class Request:
 
 
 class Provider:
+    @staticmethod
+    def _unpack(response: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+        attrs = {attr["Name"]: attr["Value"] for attr in response}
+        attrs.setdefault("custom:last_login_at", None)
+        return attrs
+
     class User(DataModel, frozen=True):
         id: str
         name: str
@@ -114,25 +120,18 @@ class Provider:
         last_login_at: datetime | None = None
 
         @classmethod
-        def _unpack(cls, response: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-            attrs = {attr["Name"]: attr["Value"] for attr in response}
-            attrs.setdefault("custom:last_login_at", None)
-            return attrs
-
-        @classmethod
         def from_cognito(cls, response: Mapping[str, Any]) -> Self:
             response = dict(response)
             response.setdefault("UserLastModifiedDate", None)
-            response.setdefault("UserAttributes", response.get("Attributes", []))
             match response:
                 case {
                     "Username": str(xid),
                     "Enabled": bool(enabled),
                     "UserCreateDate": datetime() as created_at,
                     "UserLastModifiedDate": datetime() | None as updated_at,
-                    "UserAttributes": list() as attrs,
+                    "UserAttributes": Sequence() as attrs,
                 }:
-                    match cls._unpack(attrs):
+                    match Provider._unpack(attrs):
                         case {
                             "name": str(name),
                             "picture": str(picture),
@@ -151,8 +150,32 @@ class Provider:
                             )
             raise DomainInvariantViolation(f"Unexpected cognito profile: {response}")
 
+    class UserSummary(DataModel, frozen=True):
+        id: str
+        name: str
+        picture: HttpUrl
+
+        @classmethod
+        def from_cognito(cls, response: Mapping[str, Any]) -> Self:
+            match dict(response):
+                case {
+                    "Username": str(xid),
+                    "Attributes": Sequence() as attrs,
+                }:
+                    match Provider._unpack(attrs):
+                        case {
+                            "name": str(name),
+                            "picture": str(picture),
+                        }:
+                            return cls(
+                                id=decode_id(xid),
+                                name=name,
+                                picture=HttpUrl(picture),
+                            )
+            raise DomainInvariantViolation(f"Unexpected cognito profile: {response}")
+
     class Page(DataModel, frozen=True):
-        users: list["Provider.User"]
+        users: list["Provider.UserSummary"]
         cursor: str | None = None
 
         @classmethod
@@ -165,7 +188,7 @@ class Provider:
                     "PaginationToken": str() | None as cursor,
                 }:
                     return cls(
-                        users=[Provider.User.from_cognito(raw) for raw in users],
+                        users=[Provider.UserSummary.from_cognito(raw) for raw in users],
                         cursor=cursor,
                     )
             raise DomainInvariantViolation(f"Unexpected cognito page: {response}")
@@ -220,14 +243,27 @@ class Response:
                 lastLoginAt=user.last_login_at,
             )
 
+    class UserSummary(ApiModel, frozen=True):
+        id: str
+        name: str
+        picture: HttpUrl
+
+        @classmethod
+        def from_provider(cls, user: Provider.UserSummary) -> Self:
+            return cls(
+                id=user.id,
+                name=user.name,
+                picture=user.picture,
+            )
+
     class Page(ApiModel, frozen=True):
-        users: list["Response.User"]
+        users: list["Response.UserSummary"]
         cursor: str | None = None
 
         @classmethod
         def from_provider(cls, page: Provider.Page) -> Self:
             return cls(
-                users=[Response.User.from_provider(user) for user in page.users],
+                users=[Response.UserSummary.from_provider(user) for user in page.users],
                 cursor=page.cursor,
             )
 
@@ -252,5 +288,5 @@ class Response:
         def from_provider(cls, upload: Provider.UploadForm) -> Self:
             return cls(
                 url=upload.url,
-                fields=dict(upload.fields),
+                fields=upload.fields,
             )
