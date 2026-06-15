@@ -181,7 +181,7 @@ def delete(
 ) -> NoContent | Unauthorized | Forbidden | TooManyRequests:
     try:
         require_admin(caller)
-        if request.id in ["me", caller.id]:
+        if request.id == caller.id:
             raise DomainForbidden("Cannot delete own user profile")
         provider.delete_user(
             id=request.id,
@@ -242,7 +242,7 @@ def picture(
     summary="Reset user credentials",
     description=(
         "Reset a user's password and disable their MFA device. "
-        "Requires admin role. "
+        "Resetting another user's credentials requires admin role. "
         "The special id value 'me' resolves to the authenticated caller."
     ),
     tags=["user"],
@@ -259,9 +259,9 @@ def reset(
     request: Request.Reset,
 ) -> OK[Response.Credentials] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        require_admin(caller)
+        user_id = require_admin_or_self(caller, request.id)
         creds = provider.reset_user(
-            id=request.id if request.id != "me" else caller.id,
+            id=user_id,
             password=generate_password(),
         )
         return OK(Response.Credentials.pack(creds))
