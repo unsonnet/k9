@@ -2,6 +2,7 @@ import os
 from functools import cached_property
 
 import boto3
+from requests_aws4auth import AWS4Auth
 from types_boto3_ssm import SSMClient
 
 
@@ -35,6 +36,18 @@ class Settings:
             return value
         raise MissingSettingError(key, f"{key}_PARAMETER")
 
+    def aws_auth(self, session: boto3.Session) -> AWS4Auth:
+        credentials = session.get_credentials()
+        if credentials is None:
+            raise MissingSettingError("AWS credentials")
+        return AWS4Auth(
+            credentials.access_key,
+            credentials.secret_key,
+            session.region_name,
+            "aoss",
+            session_token=credentials.token,
+        )
+
     @cached_property
     def aws_region(self) -> str:
         return self.require("APP_AWS_REGION", "AWS_REGION", "AWS_DEFAULT_REGION")
@@ -56,16 +69,20 @@ class Settings:
         return self.env_or_parameter("COGNITO_USER_POOL_ID")
 
     @cached_property
-    def s3_user_bucket(self) -> str:
-        return self.env_or_parameter("S3_USER_BUCKET")
+    def dynamodb_table(self) -> str:
+        return self.env_or_parameter("DYNAMODB_TABLE")
+
+    @cached_property
+    def s3_bucket(self) -> str:
+        return self.env_or_parameter("S3_BUCKET")
 
     @cached_property
     def opensearch_endpoint(self) -> str:
         return self.env_or_parameter("OPENSEARCH_ENDPOINT")
 
     @cached_property
-    def opensearch_reports_index(self) -> str:
-        return self.env_or_parameter("OPENSEARCH_REPORTS_INDEX")
+    def opensearch_company_index(self) -> str:
+        return self.env_or_parameter("OPENSEARCH_COMPANY_INDEX")
 
 
 settings = Settings()

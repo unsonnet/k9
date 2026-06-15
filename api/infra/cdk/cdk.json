@@ -8,12 +8,11 @@
       "shared": {
         "identity": {
           "COGNITO_CLIENT_ID_PARAMETER": "/k9/dev/identity/cognito/client-id",
-          "COGNITO_USER_POOL_ID_PARAMETER": "/k9/dev/identity/cognito/user-pool-id",
-          "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/dev/identity/cognito/client-secret"
+          "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/dev/identity/cognito/client-secret",
+          "COGNITO_USER_POOL_ID_PARAMETER": "/k9/dev/identity/cognito/user-pool-id"
         },
-        "index": {
-          "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/dev/index/opensearch/endpoint",
-          "OPENSEARCH_REPORTS_INDEX_PARAMETER": "/k9/dev/index/opensearch/reports-index"
+        "storage": {
+          "S3_BUCKET_PARAMETER": "/k9/dev/storage/s3/bucket"
         }
       },
       "services": {
@@ -33,7 +32,7 @@
           "memory": 512,
           "shared": [
             "identity",
-            "index"
+            "storage"
           ]
         }
       }
@@ -45,12 +44,11 @@
       "shared": {
         "identity": {
           "COGNITO_CLIENT_ID_PARAMETER": "/k9/stage/identity/cognito/client-id",
-          "COGNITO_USER_POOL_ID_PARAMETER": "/k9/stage/identity/cognito/user-pool-id",
-          "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/stage/identity/cognito/client-secret"
+          "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/stage/identity/cognito/client-secret",
+          "COGNITO_USER_POOL_ID_PARAMETER": "/k9/stage/identity/cognito/user-pool-id"
         },
-        "index": {
-          "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/stage/index/opensearch/endpoint",
-          "OPENSEARCH_REPORTS_INDEX_PARAMETER": "/k9/stage/index/opensearch/reports-index"
+        "storage": {
+          "S3_BUCKET_PARAMETER": "/k9/stage/storage/s3/bucket"
         }
       },
       "services": {
@@ -70,7 +68,7 @@
           "memory": 512,
           "shared": [
             "identity",
-            "index"
+            "storage"
           ]
         }
       }
@@ -82,12 +80,11 @@
       "shared": {
         "identity": {
           "COGNITO_CLIENT_ID_PARAMETER": "/k9/prod/identity/cognito/client-id",
-          "COGNITO_USER_POOL_ID_PARAMETER": "/k9/prod/identity/cognito/user-pool-id",
-          "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/prod/identity/cognito/client-secret"
+          "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/prod/identity/cognito/client-secret",
+          "COGNITO_USER_POOL_ID_PARAMETER": "/k9/prod/identity/cognito/user-pool-id"
         },
-        "index": {
-          "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/prod/index/opensearch/endpoint",
-          "OPENSEARCH_REPORTS_INDEX_PARAMETER": "/k9/prod/index/opensearch/reports-index"
+        "storage": {
+          "S3_BUCKET_PARAMETER": "/k9/prod/storage/s3/bucket"
         }
       },
       "services": {
@@ -107,7 +104,7 @@
           "memory": 512,
           "shared": [
             "identity",
-            "index"
+            "storage"
           ]
         }
       }

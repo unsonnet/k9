@@ -1,14 +1,13 @@
 from shared.errors import DomainForbidden, DomainRateLimited, DomainUnauthorized
-from shared.http import HttpResolver
+from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Accepted, NoContent
 
-from .models import Request, Response
-from .provider import CognitoAuthProvider as AuthProvider
-from .service import AuthService
+from .models import Challenge, Request, Response, Tokens
+from .provider import AuthProvider, CognitoAuthProvider
 
 app = HttpResolver(strip_prefixes=["/auth"], enable_validation=True)
-svc = AuthService(AuthProvider())
+provider: AuthProvider = CognitoAuthProvider()
 
 
 @app.post(
@@ -34,11 +33,14 @@ def login(
     | TooManyRequests
 ):
     try:
-        match svc.login(request):
-            case Response.Tokens() as tokens:
-                return OK(tokens)
-            case Response.Challenge() as challenge:
-                return Accepted(challenge)
+        match provider.authenticate(
+            name=request.name,
+            password=request.password,
+        ):
+            case Tokens() as tokens:
+                return OK(Response.Tokens.pack(tokens))
+            case Challenge() as challenge:
+                return Accepted(Response.Challenge.pack(challenge))
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid credentials", cause=exc)
     except DomainForbidden as exc:
@@ -70,11 +72,15 @@ def challenge(
     | TooManyRequests
 ):
     try:
-        match svc.challenge(request):
-            case Response.Tokens() as tokens:
-                return OK(tokens)
-            case Response.Challenge() as challenge:
-                return Accepted(challenge)
+        match provider.respond_to_challenge(
+            session=request.session,
+            challenge=request.challenge,
+            response=request.response,
+        ):
+            case Tokens() as tokens:
+                return OK(Response.Tokens.pack(tokens))
+            case Challenge() as challenge:
+                return Accepted(Response.Challenge.pack(challenge))
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid challenge response", cause=exc)
     except DomainForbidden as exc:
@@ -95,9 +101,15 @@ def challenge(
         429: "Too many requests",
     },
 )
-def setup() -> OK[Response.MFA] | Unauthorized | Forbidden | TooManyRequests:
+def setup(
+    caller: Caller,
+) -> OK[Response.MFA] | Unauthorized | Forbidden | TooManyRequests:
     try:
-        return OK(svc.setup(app.caller()))
+        mfa = provider.setup_mfa(
+            access_token=caller.token,
+            name=caller.name,
+        )
+        return OK(Response.MFA.pack(mfa))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -119,10 +131,15 @@ def setup() -> OK[Response.MFA] | Unauthorized | Forbidden | TooManyRequests:
     },
 )
 def verify(
+    caller: Caller,
     request: Request.Verify,
 ) -> NoContent | Unauthorized | Forbidden | TooManyRequests:
     try:
-        return NoContent(svc.verify(app.caller(), request))
+        provider.verify_mfa(
+            access_token=caller.token,
+            code=request.code,
+        )
+        return NoContent()
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid MFA code", cause=exc)
     except DomainForbidden as exc:
@@ -147,7 +164,10 @@ def refresh(
     request: Request.Refresh,
 ) -> OK[Response.Tokens] | Unauthorized | Forbidden | TooManyRequests:
     try:
-        return OK(svc.refresh(request))
+        tokens = provider.refresh_tokens(
+            refresh_token=request.refreshToken,
+        )
+        return OK(Response.Tokens.pack(tokens))
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid refresh token", cause=exc)
     except DomainForbidden as exc:
@@ -171,7 +191,11 @@ def logout(
     request: Request.Logout,
 ) -> NoContent | Forbidden | TooManyRequests:
     try:
-        return NoContent(svc.logout(request))
+        provider.revoke_tokens(
+            access_token=request.accessToken,
+            refresh_token=request.refreshToken,
+        )
+        return NoContent()
     except DomainUnauthorized:
         return NoContent()
     except DomainForbidden as exc:

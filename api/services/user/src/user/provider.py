@@ -1,23 +1,29 @@
-from typing import Protocol
+from datetime import datetime
+from typing import Any, Mapping, Protocol, Sequence
 
 import boto3
-from shared.abc import BaseProvider, ExceptionMap, Role, private_api
+from pydantic import HttpUrl
 from shared.config import settings
-from shared.errors import DomainForbidden, DomainNotFound, DomainRateLimited
-from shared.providers.user import encode_id, encode_name
+from shared.errors import (
+    DomainForbidden,
+    DomainInvariantViolation,
+    DomainNotFound,
+    DomainRateLimited,
+)
+from shared.helpers import dt
+from shared.http import Role
+from shared.provider import BaseProvider, ExceptionMap, apimethod
+from shared.provider.user import decode_id, encode_id, encode_name
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 from types_boto3_cognito_idp.type_defs import AttributeTypeTypeDef
-from types_boto3_s3 import S3Client
+from types_boto3_s3.service_resource import Bucket
 
-from .models import Provider
+from .models import Credentials, Page, UploadForm, User, UserSummary
 
 __all__ = [
     "UserProvider",
     "CognitoUserProvider",
 ]
-
-
-# ──── User Protocol ───────────────────────────────────────────────────────────────────
 
 
 class UserProvider(Protocol):
@@ -27,7 +33,7 @@ class UserProvider(Protocol):
         q: str | None,
         limit: int,
         cursor: str | None,
-    ) -> Provider.Page: ...
+    ) -> Page: ...
 
     def create_user(
         self,
@@ -37,13 +43,13 @@ class UserProvider(Protocol):
         password: str,
         role: Role,
         enabled: bool,
-    ) -> Provider.Credentials: ...
+    ) -> Credentials: ...
 
     def read_user(
         self,
         *,
         id: str,
-    ) -> Provider.User: ...
+    ) -> User: ...
 
     def update_user(
         self,
@@ -52,7 +58,7 @@ class UserProvider(Protocol):
         name: str | None,
         role: Role | None,
         enabled: bool | None,
-    ) -> Provider.User: ...
+    ) -> User: ...
 
     def delete_user(
         self,
@@ -67,25 +73,24 @@ class UserProvider(Protocol):
         content_type: str,
         max_bytes: int,
         max_seconds: int,
-    ) -> Provider.UploadForm: ...
+    ) -> UploadForm: ...
 
     def reset_user(
         self,
         *,
         id: str,
         password: str,
-    ) -> Provider.Credentials: ...
+    ) -> Credentials: ...
 
 
 # ──── AWS User Provider ───────────────────────────────────────────────────────────────
 
 
 class CognitoUserProvider(BaseProvider):
-    _cognito: CognitoIdentityProviderClient
-    _pool_id: str
-    _s3: S3Client
-    _bucket: str
-    _bucket_url: str
+    _idp: CognitoIdentityProviderClient
+    _idp_pool: str
+    _s3: Bucket
+    _s3_url: str
 
     def __init__(
         self,
@@ -95,15 +100,15 @@ class CognitoUserProvider(BaseProvider):
         user_bucket: str | None = None,
     ) -> None:
         region = region or settings.aws_region
-        self._cognito = boto3.client("cognito-idp", region_name=region)
-        self._pool_id = user_pool_id or settings.cognito_user_pool_id
-        self._s3 = boto3.client("s3", region_name=region)
-        self._bucket = user_bucket or settings.s3_user_bucket
-        self._bucket_url = f"https://{self._bucket}.s3.{region}.amazonaws.com"
+        self._idp = boto3.client("cognito-idp", region)
+        self._idp_pool = user_pool_id or settings.cognito_user_pool_id
+        bucket = user_bucket or settings.s3_bucket
+        self._s3 = boto3.resource("s3", region).Bucket(bucket)
+        self._s3_url = f"https://{bucket}.s3.{region}.amazonaws.com"
 
     @property
     def _exception_map(self) -> ExceptionMap:
-        cx = self._cognito.exceptions
+        cx = self._idp.exceptions
         return {
             DomainForbidden: [
                 cx.ForbiddenException,
@@ -119,26 +124,112 @@ class CognitoUserProvider(BaseProvider):
             ],
         }
 
-    # ──── Private APIs ────
+    # ──── Helper Methods ────
 
-    @private_api
+    @classmethod
+    def _unpack(cls, response: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+        attrs = {attr["Name"]: attr["Value"] for attr in response}
+        attrs.setdefault("custom:last_login_at", None)
+        return attrs
+
+    @classmethod
+    def _user(cls, response: Mapping[str, Any]) -> User:
+        response = dict(response)
+        response.setdefault("UserLastModifiedDate", None)
+        match response:
+            case {
+                "Username": str(xid),
+                "Enabled": bool(enabled),
+                "UserCreateDate": datetime() as created_at,
+                "UserLastModifiedDate": datetime() | None as updated_at,
+                "UserAttributes": Sequence() as attrs,
+            }:
+                match cls._unpack(attrs):
+                    case {
+                        "name": str(name),
+                        "picture": str(picture),
+                        "custom:role": Role.USER | Role.ADMIN as role,
+                        "custom:last_login_at": datetime() | None as last_login_at,
+                    }:
+                        return User(
+                            id=decode_id(xid),
+                            name=name,
+                            picture=HttpUrl(picture),
+                            role=Role(role),
+                            enabled=enabled,
+                            created_at=dt(created_at),
+                            updated_at=dt(updated_at),
+                            last_login_at=dt(last_login_at),
+                        )
+        raise DomainInvariantViolation(f"Unexpected cognito profile: {response}")
+
+    @classmethod
+    def _user_summary(cls, response: Mapping[str, Any]) -> UserSummary:
+        match dict(response):
+            case {
+                "Username": str(xid),
+                "Attributes": Sequence() as attrs,
+            }:
+                match cls._unpack(attrs):
+                    case {
+                        "name": str(name),
+                        "picture": str(picture),
+                    }:
+                        return UserSummary(
+                            id=decode_id(xid),
+                            name=name,
+                            picture=HttpUrl(picture),
+                        )
+        raise DomainInvariantViolation(f"Unexpected cognito profile: {response}")
+
+    @classmethod
+    def _page(cls, response: Mapping[str, Any]) -> Page:
+        response = dict(response)
+        response.setdefault("PaginationToken", None)
+        match response:
+            case {
+                "Users": list(users),
+                "PaginationToken": str() | None as cursor,
+            }:
+                return Page(
+                    users=[cls._user_summary(raw) for raw in users],
+                    cursor=cursor,
+                )
+        raise DomainInvariantViolation(f"Unexpected cognito page: {response}")
+
+    @classmethod
+    def _upload_form(cls, response: Mapping[str, Any]) -> UploadForm:
+        match response:
+            case {
+                "url": str(url),
+                "fields": dict(fields),
+            }:
+                return UploadForm(
+                    url=url,
+                    fields=fields,
+                )
+        raise DomainInvariantViolation(f"Unexpected s3 upload form: {response}")
+
+    # ──── API methods ────
+
+    @apimethod
     def list_users(
         self,
         *,
         q: str | None,
         limit: int,
         cursor: str | None,
-    ) -> Provider.Page:
-        return Provider.Page.from_cognito(
-            self._cognito.list_users(
-                UserPoolId=self._pool_id,
+    ) -> Page:
+        return self._page(
+            self._idp.list_users(
+                UserPoolId=self._idp_pool,
                 Limit=limit,
                 **({"Filter": f'name ^= "{q}"'} if q else {}),
                 **({"PaginationToken": cursor} if cursor else {}),
             )
         )
 
-    @private_api
+    @apimethod
     def create_user(
         self,
         *,
@@ -147,61 +238,57 @@ class CognitoUserProvider(BaseProvider):
         password: str,
         role: Role,
         enabled: bool,
-    ) -> Provider.Credentials:
+    ) -> Credentials:
         xid = encode_id(id)
-        self._cognito.admin_create_user(
-            UserPoolId=self._pool_id,
+        self._idp.admin_create_user(
+            UserPoolId=self._idp_pool,
             Username=xid,
             UserAttributes=[
                 {"Name": "preferred_username", "Value": encode_name(name)},
                 {"Name": "name", "Value": name},
-                {
-                    "Name": "picture",
-                    "Value": f"{self._bucket_url}/users/{id}/picture.jxl",
-                },
+                {"Name": "picture", "Value": f"{self._s3_url}/users/{id}/picture.jxl"},
                 {"Name": "custom:role", "Value": role.value},
             ],
             MessageAction="SUPPRESS",
         )
-        self._cognito.admin_set_user_password(
-            UserPoolId=self._pool_id,
+        self._idp.admin_set_user_password(
+            UserPoolId=self._idp_pool,
             Username=xid,
             Password=password,
             Permanent=False,
         )
-        self._s3.copy_object(
-            Bucket=self._bucket,
+        self._s3.copy(
             Key=f"users/{id}/picture.jxl",
             CopySource={
-                "Bucket": self._bucket,
+                "Bucket": self._s3.name,
                 "Key": "users/default/picture.jxl",
             },
         )
         if not enabled:
-            self._cognito.admin_disable_user(
-                UserPoolId=self._pool_id,
+            self._idp.admin_disable_user(
+                UserPoolId=self._idp_pool,
                 Username=xid,
             )
-        return Provider.Credentials(
+        return Credentials(
             id=id,
             name=name,
             password=password,
         )
 
-    @private_api
+    @apimethod
     def read_user(
         self,
         *,
         id: str,
-    ) -> Provider.User:
-        return Provider.User.from_cognito(
-            self._cognito.admin_get_user(
-                UserPoolId=self._pool_id,
+    ) -> User:
+        return self._user(
+            self._idp.admin_get_user(
+                UserPoolId=self._idp_pool,
                 Username=encode_id(id),
             )
         )
 
-    @private_api
+    @apimethod
     def update_user(
         self,
         *,
@@ -209,7 +296,7 @@ class CognitoUserProvider(BaseProvider):
         name: str | None,
         role: Role | None,
         enabled: bool | None,
-    ) -> Provider.User:
+    ) -> User:
         xid = encode_id(id)
         if name is not None or role is not None:
             attrs: list[AttributeTypeTypeDef] = []
@@ -218,37 +305,37 @@ class CognitoUserProvider(BaseProvider):
                 attrs.append({"Name": "name", "Value": name})
             if role is not None:
                 attrs.append({"Name": "custom:role", "Value": role.value})
-            self._cognito.admin_update_user_attributes(
-                UserPoolId=self._pool_id,
+            self._idp.admin_update_user_attributes(
+                UserPoolId=self._idp_pool,
                 Username=xid,
                 UserAttributes=attrs,
             )
         if enabled is not None:
             if enabled:
-                self._cognito.admin_enable_user(
-                    UserPoolId=self._pool_id,
+                self._idp.admin_enable_user(
+                    UserPoolId=self._idp_pool,
                     Username=xid,
                 )
             else:
-                self._cognito.admin_disable_user(
-                    UserPoolId=self._pool_id,
+                self._idp.admin_disable_user(
+                    UserPoolId=self._idp_pool,
                     Username=xid,
                 )
         return self.read_user(id=id)
 
-    @private_api
+    @apimethod
     def delete_user(
         self,
         *,
         id: str,
     ) -> None:
-        self._cognito.admin_delete_user(
-            UserPoolId=self._pool_id,
+        self._idp.admin_delete_user(
+            UserPoolId=self._idp_pool,
             Username=encode_id(id),
         )
         return None
 
-    @private_api
+    @apimethod
     def generate_upload_form(
         self,
         *,
@@ -256,10 +343,10 @@ class CognitoUserProvider(BaseProvider):
         content_type: str,
         max_bytes: int,
         max_seconds: int,
-    ) -> Provider.UploadForm:
-        return Provider.UploadForm.from_cognito(
-            self._s3.generate_presigned_post(
-                Bucket=self._bucket,
+    ) -> UploadForm:
+        return self._upload_form(
+            self._s3.meta.client.generate_presigned_post(
+                Bucket=self._s3.name,
                 Key=f"users/{id}/picture.jxl",
                 Fields={"Content-Type": content_type},
                 Conditions=[
@@ -270,33 +357,33 @@ class CognitoUserProvider(BaseProvider):
             )
         )
 
-    @private_api
+    @apimethod
     def reset_user(
         self,
         *,
         id: str,
         password: str,
-    ) -> Provider.Credentials:
+    ) -> Credentials:
         xid = encode_id(id)
-        self._cognito.admin_set_user_password(
-            UserPoolId=self._pool_id,
+        self._idp.admin_set_user_password(
+            UserPoolId=self._idp_pool,
             Username=xid,
             Password=password,
             Permanent=False,
         )
-        self._cognito.admin_set_user_mfa_preference(
-            UserPoolId=self._pool_id,
+        self._idp.admin_set_user_mfa_preference(
+            UserPoolId=self._idp_pool,
             Username=xid,
             SoftwareTokenMfaSettings={
                 "Enabled": False,
                 "PreferredMfa": False,
             },
         )
-        self._cognito.admin_user_global_sign_out(
-            UserPoolId=self._pool_id,
+        self._idp.admin_user_global_sign_out(
+            UserPoolId=self._idp_pool,
             Username=xid,
         )
-        return Provider.Credentials(
+        return Credentials(
             id=id,
             name=self.read_user(id=id).name,
             password=password,

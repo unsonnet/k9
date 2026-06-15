@@ -2,9 +2,9 @@ import base64
 import hashlib
 import hmac
 from typing import Any, Mapping, Protocol
+from urllib.parse import quote
 
 import boto3
-from shared.abc import BaseProvider, ExceptionMap, private_api
 from shared.config import settings
 from shared.errors import (
     DomainExpiredToken,
@@ -15,18 +15,16 @@ from shared.errors import (
     DomainNotFound,
     DomainRateLimited,
 )
-from shared.providers.user import encode_name
+from shared.provider import BaseProvider, ExceptionMap, apimethod
+from shared.provider.user import encode_name
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 
-from .models import ChallengeKey, Provider
+from .models import MFA, Challenge, ChallengeKey, Tokens
 
 __all__ = [
     "AuthProvider",
     "CognitoAuthProvider",
 ]
-
-
-# ──── Authentication Protocol ─────────────────────────────────────────────────────────
 
 
 class AuthProvider(Protocol):
@@ -35,7 +33,7 @@ class AuthProvider(Protocol):
         *,
         name: str,
         password: str,
-    ) -> Provider.Tokens | Provider.Challenge: ...
+    ) -> Tokens | Challenge: ...
 
     def respond_to_challenge(
         self,
@@ -43,14 +41,14 @@ class AuthProvider(Protocol):
         session: str,
         challenge: ChallengeKey,
         response: dict[str, str],
-    ) -> Provider.Tokens | Provider.Challenge: ...
+    ) -> Tokens | Challenge: ...
 
     def setup_mfa(
         self,
         *,
         access_token: str,
         name: str,
-    ) -> Provider.MFA: ...
+    ) -> MFA: ...
 
     def verify_mfa(
         self,
@@ -63,7 +61,7 @@ class AuthProvider(Protocol):
         self,
         *,
         refresh_token: str,
-    ) -> Provider.Tokens: ...
+    ) -> Tokens: ...
 
     def revoke_tokens(
         self,
@@ -77,28 +75,28 @@ class AuthProvider(Protocol):
 
 
 class CognitoAuthProvider(BaseProvider):
-    _client: CognitoIdentityProviderClient
-    _client_id: str
-    _user_pool_id: str
-    _client_secret: str
+    _idp: CognitoIdentityProviderClient
+    _idp_id: str
+    _idp_secret: str
+    _idp_pool: str
 
     def __init__(
         self,
         *,
         region: str | None = None,
         client_id: str | None = None,
-        user_pool_id: str | None = None,
         client_secret: str | None = None,
+        user_pool_id: str | None = None,
     ) -> None:
         region = region or settings.aws_region
-        self._client = boto3.client("cognito-idp", region_name=region)
-        self._client_id = client_id or settings.cognito_client_id
-        self._user_pool_id = user_pool_id or settings.cognito_user_pool_id
-        self._client_secret = client_secret or settings.cognito_client_secret
+        self._idp = boto3.client("cognito-idp", region_name=region)
+        self._idp_id = client_id or settings.cognito_client_id
+        self._idp_secret = client_secret or settings.cognito_client_secret
+        self._idp_pool = user_pool_id or settings.cognito_user_pool_id
 
     @property
     def _exception_map(self) -> ExceptionMap:
-        cx = self._client.exceptions
+        cx = self._idp.exceptions
         return {
             DomainExpiredToken: [
                 cx.ExpiredCodeException,
@@ -129,35 +127,84 @@ class CognitoAuthProvider(BaseProvider):
     # ──── Helper Methods ────
 
     def _secret_hash(self, xname: str) -> str:
-        message = f"{xname}{self._client_id}".encode("utf-8")
-        key = self._client_secret.encode("utf-8")
+        message = f"{xname}{self._idp_id}".encode("utf-8")
+        key = self._idp_secret.encode("utf-8")
         digest = hmac.new(key, message, hashlib.sha256).digest()
         return base64.b64encode(digest).decode("utf-8")
 
-    def _result(
-        self, response: Mapping[str, Any]
-    ) -> Provider.Tokens | Provider.Challenge:
+    @classmethod
+    def _tokens(cls, response: Mapping[str, Any]) -> Tokens:
+        match response:
+            case {
+                "AuthenticationResult": {
+                    "AccessToken": str(access_token),
+                    "ExpiresIn": int(expires_in),
+                    "RefreshToken": str(refresh_token),
+                    "IdToken": str(id_token),
+                }
+            }:
+                return Tokens(
+                    access_token=access_token,
+                    expires_in=expires_in,
+                    refresh_token=refresh_token,
+                    id_token=id_token,
+                )
+        raise DomainInvariantViolation(f"Unexpected cognito tokens: {response}")
+
+    @classmethod
+    def _challenge(cls, response: Mapping[str, Any]) -> Challenge:
+        match response:
+            case {"Session": str(session), "ChallengeName": str(challenge)}:
+                match challenge:
+                    case "NEW_PASSWORD_REQUIRED":
+                        return Challenge(
+                            session=session,
+                            challenge=ChallengeKey.NEW_PASSWORD,
+                        )
+                    case "SOFTWARE_TOKEN_MFA":
+                        return Challenge(
+                            session=session,
+                            challenge=ChallengeKey.MFA,
+                        )
+        raise DomainInvariantViolation(f"Unexpected cognito challenge: {response}")
+
+    @classmethod
+    def _result(cls, response: Mapping[str, Any]) -> Tokens | Challenge:
         match response:
             case {"AuthenticationResult": dict()}:
-                return Provider.Tokens.from_cognito(response)
+                return cls._tokens(response)
             case {"Session": str(), "ChallengeName": str()}:
-                return Provider.Challenge.from_cognito(response)
+                return cls._challenge(response)
         raise DomainInvariantViolation(f"Unexpected cognito response: {response}")
 
-    # ──── Private APIs ────
+    @classmethod
+    def _mfa(cls, response: Mapping[str, Any], *, name: str) -> MFA:
+        match response:
+            case {
+                "SecretCode": str(secret),
+            }:
+                issuer = quote("Amazon Web Services")
+                label = f"{issuer}:{quote(f'K9 - {name}')}"
+                return MFA(
+                    secret=secret,
+                    url=f"otpauth://totp/{label}?secret={secret}&issuer={issuer}",
+                )
+        raise DomainInvariantViolation(f"Unexpected cognito MFA: {response}")
 
-    @private_api
+    # ──── API Methods ────
+
+    @apimethod
     def authenticate(
         self,
         *,
         name: str,
         password: str,
-    ) -> Provider.Tokens | Provider.Challenge:
+    ) -> Tokens | Challenge:
         xname = encode_name(name)
         return self._result(
-            self._client.admin_initiate_auth(
-                ClientId=self._client_id,
-                UserPoolId=self._user_pool_id,
+            self._idp.admin_initiate_auth(
+                ClientId=self._idp_id,
+                UserPoolId=self._idp_pool,
                 AuthFlow="ADMIN_USER_PASSWORD_AUTH",
                 AuthParameters={
                     "SECRET_HASH": self._secret_hash(xname),
@@ -167,21 +214,21 @@ class CognitoAuthProvider(BaseProvider):
             )
         )
 
-    @private_api
+    @apimethod
     def respond_to_challenge(
         self,
         *,
         session: str,
         challenge: ChallengeKey,
         response: dict[str, str],
-    ) -> Provider.Tokens | Provider.Challenge:
+    ) -> Tokens | Challenge:
         match challenge:
             case ChallengeKey.NEW_PASSWORD:
                 xname = encode_name(response["name"])
                 return self._result(
-                    self._client.admin_respond_to_auth_challenge(
-                        ClientId=self._client_id,
-                        UserPoolId=self._user_pool_id,
+                    self._idp.admin_respond_to_auth_challenge(
+                        ClientId=self._idp_id,
+                        UserPoolId=self._idp_pool,
                         Session=session,
                         ChallengeName="NEW_PASSWORD_REQUIRED",
                         ChallengeResponses={
@@ -193,10 +240,10 @@ class CognitoAuthProvider(BaseProvider):
                 )
             case ChallengeKey.MFA:
                 xname = encode_name(response["name"])
-                return Provider.Tokens.from_cognito(
-                    self._client.admin_respond_to_auth_challenge(
-                        ClientId=self._client_id,
-                        UserPoolId=self._user_pool_id,
+                return self._tokens(
+                    self._idp.admin_respond_to_auth_challenge(
+                        ClientId=self._idp_id,
+                        UserPoolId=self._idp_pool,
                         Session=session,
                         ChallengeName="SOFTWARE_TOKEN_MFA",
                         ChallengeResponses={
@@ -207,32 +254,32 @@ class CognitoAuthProvider(BaseProvider):
                     )
                 )
 
-    @private_api
+    @apimethod
     def setup_mfa(
         self,
         *,
         access_token: str,
         name: str,
-    ) -> Provider.MFA:
-        return Provider.MFA.from_cognito(
-            self._client.associate_software_token(
+    ) -> MFA:
+        return self._mfa(
+            self._idp.associate_software_token(
                 AccessToken=access_token,
             ),
             name=name,
         )
 
-    @private_api
+    @apimethod
     def verify_mfa(
         self,
         *,
         access_token: str,
         code: str,
     ) -> None:
-        self._client.verify_software_token(
+        self._idp.verify_software_token(
             AccessToken=access_token,
             UserCode=code,
         )
-        self._client.set_user_mfa_preference(
+        self._idp.set_user_mfa_preference(
             AccessToken=access_token,
             SoftwareTokenMfaSettings={
                 "Enabled": True,
@@ -241,21 +288,21 @@ class CognitoAuthProvider(BaseProvider):
         )
         return None
 
-    @private_api
+    @apimethod
     def refresh_tokens(
         self,
         *,
         refresh_token: str,
-    ) -> Provider.Tokens:
-        return Provider.Tokens.from_cognito(
-            self._client.get_tokens_from_refresh_token(
-                ClientId=self._client_id,
-                ClientSecret=self._client_secret,
+    ) -> Tokens:
+        return self._tokens(
+            self._idp.get_tokens_from_refresh_token(
+                ClientId=self._idp_id,
+                ClientSecret=self._idp_secret,
                 RefreshToken=refresh_token,
             )
         )
 
-    @private_api
+    @apimethod
     def revoke_tokens(
         self,
         *,
@@ -264,14 +311,14 @@ class CognitoAuthProvider(BaseProvider):
     ) -> None:
         match access_token, refresh_token:
             case str() as token, None:
-                self._client.global_sign_out(
+                self._idp.global_sign_out(
                     AccessToken=token,
                 )
                 return None
             case None, str() as token:
-                self._client.revoke_token(
-                    ClientId=self._client_id,
-                    ClientSecret=self._client_secret,
+                self._idp.revoke_token(
+                    ClientId=self._idp_id,
+                    ClientSecret=self._idp_secret,
                     Token=token,
                 )
                 return None

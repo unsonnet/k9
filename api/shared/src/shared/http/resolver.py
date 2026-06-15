@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from enum import StrEnum
 from functools import wraps
 from http import HTTPStatus
 from inspect import Parameter, signature
@@ -30,10 +32,8 @@ from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
-from shared.abc import Caller, Role
-from shared.errors import DomainInvalidTokens
-from shared.providers.cognito import decode_id
-
+from ..errors import DomainInvalidTokens
+from ..provider.user import decode_id
 from .errors import (
     InternalServerError,
     MethodNotAllowed,
@@ -48,29 +48,51 @@ RequestModelT = TypeVar("RequestModelT", bound=BaseModel)
 ReturnT = TypeVar("ReturnT")
 
 
+class Role(StrEnum):
+    USER = "user"
+    ADMIN = "admin"
+
+
+@dataclass
+class Caller:
+    id: str
+    name: str
+    role: Role
+    token: str
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == Role.ADMIN
+
+
 class RouteDecorator(Protocol):
     @overload
-    def __call__(
-        self,
-        func: Callable[[], ReturnT],
-    ) -> Callable[[], ReturnT]: ...
+    def __call__(self, func: Callable[[], ReturnT]) -> Callable[[], ReturnT]: ...
 
     @overload
     def __call__(
-        self,
-        func: Callable[[RequestModelT], ReturnT],
+        self, func: Callable[[RequestModelT], ReturnT]
     ) -> Callable[[RequestModelT], ReturnT]: ...
 
+    @overload
     def __call__(
-        self,
-        func: Callable[..., ReturnT],
-    ) -> Callable[..., ReturnT]: ...
+        self, func: Callable[[Caller], ReturnT]
+    ) -> Callable[[Caller], ReturnT]: ...
+
+    @overload
+    def __call__(
+        self, func: Callable[[Caller, RequestModelT], ReturnT]
+    ) -> Callable[[Caller, RequestModelT], ReturnT]: ...
+
+    def __call__(self, func: Callable[..., ReturnT]) -> Callable[..., ReturnT]: ...
 
 
 class HttpResolver(APIGatewayHttpResolver):
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("enable_validation", True)
         super().__init__(*args, **kwargs)
+
+        # Validation / routing error handling
         super().exception_handler(RequestValidationError)(
             lambda e: UnprocessableEntity(cause=e)
         )
@@ -81,7 +103,7 @@ class HttpResolver(APIGatewayHttpResolver):
         super().exception_handler(ServerError)(lambda e: e)
         super().exception_handler(Exception)(lambda e: InternalServerError(cause=e))
 
-    # ──── Auth Context ────────────────────────────────────────────────────────────────
+    # ─── Auth Context ──────────────────────────────────────────────────────────
 
     def claims(self) -> Mapping[str, Any]:
         try:
@@ -91,9 +113,11 @@ class HttpResolver(APIGatewayHttpResolver):
 
     def access_token(self) -> str:
         try:
-            return self.current_event.headers["authorization"].removeprefix("Bearer ")
+            token = self.current_event.headers["authorization"]
         except (AttributeError, KeyError, TypeError) as exc:
             raise DomainInvalidTokens("Missing bearer token") from exc
+
+        return token.removeprefix("Bearer ").strip()
 
     def caller(self) -> Caller:
         match self.claims():
@@ -106,17 +130,19 @@ class HttpResolver(APIGatewayHttpResolver):
                     id=decode_id(xid),
                     name=name,
                     role=role,
-                    token=self.access_token().strip(),
+                    token=self.access_token(),
                 )
+
         raise DomainInvalidTokens("Missing required JWT claims")
 
-    # ──── Routes ──────────────────────────────────────────────────────────────────────
+    # ─── Routes ────────────────────────────────────────────────────────────────
 
     def _handle_routing_error(self, exc: NotFoundError) -> NotFound | MethodNotAllowed:
         method = self.current_event.http_method.upper()
         path = self._remove_prefix(self.current_event.path)
         registered_routes = self._static_routes + self._dynamic_routes
 
+        # If the path exists for a different method, respond 405; otherwise 404
         if any(
             route.method != method and route.rule.match(path)
             for route in registered_routes
@@ -152,27 +178,29 @@ class HttpResolver(APIGatewayHttpResolver):
             normalized_func = self._normalize(expanded_func)
 
             return super(HttpResolver, self).route(
-                rule,
-                method,
-                cors,
-                compress,
-                cache_control,
-                summary,
-                description,
-                parsed_responses,
-                response_description,
-                tags,
-                operation_id,
-                include_in_schema,
-                security,
-                openapi_extensions,
-                deprecated,
-                enable_validation,
-                custom_response_validation_http_code,
-                middlewares,
+                rule=rule,
+                method=method,
+                cors=cors,
+                compress=compress,
+                cache_control=cache_control,
+                summary=summary,
+                description=description,
+                responses=parsed_responses,
+                response_description=response_description,
+                tags=tags,
+                operation_id=operation_id,
+                include_in_schema=include_in_schema,
+                security=security,
+                openapi_extensions=openapi_extensions,
+                deprecated=deprecated,
+                enable_validation=enable_validation,
+                custom_response_validation_http_code=custom_response_validation_http_code,
+                middlewares=middlewares,
             )(normalized_func)
 
         return cast(RouteDecorator, decorator)
+
+    # convenience methods delegate to route() with fixed HTTP verbs
 
     def get(  # type: ignore[override]
         self,
@@ -379,19 +407,21 @@ class HttpResolver(APIGatewayHttpResolver):
             middlewares=middlewares,
         )
 
-    # ──── Request Model Expansion ─────────────────────────────────────────────────────
+    # ─── Request Model Expansion ───────────────────────────────────────────────
 
     @staticmethod
     def _is_request_model(annotation: Any) -> bool:
         return isinstance(annotation, type) and issubclass(annotation, BaseModel)
 
     @staticmethod
-    def _param_marker(annotation: Any) -> HTTPBody | HTTPPath | HTTPQuery | None:
+    def _param_marker(
+        annotation: Any,
+    ) -> HTTPBody | HTTPPath | HTTPQuery | None:
         if get_origin(annotation) is not Annotated:
             return None
 
         for meta in get_args(annotation)[1:]:
-            if isinstance(meta, HTTPBody | HTTPPath | HTTPQuery):
+            if isinstance(meta, (HTTPBody, HTTPPath, HTTPQuery)):
                 return meta
 
         return None
@@ -399,55 +429,80 @@ class HttpResolver(APIGatewayHttpResolver):
     @staticmethod
     def _field_default(model_cls: type[BaseModel], field_name: str) -> Any:
         field = model_cls.model_fields[field_name]
-
         if field.is_required():
             return Parameter.empty
-
         return field.default
 
-    @classmethod
-    def _expand_request_model[T: Callable[..., Any]](cls, func: T) -> T:
+    def _expand_request_model(self, func: Callable[..., Any]) -> Callable[..., Any]:
         """
-        Valid handler forms:
+        Supported handler forms:
 
-            def handler() -> Response: ...
+        def handler() -> Response: ...
 
-        or:
+        def handler(request: SomeModel) -> Response: ...
 
-            def handler(request: SomePydanticRequestModel) -> Response: ...
+        def handler(caller: Caller) -> Response: ...
 
-        If a request model is present, it is expanded into the synthetic
-        Powertools signature using the model field annotations:
+        def handler(caller: Caller, request: SomeModel) -> Response: ...
 
-            field: Path[T]
-            field: Query[T]
-            field: Body[T]
-
-        The original handler receives either no arguments or the constructed
-        Pydantic request model. It never receives the expanded route params.
+        If a request model is present, expand it into the Powertools signature
+        using Path / Query / Body annotations, but keep the handler API clean.
         """
-
         original_sig = signature(func)
         original_params = list(original_sig.parameters.values())
 
-        if len(original_params) == 0:
+        if not original_params:
+            # handler() -> Response
             return func
 
-        if len(original_params) != 1:
+        if len(original_params) not in {1, 2}:
             raise TypeError(
-                f"{func.__name__} must accept either no parameters or exactly one "
-                "request model parameter"
+                f"{func.__name__} must accept either no parameters, exactly one "
+                "Caller or request model parameter, or (caller, request)"
             )
 
-        request_param = original_params[0]
         original_hints = get_type_hints(func, include_extras=True)
 
+        # Determine caller / request roles for the parameters
+        caller_param = None
+        request_param = None
+
+        if len(original_params) == 2:
+            # (caller, request)
+            caller_param = original_params[0]
+            caller_type = original_hints.get(caller_param.name, caller_param.annotation)
+            if caller_type is not Caller:
+                raise TypeError(
+                    f"{func.__name__}.{caller_param.name} must be annotated as Caller"
+                )
+            request_param = original_params[1]
+        else:
+            # Single parameter: either Caller or request model
+            only_param = original_params[0]
+            only_type = original_hints.get(only_param.name, only_param.annotation)
+            if only_type is Caller:
+                caller_param = only_param
+            else:
+                request_param = only_param
+
+        # If there is no request param, this is handler(caller: Caller)
+        if request_param is None:
+
+            @wraps(func)
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
+                return func(self.caller())
+
+            wrapper.__signature__ = original_sig  # type: ignore[attr-defined]
+            wrapper.__annotations__ = dict(getattr(func, "__annotations__", {}))
+            return wrapper
+
+        # From here on, we know there is a request model parameter
         request_model = original_hints.get(
             request_param.name,
             request_param.annotation,
         )
 
-        if not cls._is_request_model(request_model):
+        if not self._is_request_model(request_model):
             raise TypeError(
                 f"{func.__name__}.{request_param.name} must be annotated with a "
                 "Pydantic request model"
@@ -461,14 +516,12 @@ class HttpResolver(APIGatewayHttpResolver):
 
         for field_name in model_cls.model_fields:
             field_annotation = model_hints.get(field_name)
-
             if field_annotation is None:
                 raise TypeError(
                     f"{model_cls.__name__}.{field_name} is missing an annotation"
                 )
 
-            marker = cls._param_marker(field_annotation)
-
+            marker = self._param_marker(field_annotation)
             if marker is None:
                 raise TypeError(
                     f"{model_cls.__name__}.{field_name} must be annotated as "
@@ -479,17 +532,16 @@ class HttpResolver(APIGatewayHttpResolver):
                 Parameter(
                     name=field_name,
                     kind=Parameter.POSITIONAL_OR_KEYWORD,
-                    default=cls._field_default(model_cls, field_name),
+                    default=self._field_default(model_cls, field_name),
                     annotation=field_annotation,
                 )
             )
-
             expanded_field_names.append(field_name)
 
         expanded_sig = original_sig.replace(parameters=expanded_params)
 
         @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             bound = expanded_sig.bind_partial(*args, **kwargs)
             bound.apply_defaults()
 
@@ -501,10 +553,11 @@ class HttpResolver(APIGatewayHttpResolver):
                 }
             )
 
+            if caller_param is not None:
+                return func(self.caller(), request)
             return func(request)
 
         wrapper.__signature__ = expanded_sig  # type: ignore[attr-defined]
-
         wrapper.__annotations__ = {
             name: param.annotation
             for name, param in expanded_sig.parameters.items()
@@ -516,9 +569,9 @@ class HttpResolver(APIGatewayHttpResolver):
         setattr(wrapper, "__request_model__", model_cls)
         setattr(wrapper, "__request_parameter__", request_param.name)
 
-        return wrapper  # type: ignore[return-value]
+        return wrapper
 
-    # ──── OpenAPI Response Parsing ────────────────────────────────────────────────────
+    # ─── OpenAPI Response Parsing ──────────────────────────────────────────────
 
     @classmethod
     def _parse(
@@ -543,11 +596,13 @@ class HttpResolver(APIGatewayHttpResolver):
 
     @classmethod
     def _body(cls, response_cls: type[Response[Any]]) -> type[Any]:
+        # Try generic metadata first
         meta = getattr(response_cls, "__pydantic_generic_metadata__", None)
         args = meta.get("args", ()) if meta else ()
         if args:
             return args[0]
 
+        # Walk MRO to find a generic base Response[T]
         for candidate in (response_cls, *response_cls.__mro__[1:]):
             if not isinstance(candidate, type):
                 continue
@@ -563,6 +618,7 @@ class HttpResolver(APIGatewayHttpResolver):
                 if args:
                     return args[0]
 
+            # Some tools put generic metadata on intermediate classes
             meta = getattr(candidate, "__pydantic_generic_metadata__", None)
             args = meta.get("args", ()) if meta else ()
             if args:
@@ -609,7 +665,7 @@ class HttpResolver(APIGatewayHttpResolver):
         if not body_types:
             return NoneType
 
-        union = body_types[0]
+        union: Any = body_types[0]
         for body_type in body_types[1:]:
             union = union | body_type
 
@@ -618,13 +674,13 @@ class HttpResolver(APIGatewayHttpResolver):
         return union
 
     @classmethod
-    def _normalize[T: Callable[..., Any]](cls, func: T) -> T:
+    def _normalize(cls, func: Callable[..., Any]) -> Callable[..., Any]:
         original_annotation = get_type_hints(func, include_extras=True).get("return")
         normalized_return = BaseResponse[cls._union(original_annotation)]
         sig = signature(func).replace(return_annotation=normalized_return)
 
         @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             return func(*args, **kwargs)
 
         wrapper.__signature__ = sig  # type: ignore[attr-defined]
@@ -632,4 +688,4 @@ class HttpResolver(APIGatewayHttpResolver):
         wrapper.__annotations__["return"] = normalized_return
         setattr(wrapper, "__original_return_annotation__", original_annotation)
 
-        return wrapper  # type: ignore[return-value]
+        return wrapper

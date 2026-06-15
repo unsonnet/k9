@@ -4,16 +4,17 @@ from shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from shared.http import HttpResolver
+from shared.helpers import require_admin, require_owner
+from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Created, NoContent
+from shared.provider.user import generate_id, generate_password
 
 from .models import Request, Response
-from .provider import CognitoUserProvider as UserProvider
-from .service import UserService
+from .provider import CognitoUserProvider, UserProvider
 
 app = HttpResolver(strip_prefixes=["/user"], enable_validation=True)
-svc = UserService(UserProvider())
+provider: UserProvider = CognitoUserProvider()
 
 
 @app.get(
@@ -29,10 +30,17 @@ svc = UserService(UserProvider())
     },
 )
 def list(
+    caller: Caller,
     request: Request.List,
 ) -> OK[Response.Page] | Unauthorized | Forbidden | TooManyRequests:
     try:
-        return OK(svc.list(app.caller(), request))
+        require_admin(caller)
+        page = provider.list_users(
+            q=request.q,
+            limit=request.limit or 25,
+            cursor=request.cursor,
+        )
+        return OK(Response.Page.pack(page))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -54,10 +62,19 @@ def list(
     },
 )
 def create(
+    caller: Caller,
     request: Request.Create,
 ) -> Created[Response.Credentials] | Unauthorized | Forbidden | TooManyRequests:
     try:
-        return Created(svc.create(app.caller(), request))
+        require_admin(caller)
+        creds = provider.create_user(
+            id=generate_id(),
+            name=request.name,
+            password=generate_password(),
+            role=request.role,
+            enabled=request.enabled,
+        )
+        return Created(Response.Credentials.pack(creds))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -84,10 +101,15 @@ def create(
     },
 )
 def read(
+    caller: Caller,
     request: Request.Read,
 ) -> OK[Response.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        return OK(svc.read(app.caller(), request))
+        require_owner(caller, request.id)
+        user = provider.read_user(
+            id=request.id if request.id != "me" else caller.id,
+        )
+        return OK(Response.User.pack(user))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -116,10 +138,21 @@ def read(
     },
 )
 def update(
+    caller: Caller,
     request: Request.Update,
 ) -> OK[Response.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        return OK(svc.update(app.caller(), request))
+        require_owner(caller, request.id)
+        if request.id in ["me", caller.id]:
+            if request.role is not None or request.enabled is not None:
+                raise DomainForbidden("Cannot update own `role` or `enabled` status")
+        user = provider.update_user(
+            id=request.id if request.id != "me" else caller.id,
+            name=request.name,
+            role=request.role,
+            enabled=request.enabled,
+        )
+        return OK(Response.User.pack(user))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -143,10 +176,17 @@ def update(
     },
 )
 def delete(
+    caller: Caller,
     request: Request.Delete,
 ) -> NoContent | Unauthorized | Forbidden | TooManyRequests:
     try:
-        return NoContent(svc.delete(app.caller(), request))
+        require_admin(caller)
+        if request.id in ["me", caller.id]:
+            raise DomainForbidden("Cannot delete own user profile")
+        provider.delete_user(
+            id=request.id,
+        )
+        return NoContent()
     except DomainNotFound:
         return NoContent()
     except DomainUnauthorized as exc:
@@ -175,10 +215,18 @@ def delete(
     },
 )
 def picture(
+    caller: Caller,
     request: Request.Picture,
 ) -> OK[Response.UploadForm] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        return OK(svc.picture(app.caller(), request))
+        require_owner(caller, request.id)
+        form = provider.generate_upload_form(
+            id=request.id if request.id != "me" else caller.id,
+            content_type=request.contentType,
+            max_bytes=5 * 1024 * 1024,
+            max_seconds=5 * 60,
+        )
+        return OK(Response.UploadForm.pack(form))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -207,10 +255,16 @@ def picture(
     },
 )
 def reset(
+    caller: Caller,
     request: Request.Reset,
 ) -> OK[Response.Credentials] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        return OK(svc.reset(app.caller(), request))
+        require_admin(caller)
+        creds = provider.reset_user(
+            id=request.id if request.id != "me" else caller.id,
+            password=generate_password(),
+        )
+        return OK(Response.Credentials.pack(creds))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:

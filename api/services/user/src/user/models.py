@@ -1,30 +1,61 @@
 from datetime import datetime
-from typing import Any, Mapping, Self, Sequence
+from typing import Self
 
-from pydantic import HttpUrl, StrictBool, field_validator
-from shared.abc import ApiModel, DataModel, Role
-from shared.errors import DomainInvariantViolation
-from shared.helpers import dt
-from shared.http import Body, ImageMIMEType, Path, Query
-from shared.providers.opensearch import sanitize_query
-from shared.providers.user import (
-    decode_id,
-    normalize_name,
-    validate_id,
-    validate_name,
-)
+from pydantic import BaseModel, HttpUrl, StrictBool, field_validator
+from shared.http import ImageMIMEType, Role
+from shared.http.requests import Body, Path, Query
+from shared.provider.opensearch import sanitize_query
+from shared.provider.user import normalize_name, validate_id, validate_name
 
 __all__ = [
+    "User",
+    "UserSummary",
+    "Page",
+    "Credentials",
+    "UploadForm",
     "Request",
     "Response",
 ]
+
+
+class User(BaseModel, frozen=True):
+    id: str
+    name: str
+    picture: HttpUrl
+    role: Role
+    enabled: bool
+    created_at: datetime
+    updated_at: datetime | None = None
+    last_login_at: datetime | None = None
+
+
+class UserSummary(BaseModel, frozen=True):
+    id: str
+    name: str
+    picture: HttpUrl
+
+
+class Page(BaseModel, frozen=True):
+    users: list[UserSummary]
+    cursor: str | None = None
+
+
+class Credentials(BaseModel, frozen=True):
+    id: str
+    name: str
+    password: str
+
+
+class UploadForm(BaseModel, frozen=True):
+    url: str
+    fields: dict[str, str]
 
 
 # ──── Request Payloads ────────────────────────────────────────────────────────────────
 
 
 class Request:
-    class List(ApiModel, frozen=True):
+    class List(BaseModel, frozen=True):
         q: Query[str | None] = None
         limit: Query[int | None] = None
         cursor: Query[str | None] = None
@@ -37,9 +68,9 @@ class Request:
         @field_validator("limit")
         @classmethod
         def clamp_limit(cls, value: int | None) -> int | None:
-            return max(min(value, 60), 0) if value is not None else None
+            return max(min(value, 60), 1) if value is not None else None
 
-    class Create(ApiModel, frozen=True):
+    class Create(BaseModel, frozen=True):
         name: Body[str]
         role: Body[Role]
         enabled: Body[StrictBool] = True
@@ -49,7 +80,7 @@ class Request:
         def validate_name(cls, value: str) -> str:
             return validate_name(normalize_name(value))
 
-    class Read(ApiModel, frozen=True):
+    class Read(BaseModel, frozen=True):
         id: Path[str]
 
         @field_validator("id")
@@ -57,7 +88,7 @@ class Request:
         def validate_id(cls, value: str) -> str:
             return value if value == "me" else validate_id(value)
 
-    class Update(ApiModel, frozen=True):
+    class Update(BaseModel, frozen=True):
         id: Path[str]
         name: Body[str | None] = None
         role: Body[Role | None] = None
@@ -73,7 +104,7 @@ class Request:
         def validate_name(cls, value: str | None) -> str | None:
             return validate_name(normalize_name(value)) if value else None
 
-    class Delete(ApiModel, frozen=True):
+    class Delete(BaseModel, frozen=True):
         id: Path[str]
 
         @field_validator("id")
@@ -81,7 +112,7 @@ class Request:
         def validate_id(cls, value: str) -> str:
             return validate_id(value)
 
-    class Picture(ApiModel, frozen=True):
+    class Picture(BaseModel, frozen=True):
         id: Path[str]
         contentType: Body[ImageMIMEType]
 
@@ -90,7 +121,7 @@ class Request:
         def validate_id(cls, value: str) -> str:
             return value if value == "me" else validate_id(value)
 
-    class Reset(ApiModel, frozen=True):
+    class Reset(BaseModel, frozen=True):
         id: Path[str]
 
         @field_validator("id")
@@ -99,128 +130,11 @@ class Request:
             return value if value == "me" else validate_id(value)
 
 
-# ──── Provider Models ─────────────────────────────────────────────────────────────────
-
-
-class Provider:
-    @staticmethod
-    def _unpack(response: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
-        attrs = {attr["Name"]: attr["Value"] for attr in response}
-        attrs.setdefault("custom:last_login_at", None)
-        return attrs
-
-    class User(DataModel, frozen=True):
-        id: str
-        name: str
-        picture: HttpUrl
-        role: Role
-        enabled: bool
-        created_at: datetime
-        updated_at: datetime | None = None
-        last_login_at: datetime | None = None
-
-        @classmethod
-        def from_cognito(cls, response: Mapping[str, Any]) -> Self:
-            response = dict(response)
-            response.setdefault("UserLastModifiedDate", None)
-            match response:
-                case {
-                    "Username": str(xid),
-                    "Enabled": bool(enabled),
-                    "UserCreateDate": datetime() as created_at,
-                    "UserLastModifiedDate": datetime() | None as updated_at,
-                    "UserAttributes": Sequence() as attrs,
-                }:
-                    match Provider._unpack(attrs):
-                        case {
-                            "name": str(name),
-                            "picture": str(picture),
-                            "custom:role": Role.USER | Role.ADMIN as role,
-                            "custom:last_login_at": datetime() | None as last_login_at,
-                        }:
-                            return cls(
-                                id=decode_id(xid),
-                                name=name,
-                                picture=HttpUrl(picture),
-                                role=Role(role),
-                                enabled=enabled,
-                                created_at=dt(created_at),
-                                updated_at=dt(updated_at),
-                                last_login_at=dt(last_login_at),
-                            )
-            raise DomainInvariantViolation(f"Unexpected cognito profile: {response}")
-
-    class UserSummary(DataModel, frozen=True):
-        id: str
-        name: str
-        picture: HttpUrl
-
-        @classmethod
-        def from_cognito(cls, response: Mapping[str, Any]) -> Self:
-            match dict(response):
-                case {
-                    "Username": str(xid),
-                    "Attributes": Sequence() as attrs,
-                }:
-                    match Provider._unpack(attrs):
-                        case {
-                            "name": str(name),
-                            "picture": str(picture),
-                        }:
-                            return cls(
-                                id=decode_id(xid),
-                                name=name,
-                                picture=HttpUrl(picture),
-                            )
-            raise DomainInvariantViolation(f"Unexpected cognito profile: {response}")
-
-    class Page(DataModel, frozen=True):
-        users: list["Provider.UserSummary"]
-        cursor: str | None = None
-
-        @classmethod
-        def from_cognito(cls, response: Mapping[str, Any]) -> Self:
-            response = dict(response)
-            response.setdefault("PaginationToken", None)
-            match response:
-                case {
-                    "Users": list(users),
-                    "PaginationToken": str() | None as cursor,
-                }:
-                    return cls(
-                        users=[Provider.UserSummary.from_cognito(raw) for raw in users],
-                        cursor=cursor,
-                    )
-            raise DomainInvariantViolation(f"Unexpected cognito page: {response}")
-
-    class Credentials(DataModel, frozen=True):
-        id: str
-        name: str
-        password: str
-
-    class UploadForm(DataModel, frozen=True):
-        url: str
-        fields: dict[str, str]
-
-        @classmethod
-        def from_cognito(cls, response: Mapping[str, Any]) -> Self:
-            match response:
-                case {
-                    "url": str(url),
-                    "fields": dict(fields),
-                }:
-                    return cls(
-                        url=url,
-                        fields=fields,
-                    )
-            raise DomainInvariantViolation(f"Unexpected s3 upload form: {response}")
-
-
 # ──── Response Payloads ───────────────────────────────────────────────────────────────
 
 
 class Response:
-    class User(ApiModel, frozen=True):
+    class User(BaseModel, frozen=True):
         id: str
         name: str
         picture: HttpUrl
@@ -231,7 +145,7 @@ class Response:
         lastLoginAt: datetime | None = None
 
         @classmethod
-        def from_provider(cls, user: Provider.User) -> Self:
+        def pack(cls, user: User) -> Self:
             return cls(
                 id=user.id,
                 name=user.name,
@@ -243,49 +157,49 @@ class Response:
                 lastLoginAt=user.last_login_at,
             )
 
-    class UserSummary(ApiModel, frozen=True):
+    class UserSummary(BaseModel, frozen=True):
         id: str
         name: str
         picture: HttpUrl
 
         @classmethod
-        def from_provider(cls, user: Provider.UserSummary) -> Self:
+        def pack(cls, user: UserSummary) -> Self:
             return cls(
                 id=user.id,
                 name=user.name,
                 picture=user.picture,
             )
 
-    class Page(ApiModel, frozen=True):
+    class Page(BaseModel, frozen=True):
         users: list["Response.UserSummary"]
         cursor: str | None = None
 
         @classmethod
-        def from_provider(cls, page: Provider.Page) -> Self:
+        def pack(cls, page: Page) -> Self:
             return cls(
-                users=[Response.UserSummary.from_provider(user) for user in page.users],
+                users=[Response.UserSummary.pack(user) for user in page.users],
                 cursor=page.cursor,
             )
 
-    class Credentials(ApiModel, frozen=True):
+    class Credentials(BaseModel, frozen=True):
         id: str
         name: str
         password: str
 
         @classmethod
-        def from_provider(cls, creds: Provider.Credentials) -> Self:
+        def pack(cls, creds: Credentials) -> Self:
             return cls(
                 id=creds.id,
                 name=creds.name,
                 password=creds.password,
             )
 
-    class UploadForm(ApiModel, frozen=True):
+    class UploadForm(BaseModel, frozen=True):
         url: str
         fields: dict[str, str]
 
         @classmethod
-        def from_provider(cls, upload: Provider.UploadForm) -> Self:
+        def pack(cls, upload: UploadForm) -> Self:
             return cls(
                 url=upload.url,
                 fields=upload.fields,

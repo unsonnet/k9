@@ -1,19 +1,26 @@
 from enum import StrEnum
-from typing import Any, Mapping, Self
-from urllib.parse import quote
+from typing import Self
 
-from pydantic import Field, field_validator, model_validator
-from shared.abc import ApiModel, DataModel
-from shared.errors import DomainInvariantViolation
+from pydantic import BaseModel, Field, field_validator, model_validator
 from shared.http.requests import Body
-from shared.providers.auth import validate_session, validate_token
-from shared.providers.user import normalize_name, validate_name, validate_password
+from shared.provider.auth import validate_session, validate_token
+from shared.provider.user import normalize_name, validate_name, validate_password
 
 __all__ = [
+    "Tokens",
+    "ChallengeKey",
+    "Challenge",
+    "MFA",
     "Request",
     "Response",
-    "ChallengeKey",
 ]
+
+
+class Tokens(BaseModel, frozen=True):
+    access_token: str
+    expires_in: int
+    refresh_token: str
+    id_token: str
 
 
 class ChallengeKey(StrEnum):
@@ -21,11 +28,21 @@ class ChallengeKey(StrEnum):
     MFA = "MFA"
 
 
+class Challenge(BaseModel, frozen=True):
+    session: str
+    challenge: ChallengeKey
+
+
+class MFA(BaseModel, frozen=True):
+    secret: str
+    url: str
+
+
 # ──── Request Payloads ────────────────────────────────────────────────────────────────
 
 
 class Request:
-    class Login(ApiModel, frozen=True):
+    class Login(BaseModel, frozen=True):
         name: Body[str]
         password: Body[str]
 
@@ -39,7 +56,7 @@ class Request:
         def validate_password(cls, value: str) -> str:
             return validate_password(value)
 
-    class Challenge(ApiModel, frozen=True):
+    class Challenge(BaseModel, frozen=True):
         session: Body[str]
         challenge: Body[ChallengeKey]
         response: Body[dict[str, str]] = Field(min_length=1)
@@ -58,10 +75,10 @@ class Request:
                 value["password"] = validate_password(value["password"])
             return value
 
-    class Verify(ApiModel, frozen=True):
+    class Verify(BaseModel, frozen=True):
         code: Body[str] = Field(min_length=1)
 
-    class Refresh(ApiModel, frozen=True):
+    class Refresh(BaseModel, frozen=True):
         refreshToken: Body[str]
 
         @field_validator("refreshToken")
@@ -69,7 +86,7 @@ class Request:
         def validate_token(cls, value: str) -> str:
             return validate_token(value)
 
-    class Logout(ApiModel, frozen=True):
+    class Logout(BaseModel, frozen=True):
         accessToken: Body[str | None] = None
         refreshToken: Body[str | None] = None
 
@@ -86,87 +103,18 @@ class Request:
             return self
 
 
-# ──── Provider Models ─────────────────────────────────────────────────────────────────
-
-
-class Provider:
-    class Tokens(DataModel, frozen=True):
-        access_token: str
-        expires_in: int
-        refresh_token: str
-        id_token: str
-
-        @classmethod
-        def from_cognito(cls, response: Mapping[str, Any]) -> Self:
-            match response:
-                case {
-                    "AuthenticationResult": {
-                        "AccessToken": str(access_token),
-                        "ExpiresIn": int(expires_in),
-                        "RefreshToken": str(refresh_token),
-                        "IdToken": str(id_token),
-                    }
-                }:
-                    return cls(
-                        access_token=access_token,
-                        expires_in=expires_in,
-                        refresh_token=refresh_token,
-                        id_token=id_token,
-                    )
-            raise DomainInvariantViolation(f"Unexpected cognito tokens: {response}")
-
-    class Challenge(DataModel, frozen=True):
-        session: str
-        challenge: ChallengeKey
-
-        @classmethod
-        def from_cognito(cls, response: Mapping[str, Any]) -> Self:
-            match response:
-                case {"Session": str(session), "ChallengeName": str(challenge)}:
-                    match challenge:
-                        case "NEW_PASSWORD_REQUIRED":
-                            return cls(
-                                session=session,
-                                challenge=ChallengeKey.NEW_PASSWORD,
-                            )
-                        case "SOFTWARE_TOKEN_MFA":
-                            return cls(
-                                session=session,
-                                challenge=ChallengeKey.MFA,
-                            )
-            raise DomainInvariantViolation(f"Unexpected cognito challenge: {response}")
-
-    class MFA(DataModel, frozen=True):
-        secret: str
-        url: str
-
-        @classmethod
-        def from_cognito(cls, response: Mapping[str, Any], *, name: str) -> Self:
-            match response:
-                case {
-                    "SecretCode": str(secret),
-                }:
-                    issuer = quote("Amazon Web Services")
-                    label = f"{issuer}:{quote(f'K9 - {name}')}"
-                    return cls(
-                        secret=secret,
-                        url=f"otpauth://totp/{label}?secret={secret}&issuer={issuer}",
-                    )
-            raise DomainInvariantViolation(f"Unexpected cognito MFA: {response}")
-
-
 # ──── Response Payloads ───────────────────────────────────────────────────────────────
 
 
 class Response:
-    class Tokens(ApiModel, frozen=True):
+    class Tokens(BaseModel, frozen=True):
         accessToken: str
         expiresIn: int
         refreshToken: str | None = None
         idToken: str | None = None
 
         @classmethod
-        def from_provider(cls, tokens: Provider.Tokens):
+        def pack(cls, tokens: Tokens) -> Self:
             return cls(
                 accessToken=tokens.access_token,
                 expiresIn=tokens.expires_in,
@@ -174,23 +122,23 @@ class Response:
                 idToken=tokens.id_token,
             )
 
-    class Challenge(ApiModel, frozen=True):
+    class Challenge(BaseModel, frozen=True):
         session: str
         challenge: ChallengeKey
 
         @classmethod
-        def from_provider(cls, challenge: Provider.Challenge):
+        def pack(cls, challenge: Challenge) -> Self:
             return cls(
                 session=challenge.session,
                 challenge=challenge.challenge,
             )
 
-    class MFA(ApiModel, frozen=True):
+    class MFA(BaseModel, frozen=True):
         secret: str
         url: str
 
         @classmethod
-        def from_provider(cls, mfa: Provider.MFA):
+        def pack(cls, mfa: MFA) -> Self:
             return cls(
                 secret=mfa.secret,
                 url=mfa.url,
