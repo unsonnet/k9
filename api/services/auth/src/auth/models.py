@@ -1,10 +1,10 @@
 from enum import StrEnum
 from typing import Self
 
-from pydantic import BaseModel, Field, field_validator, model_validator
-from shared.http.requests import Body
+from pydantic import BaseModel, Field, field_validator
+from shared.http.requests import Body, Path
 from shared.provider.auth import validate_session, validate_token
-from shared.provider.user import normalize_name, validate_name, validate_password
+from shared.provider.user import validate_id, validate_name, validate_password
 
 __all__ = [
     "Tokens",
@@ -49,7 +49,7 @@ class Request:
         @field_validator("name")
         @classmethod
         def validate_name(cls, value: str) -> str:
-            return validate_name(normalize_name(value))
+            return validate_name(value)
 
         @field_validator("password")
         @classmethod
@@ -70,7 +70,7 @@ class Request:
         @classmethod
         def validate_response(cls, value: dict[str, str]) -> dict[str, str]:
             if "name" in value:
-                value["name"] = validate_name(normalize_name(value["name"]))
+                value["name"] = validate_name(value["name"])
             if "password" in value:
                 value["password"] = validate_password(value["password"])
             return value
@@ -87,20 +87,12 @@ class Request:
             return validate_token(value)
 
     class Logout(BaseModel, frozen=True):
-        accessToken: Body[str | None] = None
-        refreshToken: Body[str | None] = None
+        id: Path[str]
 
-        @field_validator("accessToken", "refreshToken")
+        @field_validator("id")
         @classmethod
-        def validate_token(cls, value: str | None) -> str | None:
-            return validate_token(value) if value is not None else None
-
-        @model_validator(mode="after")
-        def verify_has_token(self) -> Self:
-            match self.accessToken, self.refreshToken:
-                case (None, None) | (str(), str()):
-                    raise ValueError("Either access token or refresh token is required")
-            return self
+        def validate_id(cls, value: str) -> str:
+            return value if value == "me" else validate_id(value)
 
 
 # ──── Response Payloads ───────────────────────────────────────────────────────────────
@@ -110,8 +102,8 @@ class Response:
     class Tokens(BaseModel, frozen=True):
         accessToken: str
         expiresIn: int
-        refreshToken: str | None = None
-        idToken: str | None = None
+        refreshToken: str | None
+        idToken: str | None
 
         @classmethod
         def pack(cls, tokens: Tokens) -> Self:

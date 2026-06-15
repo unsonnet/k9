@@ -1,11 +1,8 @@
-import base64
 import re
 import unicodedata
 from secrets import SystemRandom
 from string import ascii_lowercase, ascii_uppercase, digits
 from typing import Final
-
-from shared.errors import DomainInvariantViolation
 
 _RANDOM: Final = SystemRandom()
 
@@ -13,7 +10,6 @@ _RANDOM: Final = SystemRandom()
 # ──── ID ──────────────────────────────────────────────────────────────────────────────
 
 
-_ID_PREFIX: Final = "id:"
 _ID_LENGTH: Final = 6
 _ID_RE: Final = re.compile(r"^[a-z]{3}\d{3}$")
 
@@ -22,16 +18,6 @@ def generate_id() -> str:
     id = "".join(_RANDOM.choice(ascii_lowercase) for _ in range(3))
     id += "".join(_RANDOM.choice(digits) for _ in range(3))
     return validate_id(id)
-
-
-def encode_id(id: str) -> str:
-    return f"{_ID_PREFIX}{id}"
-
-
-def decode_id(xid: str) -> str:
-    if not xid.startswith(_ID_PREFIX):
-        raise DomainInvariantViolation(f"Unexpected Cognito user id format: {xid}")
-    return xid.removeprefix(_ID_PREFIX)
 
 
 def validate_id(id: str) -> str:
@@ -45,9 +31,8 @@ def validate_id(id: str) -> str:
 # ──── Name ────────────────────────────────────────────────────────────────────────────
 
 
-_NAME_PREFIX: Final = "name:"
 _NAME_MIN: Final = 1
-_NAME_MAX: Final = 2048
+_NAME_MAX: Final = 1024
 
 
 def normalize_name(name: str) -> str:
@@ -55,21 +40,10 @@ def normalize_name(name: str) -> str:
     return re.sub(r"\s+", " ", name.strip()).casefold()
 
 
-def encode_name(name: str) -> str:
-    return f"{_NAME_PREFIX}{base64.b64encode(name.encode()).decode('ascii')}"
-
-
-def decode_name(xname: str) -> str:
-    if not xname.startswith(_NAME_PREFIX):
-        raise DomainInvariantViolation(f"Unexpected Cognito user name format: {xname}")
-    return base64.b64decode(xname.removeprefix(_NAME_PREFIX)).decode()
-
-
 def validate_name(name: str) -> str:
+    name = normalize_name(name)
     if not _NAME_MIN <= len(name) <= _NAME_MAX:
         raise ValueError(f"name must be {_NAME_MIN}-{_NAME_MAX} characters")
-    if len(encode_name(name)) > _NAME_MAX:
-        raise ValueError(f"encoded name cannot exceed {_NAME_MAX} characters")
     return name
 
 

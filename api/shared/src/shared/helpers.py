@@ -26,6 +26,7 @@ def require_admin(caller: Caller) -> None:
         raise DomainForbidden("Admin role required")
 
 
-def require_owner(caller: Caller, owner_id: str) -> None:
-    if not caller.is_admin and owner_id not in {"me", caller.id}:
+def require_admin_or_self(caller: Caller, id: str) -> str:
+    if not caller.is_admin and id not in {"me", caller.id}:
         raise DomainForbidden("Cannot access another user's resource")
+    return caller.id if id == "me" else id

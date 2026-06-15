@@ -33,7 +33,6 @@ from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
 from ..errors import DomainInvalidTokens
-from ..provider.user import decode_id
 from .errors import (
     InternalServerError,
     MethodNotAllowed,
@@ -105,32 +104,36 @@ class HttpResolver(APIGatewayHttpResolver):
 
     # ─── Auth Context ──────────────────────────────────────────────────────────
 
-    def claims(self) -> Mapping[str, Any]:
+    def _claims(self) -> Mapping[str, Any]:
         try:
             return self.current_event.request_context.authorizer["jwt"]["claims"]
         except (AttributeError, KeyError, TypeError) as exc:
             raise DomainInvalidTokens("Missing JWT claims") from exc
 
-    def access_token(self) -> str:
+    def _access_token(self) -> str:
         try:
             token = self.current_event.headers["authorization"]
         except (AttributeError, KeyError, TypeError) as exc:
             raise DomainInvalidTokens("Missing bearer token") from exc
-
         return token.removeprefix("Bearer ").strip()
 
+    def _decode_id(self, xid: str) -> str:
+        if not xid.startswith("id:"):
+            raise DomainInvalidTokens(f"Invalid id format: {xid}")
+        return xid.removeprefix("id:")
+
     def caller(self) -> Caller:
-        match self.claims():
+        match self._claims():
             case {
                 "cognito:username": str(xid),
                 "cognito:name": str(name),
                 "custom:role": Role.USER | Role.ADMIN as role,
             }:
                 return Caller(
-                    id=decode_id(xid),
+                    id=self._decode_id(xid),
                     name=name,
                     role=role,
-                    token=self.access_token(),
+                    token=self._access_token(),
                 )
 
         raise DomainInvalidTokens("Missing required JWT claims")

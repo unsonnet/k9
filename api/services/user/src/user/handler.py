@@ -4,7 +4,7 @@ from shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from shared.helpers import require_admin, require_owner
+from shared.helpers import require_admin, require_admin_or_self
 from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Created, NoContent
@@ -105,9 +105,9 @@ def read(
     request: Request.Read,
 ) -> OK[Response.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        require_owner(caller, request.id)
+        user_id = require_admin_or_self(caller, request.id)
         user = provider.read_user(
-            id=request.id if request.id != "me" else caller.id,
+            id=user_id,
         )
         return OK(Response.User.pack(user))
     except DomainUnauthorized as exc:
@@ -142,12 +142,12 @@ def update(
     request: Request.Update,
 ) -> OK[Response.User] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        require_owner(caller, request.id)
-        if request.id in ["me", caller.id]:
+        user_id = require_admin_or_self(caller, request.id)
+        if caller.id == user_id:
             if request.role is not None or request.enabled is not None:
                 raise DomainForbidden("Cannot update own `role` or `enabled` status")
         user = provider.update_user(
-            id=request.id if request.id != "me" else caller.id,
+            id=user_id,
             name=request.name,
             role=request.role,
             enabled=request.enabled,
@@ -219,9 +219,9 @@ def picture(
     request: Request.Picture,
 ) -> OK[Response.UploadForm] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
-        require_owner(caller, request.id)
+        user_id = require_admin_or_self(caller, request.id)
         form = provider.generate_upload_form(
-            id=request.id if request.id != "me" else caller.id,
+            id=user_id,
             content_type=request.contentType,
             max_bytes=5 * 1024 * 1024,
             max_seconds=5 * 60,

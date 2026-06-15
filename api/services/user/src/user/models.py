@@ -78,7 +78,7 @@ class Request:
         @field_validator("name")
         @classmethod
         def validate_name(cls, value: str) -> str:
-            return validate_name(normalize_name(value))
+            return validate_name(value)
 
     class Read(BaseModel, frozen=True):
         id: Path[str]
@@ -102,7 +102,7 @@ class Request:
         @field_validator("name")
         @classmethod
         def validate_name(cls, value: str | None) -> str | None:
-            return validate_name(normalize_name(value)) if value else None
+            return validate_name(value) if value else None
 
     class Delete(BaseModel, frozen=True):
         id: Path[str]
@@ -141,8 +141,8 @@ class Response:
         role: Role
         enabled: StrictBool
         createdAt: datetime
-        updatedAt: datetime | None = None
-        lastLoginAt: datetime | None = None
+        updatedAt: datetime | None
+        lastLoginAt: datetime | None
 
         @classmethod
         def pack(cls, user: User) -> Self:
@@ -172,7 +172,7 @@ class Response:
 
     class Page(BaseModel, frozen=True):
         users: list["Response.UserSummary"]
-        cursor: str | None = None
+        cursor: str | None
 
         @classmethod
         def pack(cls, page: Page) -> Self:

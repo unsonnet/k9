@@ -1,4 +1,5 @@
 from shared.errors import DomainForbidden, DomainRateLimited, DomainUnauthorized
+from shared.helpers import require_admin_or_self
 from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Accepted, NoContent
@@ -92,7 +93,7 @@ def challenge(
 @app.post(
     "/mfa/setup",
     summary="Start MFA enrollment",
-    description="Start TOTP MFA enrollment for the authenticated user.",
+    description="Start TOTP MFA enrollment for the authenticated caller.",
     tags=["auth"],
     responses={
         200: "MFA setup started",
@@ -121,7 +122,7 @@ def setup(
 @app.post(
     "/mfa/verify",
     summary="Verify MFA enrollment",
-    description="Verify TOTP MFA code and enable MFA for the authenticated user.",
+    description="Verify TOTP MFA code and enable MFA for the authenticated caller.",
     tags=["auth"],
     responses={
         204: "MFA enabled",
@@ -177,9 +178,13 @@ def refresh(
 
 
 @app.post(
-    "/logout",
+    "/logout/<id>",
     summary="Logout user",
-    description="Logout user by invalidating their tokens.",
+    description=(
+        "Logout user by invalidating their tokens. "
+        "Logging out another user requires admin role. "
+        "The special id value 'me' resolves to the authenticated caller."
+    ),
     tags=["auth"],
     responses={
         204: "User logged out",
@@ -188,12 +193,13 @@ def refresh(
     },
 )
 def logout(
+    caller: Caller,
     request: Request.Logout,
 ) -> NoContent | Forbidden | TooManyRequests:
     try:
+        user_id = require_admin_or_self(caller, request.id)
         provider.revoke_tokens(
-            access_token=request.accessToken,
-            refresh_token=request.refreshToken,
+            id=user_id,
         )
         return NoContent()
     except DomainUnauthorized:

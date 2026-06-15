@@ -16,7 +16,6 @@ from shared.errors import (
     DomainRateLimited,
 )
 from shared.provider import BaseProvider, ExceptionMap, apimethod
-from shared.provider.user import encode_name
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 
 from .models import MFA, Challenge, ChallengeKey, Tokens
@@ -66,8 +65,7 @@ class AuthProvider(Protocol):
     def revoke_tokens(
         self,
         *,
-        access_token: str | None = None,
-        refresh_token: str | None = None,
+        id: str,
     ) -> None: ...
 
 
@@ -131,6 +129,14 @@ class CognitoAuthProvider(BaseProvider):
         key = self._idp_secret.encode("utf-8")
         digest = hmac.new(key, message, hashlib.sha256).digest()
         return base64.b64encode(digest).decode("utf-8")
+
+    @staticmethod
+    def _encode_id(id: str) -> str:
+        return f"id:{id}"
+
+    @staticmethod
+    def _encode_name(name: str) -> str:
+        return f"name:{base64.b64encode(name.encode()).decode('ascii')}"
 
     @classmethod
     def _tokens(cls, response: Mapping[str, Any]) -> Tokens:
@@ -200,7 +206,7 @@ class CognitoAuthProvider(BaseProvider):
         name: str,
         password: str,
     ) -> Tokens | Challenge:
-        xname = encode_name(name)
+        xname = self._encode_name(name)
         return self._result(
             self._idp.admin_initiate_auth(
                 ClientId=self._idp_id,
@@ -222,9 +228,9 @@ class CognitoAuthProvider(BaseProvider):
         challenge: ChallengeKey,
         response: dict[str, str],
     ) -> Tokens | Challenge:
+        xname = self._encode_name(response["name"])
         match challenge:
             case ChallengeKey.NEW_PASSWORD:
-                xname = encode_name(response["name"])
                 return self._result(
                     self._idp.admin_respond_to_auth_challenge(
                         ClientId=self._idp_id,
@@ -239,7 +245,6 @@ class CognitoAuthProvider(BaseProvider):
                     )
                 )
             case ChallengeKey.MFA:
-                xname = encode_name(response["name"])
                 return self._tokens(
                     self._idp.admin_respond_to_auth_challenge(
                         ClientId=self._idp_id,
@@ -306,20 +311,10 @@ class CognitoAuthProvider(BaseProvider):
     def revoke_tokens(
         self,
         *,
-        access_token: str | None = None,
-        refresh_token: str | None = None,
+        id: str,
     ) -> None:
-        match access_token, refresh_token:
-            case str() as token, None:
-                self._idp.global_sign_out(
-                    AccessToken=token,
-                )
-                return None
-            case None, str() as token:
-                self._idp.revoke_token(
-                    ClientId=self._idp_id,
-                    ClientSecret=self._idp_secret,
-                    Token=token,
-                )
-                return None
-        raise DomainInvariantViolation("Unexpected combo of access and refresh tokens")
+        self._idp.admin_user_global_sign_out(
+            UserPoolId=self._idp_pool,
+            Username=self._encode_id(id),
+        )
+        return None

@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime
 from typing import Any, Mapping, Protocol, Sequence
 
@@ -13,7 +14,6 @@ from shared.errors import (
 from shared.helpers import dt
 from shared.http import Role
 from shared.provider import BaseProvider, ExceptionMap, apimethod
-from shared.provider.user import decode_id, encode_id, encode_name
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 from types_boto3_cognito_idp.type_defs import AttributeTypeTypeDef
 from types_boto3_s3.service_resource import Bucket
@@ -126,6 +126,18 @@ class CognitoUserProvider(BaseProvider):
 
     # ──── Helper Methods ────
 
+    @staticmethod
+    def _encode_id(id: str) -> str:
+        return f"id:{id}"
+
+    @staticmethod
+    def _decode_id(xid: str) -> str:
+        return xid.removeprefix("id:")
+
+    @staticmethod
+    def _encode_name(name: str) -> str:
+        return f"name:{base64.b64encode(name.encode()).decode('ascii')}"
+
     @classmethod
     def _unpack(cls, response: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
         attrs = {attr["Name"]: attr["Value"] for attr in response}
@@ -152,7 +164,7 @@ class CognitoUserProvider(BaseProvider):
                         "custom:last_login_at": datetime() | None as last_login_at,
                     }:
                         return User(
-                            id=decode_id(xid),
+                            id=cls._decode_id(xid),
                             name=name,
                             picture=HttpUrl(picture),
                             role=Role(role),
@@ -176,7 +188,7 @@ class CognitoUserProvider(BaseProvider):
                         "picture": str(picture),
                     }:
                         return UserSummary(
-                            id=decode_id(xid),
+                            id=cls._decode_id(xid),
                             name=name,
                             picture=HttpUrl(picture),
                         )
@@ -239,12 +251,13 @@ class CognitoUserProvider(BaseProvider):
         role: Role,
         enabled: bool,
     ) -> Credentials:
-        xid = encode_id(id)
+        xid = self._encode_id(id)
+        xname = self._encode_name(name)
         self._idp.admin_create_user(
             UserPoolId=self._idp_pool,
             Username=xid,
             UserAttributes=[
-                {"Name": "preferred_username", "Value": encode_name(name)},
+                {"Name": "preferred_username", "Value": xname},
                 {"Name": "name", "Value": name},
                 {"Name": "picture", "Value": f"{self._s3_url}/users/{id}/picture.jxl"},
                 {"Name": "custom:role", "Value": role.value},
@@ -284,7 +297,7 @@ class CognitoUserProvider(BaseProvider):
         return self._user(
             self._idp.admin_get_user(
                 UserPoolId=self._idp_pool,
-                Username=encode_id(id),
+                Username=self._encode_id(id),
             )
         )
 
@@ -297,11 +310,12 @@ class CognitoUserProvider(BaseProvider):
         role: Role | None,
         enabled: bool | None,
     ) -> User:
-        xid = encode_id(id)
+        xid = self._encode_id(id)
         if name is not None or role is not None:
             attrs: list[AttributeTypeTypeDef] = []
             if name is not None:
-                attrs.append({"Name": "preferred_username", "Value": encode_name(name)})
+                xname = self._encode_name(name)
+                attrs.append({"Name": "preferred_username", "Value": xname})
                 attrs.append({"Name": "name", "Value": name})
             if role is not None:
                 attrs.append({"Name": "custom:role", "Value": role.value})
@@ -331,7 +345,7 @@ class CognitoUserProvider(BaseProvider):
     ) -> None:
         self._idp.admin_delete_user(
             UserPoolId=self._idp_pool,
-            Username=encode_id(id),
+            Username=self._encode_id(id),
         )
         return None
 
@@ -364,7 +378,7 @@ class CognitoUserProvider(BaseProvider):
         id: str,
         password: str,
     ) -> Credentials:
-        xid = encode_id(id)
+        xid = self._encode_id(id)
         self._idp.admin_set_user_password(
             UserPoolId=self._idp_pool,
             Username=xid,
