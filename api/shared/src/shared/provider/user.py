@@ -15,8 +15,7 @@ _ID_RE: Final = re.compile(r"^[a-z]{3}\d{3}$")
 
 
 def generate_id() -> str:
-    id = "".join(_RANDOM.choice(ascii_lowercase) for _ in range(3))
-    id += "".join(_RANDOM.choice(digits) for _ in range(3))
+    id = "".join(_RANDOM.choices(ascii_lowercase, k=3) + _RANDOM.choices(digits, k=3))
     return validate_id(id)
 
 
@@ -65,7 +64,7 @@ def generate_password(length: int = _PASSWORD_MIN) -> str:
         _RANDOM.choice(digits),
         _RANDOM.choice(_PASSWORD_SPECIALS),
     ]
-    chars += [_RANDOM.choice(_PASSWORD_ALPHABET) for _ in range(length - len(chars))]
+    chars += _RANDOM.choices(_PASSWORD_ALPHABET, k=length - len(chars))
     _RANDOM.shuffle(chars)
     return validate_password("".join(chars))
 

@@ -87,6 +87,7 @@ class CognitoAuthProvider(BaseProvider):
         user_pool_id: str | None = None,
     ) -> None:
         region = region or settings.aws_region
+        # cognito idp
         self._idp = boto3.client("cognito-idp", region_name=region)
         self._idp_id = client_id or settings.cognito_client_id
         self._idp_secret = client_secret or settings.cognito_client_secret

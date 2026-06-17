@@ -96,13 +96,15 @@ class CognitoUserProvider(BaseProvider):
         self,
         *,
         region: str | None = None,
+        bucket: str | None = None,
         user_pool_id: str | None = None,
-        user_bucket: str | None = None,
     ) -> None:
         region = region or settings.aws_region
+        # cognito idp
         self._idp = boto3.client("cognito-idp", region)
         self._idp_pool = user_pool_id or settings.cognito_user_pool_id
-        bucket = user_bucket or settings.s3_bucket
+        # s3
+        bucket = bucket or settings.s3_bucket
         self._s3 = boto3.resource("s3", region).Bucket(bucket)
         self._s3_url = f"https://{bucket}.s3.{region}.amazonaws.com"
 
@@ -173,7 +175,7 @@ class CognitoUserProvider(BaseProvider):
                             updated_at=dt(updated_at),
                             last_login_at=dt(last_login_at),
                         )
-        raise DomainInvariantViolation(f"Unexpected cognito profile: {response}")
+        raise DomainInvariantViolation(f"Unexpected cognito user: {response}")
 
     @classmethod
     def _user_summary(cls, response: Mapping[str, Any]) -> UserSummary:
@@ -192,7 +194,7 @@ class CognitoUserProvider(BaseProvider):
                             name=name,
                             picture=HttpUrl(picture),
                         )
-        raise DomainInvariantViolation(f"Unexpected cognito profile: {response}")
+        raise DomainInvariantViolation(f"Unexpected cognito user summary: {response}")
 
     @classmethod
     def _page(cls, response: Mapping[str, Any]) -> Page:
