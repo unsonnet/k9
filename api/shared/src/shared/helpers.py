@@ -4,7 +4,9 @@ from typing import overload
 from .errors import DomainForbidden
 from .http import Caller
 
-now = datetime.now
+
+def now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 @overload
@@ -16,7 +18,7 @@ def dt(value: datetime | str | None) -> datetime | None:
         case datetime() as dt:
             return dt.astimezone(timezone.utc)
         case str() as s:
-            return datetime.fromisoformat(s).astimezone(timezone.utc)
+            return datetime.strptime(s, "%Y-%m-%d %H:%M:%S %Z").astimezone(timezone.utc)
         case None:
             return None
 

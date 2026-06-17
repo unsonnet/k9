@@ -15,6 +15,7 @@ from shared.errors import (
     DomainNotFound,
     DomainRateLimited,
 )
+from shared.helpers import now
 from shared.provider import BaseProvider, ExceptionMap, apimethod
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 
@@ -198,6 +199,18 @@ class CognitoAuthProvider(BaseProvider):
                 )
         raise DomainInvariantViolation(f"Unexpected cognito MFA: {response}")
 
+    def _log_auth(self, xname: str) -> None:
+        self._idp.admin_update_user_attributes(
+            UserPoolId=self._idp_pool,
+            Username=xname,
+            UserAttributes=[
+                {
+                    "Name": "custom:last_login_at",
+                    "Value": now().strftime("%Y-%m-%d %H:%M:%S %z"),
+                }
+            ],
+        )
+
     # ──── API Methods ────
 
     @apimethod
@@ -208,7 +221,7 @@ class CognitoAuthProvider(BaseProvider):
         password: str,
     ) -> Tokens | Challenge:
         xname = self._encode_name(name)
-        return self._result(
+        result = self._result(
             self._idp.admin_initiate_auth(
                 ClientId=self._idp_id,
                 UserPoolId=self._idp_pool,
@@ -220,6 +233,9 @@ class CognitoAuthProvider(BaseProvider):
                 },
             )
         )
+        if isinstance(result, Tokens):
+            self._log_auth(xname)
+        return result
 
     @apimethod
     def respond_to_challenge(
@@ -232,7 +248,7 @@ class CognitoAuthProvider(BaseProvider):
         xname = self._encode_name(response["name"])
         match challenge:
             case ChallengeKey.NEW_PASSWORD:
-                return self._result(
+                result = self._result(
                     self._idp.admin_respond_to_auth_challenge(
                         ClientId=self._idp_id,
                         UserPoolId=self._idp_pool,
@@ -246,7 +262,7 @@ class CognitoAuthProvider(BaseProvider):
                     )
                 )
             case ChallengeKey.MFA:
-                return self._tokens(
+                result = self._tokens(
                     self._idp.admin_respond_to_auth_challenge(
                         ClientId=self._idp_id,
                         UserPoolId=self._idp_pool,
@@ -259,6 +275,9 @@ class CognitoAuthProvider(BaseProvider):
                         },
                     )
                 )
+        if isinstance(result, Tokens):
+            self._log_auth(xname)
+        return result
 
     @apimethod
     def setup_mfa(

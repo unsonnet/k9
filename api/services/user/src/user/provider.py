@@ -156,14 +156,14 @@ class CognitoUserProvider(BaseProvider):
                 "Enabled": bool(enabled),
                 "UserCreateDate": datetime() as created_at,
                 "UserLastModifiedDate": datetime() | None as updated_at,
-                "UserAttributes": Sequence() as attrs,
+                "UserAttributes": list(attrs),
             }:
                 match cls._unpack(attrs):
                     case {
                         "name": str(name),
                         "picture": str(picture),
                         "custom:role": Role.USER | Role.ADMIN as role,
-                        "custom:last_login_at": datetime() | None as last_login_at,
+                        "custom:last_login_at": str() | None as last_login_at,
                     }:
                         return User(
                             id=cls._decode_id(xid),
@@ -182,7 +182,7 @@ class CognitoUserProvider(BaseProvider):
         match dict(response):
             case {
                 "Username": str(xid),
-                "Attributes": Sequence() as attrs,
+                "Attributes": list(attrs),
             }:
                 match cls._unpack(attrs):
                     case {
