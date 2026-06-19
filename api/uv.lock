@@ -5,6 +5,8 @@ requires-python = ">=3.12"
 [manifest]
 members = [
     "auth",
+    "company",
+    "company-index",
     "infra",
     "k9",
     "shared",
@@ -350,6 +352,46 @@ wheels = [
 ]
 
 [[package]]
+name = "company"
+version = "0.1.0"
+source = { editable = "services/company" }
+dependencies = [
+    { name = "boto3" },
+    { name = "opensearch-py" },
+    { name = "pydantic" },
+    { name = "shared" },
+    { name = "types-boto3", extra = ["dynamodb", "geo-places", "location", "s3"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.42.85" },
+    { name = "opensearch-py", specifier = ">=3.2.0" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "shared", editable = "shared" },
+    { name = "types-boto3", extras = ["dynamodb", "geo-places", "location", "s3"], specifier = ">=1.42.85" },
+]
+
+[[package]]
+name = "company-index"
+version = "0.1.0"
+source = { editable = "workers/company_index" }
+dependencies = [
+    { name = "boto3" },
+    { name = "opensearch-py" },
+    { name = "pydantic" },
+    { name = "shared" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.42.85" },
+    { name = "opensearch-py", specifier = ">=3.2.0" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "shared", editable = "shared" },
+]
+
+[[package]]
 name = "constructs"
 version = "10.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -680,6 +722,8 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "auth" },
+    { name = "company" },
+    { name = "company-index" },
     { name = "shared" },
     { name = "user" },
 ]
@@ -698,6 +742,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "auth", editable = "services/auth" },
+    { name = "company", editable = "services/company" },
+    { name = "company-index", editable = "workers/company_index" },
     { name = "shared", editable = "shared" },
     { name = "user", editable = "services/user" },
 ]
@@ -1476,6 +1522,15 @@ wheels = [
 cognito-idp = [
     { name = "types-boto3-cognito-idp" },
 ]
+dynamodb = [
+    { name = "types-boto3-dynamodb" },
+]
+geo-places = [
+    { name = "types-boto3-geo-places" },
+]
+location = [
+    { name = "types-boto3-location" },
+]
 s3 = [
     { name = "types-boto3-s3" },
 ]
@@ -1490,6 +1545,33 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/a9/ab/893bcd36e509f23b00b903146ec653a8d9f39ff1524c1eda087373359e05/types_boto3_cognito_idp-1.42.59.tar.gz", hash = "sha256:45dbb82696e397850f663aeced3d4d6a9d3b5e660187fc83eff7f616a3c2390d", size = 52515, upload-time = "2026-02-27T20:47:12.513Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/48/3e4107f694ed42000c4e2923068157530bf40a133da0893af25f36c3fc72/types_boto3_cognito_idp-1.42.59-py3-none-any.whl", hash = "sha256:f178ff6cf548ab3d4a6c64ba76c3a822a4347734e9cedfaef940a03d2e0cfc1f", size = 58343, upload-time = "2026-02-27T20:47:09.358Z" },
+]
+
+[[package]]
+name = "types-boto3-dynamodb"
+version = "1.42.73"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/7a/4d/c4b0f04720dcc42d0347e3a1adb8372baef3289ab7db323c7460d2d45b10/types_boto3_dynamodb-1.42.73.tar.gz", hash = "sha256:a841b700814be9572b1e67e6f685535face6ee1bb548d9bf0fe2c5348b332d51", size = 48513, upload-time = "2026-03-20T19:59:26.047Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/20/36/f0b20ea062f692117c1942dfa1802b87f7d1f0588a48e9de8951f8850f34/types_boto3_dynamodb-1.42.73-py3-none-any.whl", hash = "sha256:6e9fd547504dd6e8a9befcf73b32c97a59c59672b0feb961a06feded9eefd19b", size = 58607, upload-time = "2026-03-20T19:59:23.793Z" },
+]
+
+[[package]]
+name = "types-boto3-geo-places"
+version = "1.42.82"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/11/4ce9353b84025427e125eedf328d9e7ff6f7fcedb639cc3698b3838a8efe/types_boto3_geo_places-1.42.82.tar.gz", hash = "sha256:315e75593e8ff0da937fcee25f2aa16862bba384ffb3de0ab8d39fcdc10c9f69", size = 19169, upload-time = "2026-04-02T19:58:30.007Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/46/9a/8c54f3f65e3797dfd68ae61e99cf3b0c8ab7a9bb3c21b57762401f4217c7/types_boto3_geo_places-1.42.82-py3-none-any.whl", hash = "sha256:3e949a74efcdf07e7fd427434df971a14d621531347a4c5c733991b10ec4ff13", size = 25160, upload-time = "2026-04-02T19:58:28.123Z" },
+]
+
+[[package]]
+name = "types-boto3-location"
+version = "1.42.92"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ad/62/291ac6f766b81d1e42527d11a10f7d0ad1f84c570d28c416cba451d4c647/types_boto3_location-1.42.92.tar.gz", hash = "sha256:d621a11363f580cd2d5e87849ab0ac732b1437bcb413c6f8151c998f1d511213", size = 37982, upload-time = "2026-04-20T19:55:11.852Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/58/c2/e208e56b5b03e07cd0549775a3731d6aefacc0ba057e4d50c4555d70c8f3/types_boto3_location-1.42.92-py3-none-any.whl", hash = "sha256:115dc4b088aefb6133fc6a5a9643a769ffc5d4db33fa72b7300ebd067606f7b9", size = 43974, upload-time = "2026-04-20T19:55:09.042Z" },
 ]
 
 [[package]]
