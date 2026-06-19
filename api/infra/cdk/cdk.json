@@ -13,6 +13,11 @@
         },
         "storage": {
           "S3_BUCKET_PARAMETER": "/k9/dev/storage/s3/bucket"
+        },
+        "data": {
+          "DYNAMODB_TABLE_PARAMETER": "/k9/dev/data/dynamodb/table",
+          "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/dev/data/opensearch/endpoint",
+          "OPENSEARCH_INDEX_PARAMETER": "/k9/dev/data/opensearch/index"
         }
       },
       "services": {
@@ -34,6 +39,31 @@
             "identity",
             "storage"
           ]
+        },
+        "company": {
+          "routePrefix": "/company",
+          "dockerfile": "services/company/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        }
+      },
+      "workers": {
+        "company_index": {
+          "dockerfile": "workers/company_index/Dockerfile",
+          "timeout": 60,
+          "memory": 512,
+          "shared": [
+            "data"
+          ],
+          "tableName": "k9-dev-companies",
+          "streamArnParameter": "/k9/dev/data/dynamodb/stream/companies",
+          "batchSize": 50,
+          "retryAttempts": 10
         }
       }
     },
@@ -49,6 +79,11 @@
         },
         "storage": {
           "S3_BUCKET_PARAMETER": "/k9/stage/storage/s3/bucket"
+        },
+        "data": {
+          "DYNAMODB_TABLE_PARAMETER": "/k9/stage/data/dynamodb/table",
+          "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/stage/data/opensearch/endpoint",
+          "OPENSEARCH_INDEX_PARAMETER": "/k9/stage/data/opensearch/index"
         }
       },
       "services": {
@@ -70,6 +105,31 @@
             "identity",
             "storage"
           ]
+        },
+        "company": {
+          "routePrefix": "/company",
+          "dockerfile": "services/company/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        }
+      },
+      "workers": {
+        "company_index": {
+          "dockerfile": "workers/company_index/Dockerfile",
+          "timeout": 60,
+          "memory": 512,
+          "shared": [
+            "data"
+          ],
+          "tableName": "k9-stage-companies",
+          "streamArnParameter": "/k9/stage/data/dynamodb/stream/companies",
+          "batchSize": 50,
+          "retryAttempts": 10
         }
       }
     },
@@ -85,6 +145,11 @@
         },
         "storage": {
           "S3_BUCKET_PARAMETER": "/k9/prod/storage/s3/bucket"
+        },
+        "data": {
+          "DYNAMODB_TABLE_PARAMETER": "/k9/prod/data/dynamodb/table",
+          "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/prod/data/opensearch/endpoint",
+          "OPENSEARCH_INDEX_PARAMETER": "/k9/prod/data/opensearch/index"
         }
       },
       "services": {
@@ -106,6 +171,31 @@
             "identity",
             "storage"
           ]
+        },
+        "company": {
+          "routePrefix": "/company",
+          "dockerfile": "services/company/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        }
+      },
+      "workers": {
+        "company_index": {
+          "dockerfile": "workers/company_index/Dockerfile",
+          "timeout": 60,
+          "memory": 512,
+          "shared": [
+            "data"
+          ],
+          "tableName": "k9-prod-companies",
+          "streamArnParameter": "/k9/prod/data/dynamodb/stream/companies",
+          "batchSize": 50,
+          "retryAttempts": 10
         }
       }
     },

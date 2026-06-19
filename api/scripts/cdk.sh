@@ -30,10 +30,18 @@ capitalize() {
 
 stack_name="K9Api$(capitalize "$stage")Stack"
 
+proxy_bypass_default="localhost,127.0.0.1,.amazonaws.com,.dkr.ecr.us-east-2.amazonaws.com,425688663965.dkr.ecr.us-east-2.amazonaws.com"
+proxy_bypass_value="${NO_PROXY:-${no_proxy:-$proxy_bypass_default}}"
+
+export NO_PROXY="$proxy_bypass_value"
+export no_proxy="$proxy_bypass_value"
+
 cmd=(
   uv run --project .
   cdk
   --context "stage=$stage"
+  --asset-parallelism false
+  --asset-prebuild false
 )
 
 if [[ "$action" == "deploy" ]]; then
