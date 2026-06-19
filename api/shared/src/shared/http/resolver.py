@@ -11,6 +11,7 @@ from typing import (
     Iterable,
     Mapping,
     Protocol,
+    Sequence,
     TypeGuard,
     TypeVar,
     Union,
@@ -21,6 +22,7 @@ from typing import (
     overload,
 )
 
+import boto3
 from aws_lambda_powertools.event_handler import APIGatewayHttpResolver
 from aws_lambda_powertools.event_handler import Response as BaseResponse
 from aws_lambda_powertools.event_handler.api_gateway import (
@@ -33,9 +35,10 @@ from aws_lambda_powertools.event_handler.openapi.exceptions import (
 from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
+from types_boto3_cognito_idp import CognitoIdentityProviderClient
 
-from ..config import GrantSpec, RouteSpec
-from ..errors import DomainInvalidTokens
+from ..config import GrantSpec, RouteSpec, settings
+from ..errors import DomainInvalidTokens, DomainInvariantViolation
 from .errors import (
     InternalServerError,
     MethodNotAllowed,
@@ -90,11 +93,15 @@ class RouteDecorator(Protocol):
 
 
 class HttpResolver(APIGatewayHttpResolver):
+    _idp: CognitoIdentityProviderClient
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("enable_validation", True)
         super().__init__(*args, **kwargs)
         self._route_specs: list[RouteSpec] = []
         self._grant_specs: list[GrantSpec] = []
+        self._idp = boto3.client("cognito-idp", region_name=settings.aws_region)
+        self.grant("cognito-idp:GetUser", resources=("cognito-user-pool",))
 
         # Validation / routing error handling
         super().exception_handler(RequestValidationError)(
@@ -109,12 +116,6 @@ class HttpResolver(APIGatewayHttpResolver):
 
     # ─── Auth Context ─────────────────────────────────────────────────────────────────
 
-    def _claims(self) -> Mapping[str, Any]:
-        try:
-            return self.current_event.request_context.authorizer["jwt"]["claims"]
-        except (AttributeError, KeyError, TypeError) as exc:
-            raise DomainInvalidTokens("Missing JWT claims") from exc
-
     def _access_token(self) -> str:
         try:
             token = self.current_event.headers["authorization"]
@@ -122,25 +123,43 @@ class HttpResolver(APIGatewayHttpResolver):
             raise DomainInvalidTokens("Missing bearer token") from exc
         return token.removeprefix("Bearer ").strip()
 
-    def _decode_id(self, xid: str) -> str:
+    @staticmethod
+    def _unpack(response: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+        attrs = {attr["Name"]: attr["Value"] for attr in response}
+        attrs.setdefault("custom:last_login_at", None)
+        return attrs
+
+    @staticmethod
+    def _decode_id(xid: str) -> str:
         if not xid.startswith("id:"):
-            raise DomainInvalidTokens(f"Invalid id format: {xid}")
+            raise DomainInvariantViolation(f"Invalid id format: {xid}")
         return xid.removeprefix("id:")
 
     def caller(self) -> Caller:
-        match self._claims():
+        token = self._access_token()
+        try:
+            response = self._idp.get_user(AccessToken=token)
+        except self._idp.exceptions.NotAuthorizedException as exc:
+            raise DomainInvariantViolation("Invalid access token") from exc
+        except self._idp.exceptions.UserNotFoundException as exc:
+            raise DomainInvariantViolation("Unknown user for access token") from exc
+        match response:
             case {
-                "cognito:username": str(xid),
-                "cognito:name": str(name),
-                "custom:role": Role.USER | Role.ADMIN as role,
+                "Username": str(xid),
+                "UserAttributes": list(attrs),
             }:
-                return Caller(
-                    id=self._decode_id(xid),
-                    name=name,
-                    role=role,
-                    token=self._access_token(),
-                )
-        raise DomainInvalidTokens("Missing required JWT claims")
+                match self._unpack(attrs):
+                    case {
+                        "name": str(name),
+                        "custom:role": Role.USER | Role.ADMIN as role,
+                    }:
+                        return Caller(
+                            id=self._decode_id(xid),
+                            name=name,
+                            role=Role(role),
+                            token=token,
+                        )
+        raise DomainInvariantViolation(f"Unexpected cognito caller: {response}")
 
     # ─── Manifest ─────────────────────────────────────────────────────────────────────
 
