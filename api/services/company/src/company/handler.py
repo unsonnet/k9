@@ -15,6 +15,7 @@ from .provider import CompanyProvider, DynamoDBCompanyProvider
 
 app = HttpResolver(strip_prefixes=["/company"], enable_validation=True)
 provider: CompanyProvider = DynamoDBCompanyProvider()
+app.grant(*provider.permissions)
 
 
 @app.get(
@@ -73,6 +74,7 @@ def create(
         require_admin(caller)
         company = provider.create_company(
             id=generate_id(),
+            sector=request.sector,
             name=request.name,
             website=request.website,
             locations=request.locations,
@@ -137,6 +139,7 @@ def update(
         require_admin(caller)
         company = provider.update_company(
             id=request.id,
+            sector=request.sector,
             name=request.name,
             website=request.website,
             locations=request.locations,

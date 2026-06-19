@@ -40,9 +40,7 @@ def create_stack(scope: Construct, config: StageConfig) -> Stack:
         )
         authorizer = apigwv2_authorizers.HttpJwtAuthorizer(
             "CognitoAuthorizer",
-            jwt_issuer=(
-                f"https://cognito-idp.{config.region}.amazonaws.com/{user_pool_id}"
-            ),
+            jwt_issuer=f"https://cognito-idp.{config.region}.amazonaws.com/{user_pool_id}",
             jwt_audience=[client_id],
         )
 

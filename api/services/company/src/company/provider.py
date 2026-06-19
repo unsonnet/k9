@@ -1,13 +1,13 @@
 import base64
 import json
 from decimal import Decimal
-from typing import Any, Mapping, Protocol
+from typing import Any, Iterable, Mapping, Protocol
 
 import boto3
 from opensearchpy import OpenSearch, RequestsHttpConnection
 from opensearchpy.exceptions import NotFoundError
 from pydantic import HttpUrl
-from shared.config import settings
+from shared.config import GrantSpec, settings
 from shared.errors import DomainInvariantViolation, DomainNotFound
 from shared.helpers import dt, now
 from shared.provider import BaseProvider, ExceptionMap, apimethod
@@ -34,6 +34,9 @@ __all__ = [
 
 
 class CompanyProvider(Protocol):
+    @property
+    def permissions(self) -> Iterable[GrantSpec]: ...
+
     def list_companies(
         self,
         *,
@@ -126,6 +129,33 @@ class DynamoDBCompanyProvider(BaseProvider):
         self._os_idx = company_index or settings.opensearch_index + "-companies"
         # location
         self._loc = boto3.client("geo-places", region_name=region)
+
+    @property
+    def permissions(self) -> Iterable[GrantSpec]:
+        yield GrantSpec(
+            actions=(
+                "dynamodb:DeleteItem",
+                "dynamodb:GetItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+            ),
+            resources=("dynamodb-table",),
+        )
+        yield GrantSpec(
+            actions=(
+                "s3:GetObject",
+                "s3:PutObject",
+            ),
+            resources=("s3-bucket",),
+        )
+        yield GrantSpec(
+            actions=("es:ESHttpPost",),
+            resources=("opensearch-domain",),
+        )
+        yield GrantSpec(
+            actions=("geo-places:Geocode",),
+            resources=("*",),
+        )
 
     @property
     def _exception_map(self) -> ExceptionMap:

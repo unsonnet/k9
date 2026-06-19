@@ -9,6 +9,7 @@ from .provider import AuthProvider, CognitoAuthProvider
 
 app = HttpResolver(strip_prefixes=["/auth"], enable_validation=True)
 provider: AuthProvider = CognitoAuthProvider()
+app.grant(*provider.permissions)
 
 
 @app.post(

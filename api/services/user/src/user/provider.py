@@ -1,10 +1,10 @@
 import base64
 from datetime import datetime
-from typing import Any, Mapping, Protocol, Sequence
+from typing import Any, Iterable, Mapping, Protocol, Sequence
 
 import boto3
 from pydantic import HttpUrl
-from shared.config import settings
+from shared.config import GrantSpec, settings
 from shared.errors import (
     DomainForbidden,
     DomainInvariantViolation,
@@ -27,6 +27,9 @@ __all__ = [
 
 
 class UserProvider(Protocol):
+    @property
+    def permissions(self) -> Iterable[GrantSpec]: ...
+
     def list_users(
         self,
         *,
@@ -107,6 +110,31 @@ class CognitoUserProvider(BaseProvider):
         bucket = bucket or settings.s3_bucket
         self._s3 = boto3.resource("s3", region).Bucket(bucket)
         self._s3_url = f"https://{bucket}.s3.{region}.amazonaws.com"
+
+    @property
+    def permissions(self) -> Iterable[GrantSpec]:
+        yield GrantSpec(
+            actions=(
+                "cognito-idp:AdminCreateUser",
+                "cognito-idp:AdminDeleteUser",
+                "cognito-idp:AdminDisableUser",
+                "cognito-idp:AdminEnableUser",
+                "cognito-idp:AdminGetUser",
+                "cognito-idp:AdminSetUserMFAPreference",
+                "cognito-idp:AdminSetUserPassword",
+                "cognito-idp:AdminUpdateUserAttributes",
+                "cognito-idp:AdminUserGlobalSignOut",
+                "cognito-idp:ListUsers",
+            ),
+            resources=("cognito-user-pool",),
+        )
+        yield GrantSpec(
+            actions=(
+                "s3:GetObject",
+                "s3:PutObject",
+            ),
+            resources=("s3-bucket",),
+        )
 
     @property
     def _exception_map(self) -> ExceptionMap:

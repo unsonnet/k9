@@ -28,7 +28,7 @@ class FunctionConfig(BaseModel):
 
 
 class ServiceConfig(FunctionConfig):
-    route: str = Field(alias="routePrefix")
+    route_prefix: str = Field(alias="routePrefix")
 
 
 class WorkerConfig(FunctionConfig):
@@ -74,7 +74,7 @@ class StageConfig(BaseModel):
     region: str
     architecture: Architecture = Architecture.ARM64
     shared: dict[str, dict[str, str]] = Field(default_factory=dict)
-    services: dict[str, ServiceConfig] = Field(min_length=1)
+    services: dict[str, ServiceConfig] = Field(default_factory=dict)
     workers: dict[str, WorkerConfig] = Field(default_factory=dict)
 
     @model_validator(mode="after")

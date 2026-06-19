@@ -1,9 +1,27 @@
 import os
+from dataclasses import dataclass
 from functools import cached_property
 
 import boto3
 from requests_aws4auth import AWS4Auth
 from types_boto3_ssm import SSMClient
+
+
+@dataclass(frozen=True)
+class RouteSpec:
+    method: str
+    rule: str
+    auth_required: bool
+    operation_id: str | None = None
+    summary: str | None = None
+    tags: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class GrantSpec:
+    effect: str = "allow"
+    actions: tuple[str, ...] = ()
+    resources: tuple[str, ...] = ()
 
 
 class MissingSettingError(RuntimeError):

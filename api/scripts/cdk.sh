@@ -7,6 +7,14 @@ usage() {
 }
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+env_file="$repo_root/.env"
+
+env_args=()
+if [[ -f "$env_file" ]]; then
+  env_args+=(--env-file "$env_file")
+fi
+
+uv run "${env_args[@]}" --project "$repo_root" "$repo_root/scripts/mkdocs.py"
 cd "$repo_root/infra/cdk"
 
 stage="${1:-dev}"

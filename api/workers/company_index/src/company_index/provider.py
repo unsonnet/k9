@@ -1,10 +1,11 @@
+from collections.abc import Iterable
 from typing import Protocol
 
 import boto3
 from opensearchpy import OpenSearch, RequestsHttpConnection
 from opensearchpy.exceptions import NotFoundError
 from pydantic import HttpUrl
-from shared.config import settings
+from shared.config import GrantSpec, settings
 from shared.errors import DomainNotFound
 from shared.provider import BaseProvider, ExceptionMap, apimethod
 
@@ -17,6 +18,9 @@ __all__ = [
 
 
 class IndexProvider(Protocol):
+    @property
+    def permissions(self) -> Iterable[GrantSpec]: ...
+
     def index_company(
         self,
         *,
@@ -64,6 +68,13 @@ class OpenSearchIndexProvider(BaseProvider):
         return {
             DomainNotFound: [NotFoundError],
         }
+
+    @property
+    def permissions(self) -> Iterable[GrantSpec]:
+        yield GrantSpec(
+            actions=("es:ESHttpPost", "es:ESHttpDelete"),
+            resources=("opensearch-domain",),
+        )
 
     # ──── Public Methods ────
 

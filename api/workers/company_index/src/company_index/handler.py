@@ -5,6 +5,7 @@ from .provider import IndexProvider, OpenSearchIndexProvider
 
 app = DynamoDBStreamResolver()
 provider: IndexProvider = OpenSearchIndexProvider()
+app.grant(*provider.permissions)
 
 
 @app.insert

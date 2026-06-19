@@ -1,4 +1,4 @@
-import ast
+import json
 from pathlib import Path
 
 from aws_cdk import Duration, Stack
@@ -8,14 +8,11 @@ from aws_cdk import aws_dynamodb as dynamodb
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_lambda as lambda_
 from aws_cdk import aws_lambda_event_sources as event_sources
-from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_ssm as ssm
 from aws_cdk.aws_apigatewayv2_integrations import HttpLambdaIntegration
 from constructs import Construct
 
 from .config import FunctionConfig, ServiceConfig, StageName, WorkerConfig
-
-type ServiceRoute = tuple[apigwv2.HttpMethod, str, bool]
 
 
 def pascal_case(name: str) -> str:
@@ -28,69 +25,116 @@ def normalize_route_path(route_prefix: str, rule: str) -> str:
     return f"{route_prefix}{rule}".replace("<", "{").replace(">", "}")
 
 
-def discover_service_routes(
-    root: Path, name: str, route_prefix: str
-) -> list[ServiceRoute]:
-    handler_path = root / "services" / name / "src" / name / "handler.py"
-    module = ast.parse(handler_path.read_text(), filename=str(handler_path))
+def load_manifest(root: Path, kind: str, name: str) -> dict:
+    path = root / "cdk.out" / kind / f"{name}.json"
+    return json.loads(path.read_text())
 
-    methods = {
-        "get": apigwv2.HttpMethod.GET,
-        "post": apigwv2.HttpMethod.POST,
-        "put": apigwv2.HttpMethod.PUT,
-        "patch": apigwv2.HttpMethod.PATCH,
-        "delete": apigwv2.HttpMethod.DELETE,
-    }
 
-    routes: list[ServiceRoute] = []
-    for node in module.body:
-        if not isinstance(node, ast.FunctionDef):
-            continue
+def resolve_grant_resources(
+    scope: Construct,
+    *,
+    stage: StageName,
+    config: FunctionConfig,
+    resources: list[str],
+) -> list[str]:
+    stack = Stack.of(scope)
+    resolved: list[str] = []
 
-        for decorator in node.decorator_list:
-            if not isinstance(decorator, ast.Call):
-                continue
-            if not isinstance(decorator.func, ast.Attribute):
-                continue
-
-            method = methods.get(decorator.func.attr)
-            if method is None or not decorator.args:
-                continue
-
-            rule_arg = decorator.args[0]
-            if not isinstance(rule_arg, ast.Constant) or not isinstance(
-                rule_arg.value, str
-            ):
-                continue
-
-            auth_required = False
-            if node.args.args:
-                first_arg = node.args.args[0]
-                auth_required = (
-                    first_arg.arg == "caller"
-                    and isinstance(first_arg.annotation, ast.Name)
-                    and first_arg.annotation.id == "Caller"
+    for resource in resources:
+        match resource:
+            case "cognito-user-pool":
+                parameter = config.environment.get("COGNITO_USER_POOL_ID_PARAMETER")
+                if not parameter:
+                    continue
+                user_pool_id = ssm.StringParameter.value_for_string_parameter(
+                    scope, parameter
                 )
-
-            routes.append(
-                (
-                    method,
-                    normalize_route_path(route_prefix, rule_arg.value),
-                    auth_required,
+                resolved.append(
+                    f"arn:aws:cognito-idp:{stack.region}:{stack.account}:userpool/{user_pool_id}"
                 )
+            case "s3-bucket":
+                parameter = config.environment.get("S3_BUCKET_PARAMETER")
+                if not parameter:
+                    continue
+                bucket_name = ssm.StringParameter.value_for_string_parameter(
+                    scope, parameter
+                )
+                resolved.extend(
+                    [f"arn:aws:s3:::{bucket_name}", f"arn:aws:s3:::{bucket_name}/*"]
+                )
+            case "dynamodb-table":
+                parameter = config.environment.get("DYNAMODB_TABLE_PARAMETER")
+                if not parameter:
+                    continue
+                table_base = ssm.StringParameter.value_for_string_parameter(
+                    scope, parameter
+                )
+                resolved.append(
+                    f"arn:aws:dynamodb:{stack.region}:{stack.account}:table/{table_base}-*"
+                )
+            case "opensearch-domain":
+                resolved.append(
+                    f"arn:aws:es:{stack.region}:{stack.account}:domain/k9-{stage}-os/*"
+                )
+            case "*":
+                resolved.append("*")
+            case _:
+                resolved.append(resource)
+
+    return resolved
+
+
+def apply_manifest_grants(
+    scope: Construct,
+    *,
+    fn: lambda_.DockerImageFunction,
+    stage: StageName,
+    config: FunctionConfig,
+    manifest: dict,
+) -> None:
+    for grant in manifest.get("grants", []):
+        actions = grant.get("actions") or []
+        resources = resolve_grant_resources(
+            scope,
+            stage=stage,
+            config=config,
+            resources=list(grant.get("resources") or ["*"]),
+        )
+        if actions and resources:
+            fn.add_to_role_policy(
+                iam.PolicyStatement(actions=actions, resources=resources)
             )
 
-    return routes
+
+def apply_parameter_reads(
+    scope: Construct,
+    fn: lambda_.DockerImageFunction,
+    *,
+    prefix: str,
+    config: FunctionConfig,
+) -> None:
+    index = 0
+    for key, parameter_name in config.environment.items():
+        if not key.endswith("_PARAMETER"):
+            continue
+        index += 1
+        ssm.StringParameter.from_string_parameter_name(
+            scope,
+            f"{prefix}Parameter{index}",
+            parameter_name,
+        ).grant_read(fn)
 
 
 def create_function(
     scope: Construct,
     *,
+    kind: str,
     stage: StageName,
     architecture: lambda_.Architecture,
     name: str,
     root: Path,
     config: FunctionConfig,
+    manifest: dict,
 ) -> lambda_.DockerImageFunction:
     fn = lambda_.DockerImageFunction(
         scope,
@@ -106,88 +150,8 @@ def create_function(
         environment=config.environment,
     )
 
-    for i, (key, parameter_name) in enumerate(config.environment.items(), start=1):
-        if key.endswith("_PARAMETER"):
-            ssm.StringParameter.from_string_parameter_name(
-                scope,
-                f"ReadableParameter{i}",
-                parameter_name,
-            ).grant_read(fn)
-
-    if "COGNITO_USER_POOL_ID_PARAMETER" in config.environment:
-        stack = Stack.of(scope)
-        user_pool_id = ssm.StringParameter.value_for_string_parameter(
-            scope,
-            config.environment["COGNITO_USER_POOL_ID_PARAMETER"],
-        )
-        user_pool_arn = f"arn:aws:cognito-idp:{stack.region}:{stack.account}:userpool/{user_pool_id}"
-        fn.add_to_role_policy(
-            iam.PolicyStatement(
-                actions=[
-                    "cognito-idp:AdminCreateUser",
-                    "cognito-idp:AdminDeleteUser",
-                    "cognito-idp:AdminDisableUser",
-                    "cognito-idp:AdminEnableUser",
-                    "cognito-idp:AdminGetUser",
-                    "cognito-idp:AdminInitiateAuth",
-                    "cognito-idp:AdminRespondToAuthChallenge",
-                    "cognito-idp:AdminSetUserMFAPreference",
-                    "cognito-idp:AdminSetUserPassword",
-                    "cognito-idp:AdminUpdateUserAttributes",
-                    "cognito-idp:AdminUserGlobalSignOut",
-                    "cognito-idp:AssociateSoftwareToken",
-                    "cognito-idp:GetTokensFromRefreshToken",
-                    "cognito-idp:ListUsers",
-                    "cognito-idp:SetUserMFAPreference",
-                    "cognito-idp:VerifySoftwareToken",
-                ],
-                resources=[user_pool_arn],
-            )
-        )
-
-    if name in {"user", "company"} and "S3_BUCKET_PARAMETER" in config.environment:
-        bucket_name = ssm.StringParameter.value_for_string_parameter(
-            scope,
-            config.environment["S3_BUCKET_PARAMETER"],
-        )
-        s3.Bucket.from_bucket_name(
-            scope,
-            "StorageBucket",
-            bucket_name,
-        ).grant_read_write(fn)
-
-    if name == "company" and "DYNAMODB_TABLE_PARAMETER" in config.environment:
-        table_base = ssm.StringParameter.value_for_string_parameter(
-            scope,
-            config.environment["DYNAMODB_TABLE_PARAMETER"],
-        )
-        dynamodb.Table.from_table_name(
-            scope,
-            "CompanyTable",
-            f"{table_base}-companies",
-        ).grant_read_write_data(fn)
-
-    if (
-        name in {"company", "company_index"}
-        and "OPENSEARCH_ENDPOINT_PARAMETER" in config.environment
-    ):
-        stack = Stack.of(scope)
-        domain_arn = f"arn:aws:es:{stack.region}:{stack.account}:domain/k9-{stage}-os/*"
-        fn.add_to_role_policy(
-            iam.PolicyStatement(
-                actions=["es:ESHttp*"],
-                resources=[domain_arn],
-            )
-        )
-
-    if name == "company":
-        fn.add_to_role_policy(
-            iam.PolicyStatement(
-                actions=["geo-places:Geocode"],
-                resources=["*"],
-            )
-        )
-
+    apply_parameter_reads(scope, fn, prefix=pascal_case(kind), config=config)
+    apply_manifest_grants(scope, fn=fn, stage=stage, config=config, manifest=manifest)
     return fn
 
 
@@ -206,25 +170,25 @@ class ServiceRegistration(Construct):
     ) -> None:
         super().__init__(scope, f"{pascal_case(name)}Service")
 
+        manifest = load_manifest(root, "services", name)
         self.function = create_function(
             self,
+            kind="service",
             stage=stage,
             architecture=architecture,
             name=name,
             root=root,
             config=config,
+            manifest=manifest,
         )
 
         integration = HttpLambdaIntegration("Integration", self.function)  # type: ignore[arg-type]
-
-        for method, path, auth_required in discover_service_routes(
-            root, name, config.route
-        ):
+        for route in manifest.get("routes", []):
             http.add_routes(
-                path=path,
-                methods=[method],
+                path=normalize_route_path(config.route_prefix, route["rule"]),
+                methods=[apigwv2.HttpMethod(route["method"])],
                 integration=integration,
-                authorizer=authorizer if auth_required else None,
+                authorizer=authorizer if route.get("auth_required") else None,
             )
 
 
@@ -241,13 +205,16 @@ class WorkerRegistration(Construct):
     ) -> None:
         super().__init__(scope, f"{pascal_case(name)}Worker")
 
+        manifest = load_manifest(root, "workers", name)
         self.function = create_function(
             self,
+            kind="worker",
             stage=stage,
             architecture=architecture,
             name=name,
             root=root,
             config=config,
+            manifest=manifest,
         )
 
         stream_arn = ssm.StringParameter.value_for_string_parameter(

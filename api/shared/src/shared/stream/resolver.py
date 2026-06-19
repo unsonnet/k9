@@ -1,4 +1,5 @@
 from collections.abc import Callable, Mapping
+from dataclasses import asdict
 from enum import StrEnum
 from inspect import Parameter, signature
 from typing import (
@@ -23,6 +24,7 @@ from aws_lambda_powertools.utilities.data_classes.dynamo_db_stream_event import 
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from pydantic import AliasChoices, AliasPath, BaseModel, TypeAdapter
 
+from ..config import GrantSpec
 from .requests import StreamKeys, StreamNewImage, StreamOldImage, StreamRecord
 
 RequestModelT = TypeVar("RequestModelT", bound=BaseModel)
@@ -49,8 +51,23 @@ class DynamoDBStreamResolver:
         self._processor = BatchProcessor(event_type=EventType.DynamoDBStreams)
         self._handlers: dict[EventName, Callable[[Any], Any]] = {}
         self._models: dict[EventName, type[BaseModel]] = {}
+        self._grant_specs: list[GrantSpec] = []
 
-    # ─── Routes ────────────────────────────────────────────────────────────────
+    # ─── Manifest ─────────────────────────────────────────────────────────────────────
+
+    @property
+    def grants(self) -> tuple[GrantSpec, ...]:
+        return tuple(self._grant_specs)
+
+    def grant(self, *grants: GrantSpec) -> None:
+        self._grant_specs.extend(grants)
+
+    def manifest(self) -> dict[str, Any]:
+        return {
+            "grants": [asdict(grant) for grant in self._grant_specs],
+        }
+
+    # ─── Routes ───────────────────────────────────────────────────────────────────────
 
     @property
     def insert(self) -> RouteDecorator:
@@ -75,7 +92,7 @@ class DynamoDBStreamResolver:
 
         return cast(RouteDecorator, decorator)
 
-    # ─── Request Model Inspection ──────────────────────────────────────────────
+    # ─── Request Model Inspection ─────────────────────────────────────────────────────
 
     @staticmethod
     def _is_request_model(annotation: Any) -> bool:
@@ -136,7 +153,7 @@ class DynamoDBStreamResolver:
             return get_args(annotation)[0]
         return annotation
 
-    # ─── Pydantic Alias Handling ───────────────────────────────────────────────
+    # ─── Pydantic Alias Handling ──────────────────────────────────────────────────────
 
     @staticmethod
     def _alias_path_values(alias: AliasPath) -> list[str | int]:
@@ -197,7 +214,7 @@ class DynamoDBStreamResolver:
 
         return value
 
-    # ─── Stream Source Extraction ──────────────────────────────────────────────
+    # ─── Stream Source Extraction ─────────────────────────────────────────────────────
 
     @staticmethod
     def _mapping(value: Any, source: str) -> Mapping[str, Any]:
@@ -284,7 +301,7 @@ class DynamoDBStreamResolver:
 
         return model_cls.model_validate(values)
 
-    # ─── Resolve ───────────────────────────────────────────────────────────────
+    # ─── Resolve ──────────────────────────────────────────────────────────────────────
 
     def _handle_record(self, record: DynamoDBRecord) -> None:
         event_name = EventName(record.event_name)

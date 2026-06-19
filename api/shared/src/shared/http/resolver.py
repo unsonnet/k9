@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from enum import StrEnum
 from functools import wraps
 from http import HTTPStatus
@@ -8,8 +8,10 @@ from typing import (
     Annotated,
     Any,
     Callable,
+    Iterable,
     Mapping,
     Protocol,
+    TypeGuard,
     TypeVar,
     Union,
     cast,
@@ -32,6 +34,7 @@ from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 
+from ..config import GrantSpec, RouteSpec
 from ..errors import DomainInvalidTokens
 from .errors import (
     InternalServerError,
@@ -52,7 +55,7 @@ class Role(StrEnum):
     ADMIN = "ADMIN"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Caller:
     id: str
     name: str
@@ -90,6 +93,8 @@ class HttpResolver(APIGatewayHttpResolver):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("enable_validation", True)
         super().__init__(*args, **kwargs)
+        self._route_specs: list[RouteSpec] = []
+        self._grant_specs: list[GrantSpec] = []
 
         # Validation / routing error handling
         super().exception_handler(RequestValidationError)(
@@ -102,7 +107,7 @@ class HttpResolver(APIGatewayHttpResolver):
         super().exception_handler(ServerError)(lambda e: e)
         super().exception_handler(Exception)(lambda e: InternalServerError(cause=e))
 
-    # ─── Auth Context ──────────────────────────────────────────────────────────
+    # ─── Auth Context ─────────────────────────────────────────────────────────────────
 
     def _claims(self) -> Mapping[str, Any]:
         try:
@@ -135,17 +140,66 @@ class HttpResolver(APIGatewayHttpResolver):
                     role=role,
                     token=self._access_token(),
                 )
-
         raise DomainInvalidTokens("Missing required JWT claims")
 
-    # ─── Routes ────────────────────────────────────────────────────────────────
+    # ─── Manifest ─────────────────────────────────────────────────────────────────────
+
+    @overload
+    def grant(self, *grants: GrantSpec) -> None: ...
+
+    @overload
+    def grant(
+        self,
+        *actions: str,
+        resources: Iterable[str] = ("*",),
+        effect: str = "allow",
+    ) -> None: ...
+
+    def grant(
+        self,
+        *actions_or_grants: str | GrantSpec,
+        resources: Iterable[str] = ("*",),
+        effect: str = "allow",
+    ) -> None:
+        def all_str(actions: Iterable[Any]) -> TypeGuard[Iterable[str]]:
+            return all(isinstance(action, str) for action in actions)
+
+        def all_grants(grants: Iterable[Any]) -> TypeGuard[Iterable[GrantSpec]]:
+            return all(isinstance(grant, GrantSpec) for grant in grants)
+
+        match actions_or_grants:
+            case grants if all_grants(grants):
+                self._grant_specs.extend(grants)
+            case actions if all_str(actions):
+                self._grant_specs.append(
+                    GrantSpec(
+                        effect=effect,
+                        actions=tuple(actions),
+                        resources=tuple(resources),
+                    )
+                )
+
+    @property
+    def routes(self) -> tuple[RouteSpec, ...]:
+        return tuple(self._route_specs)
+
+    @property
+    def grants(self) -> tuple[GrantSpec, ...]:
+        return tuple(self._grant_specs)
+
+    def manifest(self) -> dict[str, Any]:
+        return {
+            "routes": [asdict(route) for route in self._route_specs],
+            "grants": [asdict(grant) for grant in self._grant_specs],
+        }
+
+    # ─── Routes ───────────────────────────────────────────────────────────────────────
 
     def _handle_routing_error(self, exc: NotFoundError) -> NotFound | MethodNotAllowed:
         method = self.current_event.http_method.upper()
         path = self._remove_prefix(self.current_event.path)
         registered_routes = self._static_routes + self._dynamic_routes
 
-        # If the path exists for a different method, respond 405; otherwise 404
         if any(
             route.method != method and route.rule.match(path)
             for route in registered_routes
@@ -153,6 +207,17 @@ class HttpResolver(APIGatewayHttpResolver):
             return MethodNotAllowed(cause=exc)
 
         return NotFound(cause=exc)
+
+    @staticmethod
+    def _accepts_caller(func: Callable[..., Any]) -> bool:
+        params = list(signature(func).parameters.values())
+        if not params:
+            return False
+
+        hints = get_type_hints(func, include_extras=True)
+        first = params[0]
+        annotation = hints.get(first.name, first.annotation)
+        return annotation is Caller
 
     def route(  # type: ignore[override]
         self,
@@ -179,6 +244,21 @@ class HttpResolver(APIGatewayHttpResolver):
             parsed_responses = self._parse(func, responses or {})
             expanded_func = self._expand_request_model(func)
             normalized_func = self._normalize(expanded_func)
+
+            methods = (method,) if isinstance(method, str) else tuple(method)
+            requires_auth = self._accepts_caller(func)
+
+            for item in methods:
+                self._route_specs.append(
+                    RouteSpec(
+                        method=item.upper(),
+                        rule=rule,
+                        auth_required=requires_auth,
+                        operation_id=operation_id,
+                        summary=summary,
+                        tags=tuple(tags or ()),
+                    )
+                )
 
             return super(HttpResolver, self).route(
                 rule=rule,
@@ -410,16 +490,14 @@ class HttpResolver(APIGatewayHttpResolver):
             middlewares=middlewares,
         )
 
-    # ─── Request Model Expansion ───────────────────────────────────────────────
+    # ─── Request Model Expansion ──────────────────────────────────────────────────────
 
     @staticmethod
     def _is_request_model(annotation: Any) -> bool:
         return isinstance(annotation, type) and issubclass(annotation, BaseModel)
 
     @staticmethod
-    def _param_marker(
-        annotation: Any,
-    ) -> HTTPBody | HTTPPath | HTTPQuery | None:
+    def _param_marker(annotation: Any) -> HTTPBody | HTTPPath | HTTPQuery | None:
         if get_origin(annotation) is not Annotated:
             return None
 
@@ -455,7 +533,6 @@ class HttpResolver(APIGatewayHttpResolver):
         original_params = list(original_sig.parameters.values())
 
         if not original_params:
-            # handler() -> Response
             return func
 
         if len(original_params) not in {1, 2}:
@@ -465,13 +542,10 @@ class HttpResolver(APIGatewayHttpResolver):
             )
 
         original_hints = get_type_hints(func, include_extras=True)
-
-        # Determine caller / request roles for the parameters
         caller_param = None
         request_param = None
 
         if len(original_params) == 2:
-            # (caller, request)
             caller_param = original_params[0]
             caller_type = original_hints.get(caller_param.name, caller_param.annotation)
             if caller_type is not Caller:
@@ -480,7 +554,6 @@ class HttpResolver(APIGatewayHttpResolver):
                 )
             request_param = original_params[1]
         else:
-            # Single parameter: either Caller or request model
             only_param = original_params[0]
             only_type = original_hints.get(only_param.name, only_param.annotation)
             if only_type is Caller:
@@ -488,7 +561,6 @@ class HttpResolver(APIGatewayHttpResolver):
             else:
                 request_param = only_param
 
-        # If there is no request param, this is handler(caller: Caller)
         if request_param is None:
 
             @wraps(func)
@@ -499,12 +571,7 @@ class HttpResolver(APIGatewayHttpResolver):
             wrapper.__annotations__ = dict(getattr(func, "__annotations__", {}))
             return wrapper
 
-        # From here on, we know there is a request model parameter
-        request_model = original_hints.get(
-            request_param.name,
-            request_param.annotation,
-        )
-
+        request_model = original_hints.get(request_param.name, request_param.annotation)
         if not self._is_request_model(request_model):
             raise TypeError(
                 f"{func.__name__}.{request_param.name} must be annotated with a "
@@ -513,7 +580,6 @@ class HttpResolver(APIGatewayHttpResolver):
 
         model_cls: type[BaseModel] = request_model
         model_hints = get_type_hints(model_cls, include_extras=True)
-
         expanded_params: list[Parameter] = []
         expanded_field_names: list[str] = []
 
@@ -547,7 +613,6 @@ class HttpResolver(APIGatewayHttpResolver):
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             bound = expanded_sig.bind_partial(*args, **kwargs)
             bound.apply_defaults()
-
             request = model_cls(
                 **{
                     field_name: bound.arguments[field_name]
@@ -555,7 +620,6 @@ class HttpResolver(APIGatewayHttpResolver):
                     if field_name in bound.arguments
                 }
             )
-
             if caller_param is not None:
                 return func(self.caller(), request)
             return func(request)
@@ -567,14 +631,12 @@ class HttpResolver(APIGatewayHttpResolver):
             if param.annotation is not Parameter.empty
         }
         wrapper.__annotations__["return"] = original_sig.return_annotation
-
         setattr(wrapper, "__original_handler__", func)
         setattr(wrapper, "__request_model__", model_cls)
         setattr(wrapper, "__request_parameter__", request_param.name)
-
         return wrapper
 
-    # ─── OpenAPI Response Parsing ──────────────────────────────────────────────
+    # ─── Signature Parsing ────────────────────────────────────────────────────────────
 
     @classmethod
     def _parse(

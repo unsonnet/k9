@@ -1,11 +1,11 @@
 import base64
 import hashlib
 import hmac
-from typing import Any, Mapping, Protocol
+from typing import Any, Iterable, Mapping, Protocol
 from urllib.parse import quote
 
 import boto3
-from shared.config import settings
+from shared.config import GrantSpec, settings
 from shared.errors import (
     DomainExpiredToken,
     DomainForbidden,
@@ -28,6 +28,9 @@ __all__ = [
 
 
 class AuthProvider(Protocol):
+    @property
+    def permissions(self) -> Iterable[GrantSpec]: ...
+
     def authenticate(
         self,
         *,
@@ -93,6 +96,22 @@ class CognitoAuthProvider(BaseProvider):
         self._idp_id = client_id or settings.cognito_client_id
         self._idp_secret = client_secret or settings.cognito_client_secret
         self._idp_pool = user_pool_id or settings.cognito_user_pool_id
+
+    @property
+    def permissions(self) -> Iterable[GrantSpec]:
+        yield GrantSpec(
+            actions=(
+                "cognito-idp:AdminInitiateAuth",
+                "cognito-idp:AdminRespondToAuthChallenge",
+                "cognito-idp:AdminUpdateUserAttributes",
+                "cognito-idp:AdminUserGlobalSignOut",
+                "cognito-idp:AssociateSoftwareToken",
+                "cognito-idp:GetTokensFromRefreshToken",
+                "cognito-idp:SetUserMFAPreference",
+                "cognito-idp:VerifySoftwareToken",
+            ),
+            resources=("cognito-user-pool",),
+        )
 
     @property
     def _exception_map(self) -> ExceptionMap:

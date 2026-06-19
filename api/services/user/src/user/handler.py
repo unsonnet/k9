@@ -15,6 +15,7 @@ from .provider import CognitoUserProvider, UserProvider
 
 app = HttpResolver(strip_prefixes=["/user"], enable_validation=True)
 provider: UserProvider = CognitoUserProvider()
+app.grant(*provider.permissions)
 
 
 @app.get(

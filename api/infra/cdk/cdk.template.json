@@ -4,7 +4,7 @@
     "<stage>": {
       "account": "<aws-account-id>",
       "region": "us-east-1",
-      "lambdaArchitecture": "arm64",
+      "architecture": "arm64",
       "shared": {
         "<param-group>": {
           "<ENV_VAR_NAME>": "<env-var-value>"
@@ -13,7 +13,20 @@
       "services": {
         "<service-name>": {
           "routePrefix": "/<route>",
-          "dockerfile": "services/<service>/Dockerfile",
+          "dockerfile": "services/<service-name>/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "<param-group>"
+          ],
+          "environment": {
+            "<ENV_VAR_NAME>": "<env-var-value>"
+          }
+        }
+      },
+      "workers": {
+        "<worker-name>": {
+          "dockerfile": "workers/<worker-name>/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -22,7 +35,16 @@
           "environment": {
             "<ENV_VAR_NAME>": "<env-var-value>"
           },
-          "readableParameterNames": []
+          "tableName": "<dynamodb-table-name>",
+          "streamArnParameter": "<ssm-parameter-for-stream-arn>",
+          "batchSize": 50,
+          "retryAttempts": 10,
+          "reportBatchItemFailures": true,
+          "bisectBatchOnError": true,
+          "maxRecordAgeSeconds": null,
+          "maxBatchingWindowSeconds": null,
+          "parallelizationFactor": null,
+          "opensearchCollectionArnParameter": null
         }
       }
     }
