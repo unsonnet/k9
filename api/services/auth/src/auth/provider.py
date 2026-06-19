@@ -124,7 +124,7 @@ class CognitoAuthProvider(BaseProvider):
             ],
         }
 
-    # ──── Helper Methods ────
+    # ──── Private Methods ────
 
     def _secret_hash(self, xname: str) -> str:
         message = f"{xname}{self._idp_id}".encode("utf-8")
@@ -211,7 +211,7 @@ class CognitoAuthProvider(BaseProvider):
             ],
         )
 
-    # ──── API Methods ────
+    # ──── Public Methods ────
 
     @apimethod
     def authenticate(

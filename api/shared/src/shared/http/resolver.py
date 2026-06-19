@@ -48,8 +48,8 @@ ReturnT = TypeVar("ReturnT")
 
 
 class Role(StrEnum):
-    USER = "user"
-    ADMIN = "admin"
+    USER = "USER"
+    ADMIN = "ADMIN"
 
 
 @dataclass

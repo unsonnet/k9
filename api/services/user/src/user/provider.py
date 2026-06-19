@@ -126,7 +126,7 @@ class CognitoUserProvider(BaseProvider):
             ],
         }
 
-    # ──── Helper Methods ────
+    # ──── Private Methods ────
 
     @staticmethod
     def _encode_id(id: str) -> str:
@@ -173,7 +173,7 @@ class CognitoUserProvider(BaseProvider):
                             enabled=enabled,
                             created_at=dt(created_at),
                             updated_at=dt(updated_at),
-                            last_login_at=dt(last_login_at),
+                            last_login_at=dt(last_login_at, iso=False),
                         )
         raise DomainInvariantViolation(f"Unexpected cognito user: {response}")
 
@@ -224,7 +224,7 @@ class CognitoUserProvider(BaseProvider):
                 )
         raise DomainInvariantViolation(f"Unexpected s3 upload form: {response}")
 
-    # ──── API methods ────
+    # ──── Public Methods ────
 
     @apimethod
     def list_users(
