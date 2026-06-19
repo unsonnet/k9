@@ -44,7 +44,7 @@ class Settings:
             credentials.access_key,
             credentials.secret_key,
             session.region_name,
-            "aoss",
+            "es",
             session_token=credentials.token,
         )
 
@@ -81,8 +81,8 @@ class Settings:
         return self.env_or_parameter("OPENSEARCH_ENDPOINT")
 
     @cached_property
-    def opensearch_company_index(self) -> str:
-        return self.env_or_parameter("OPENSEARCH_COMPANY_INDEX")
+    def opensearch_index(self) -> str:
+        return self.env_or_parameter("OPENSEARCH_INDEX")
 
 
 settings = Settings()

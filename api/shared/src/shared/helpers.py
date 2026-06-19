@@ -10,14 +10,18 @@ def now() -> datetime:
 
 
 @overload
-def dt(value: datetime | str) -> datetime: ...
+def dt(value: datetime) -> datetime: ...
 @overload
-def dt(value: None) -> None: ...
-def dt(value: datetime | str | None) -> datetime | None:
+def dt(value: str, iso: bool = True) -> datetime: ...
+@overload
+def dt(value: None, iso: bool = True) -> None: ...
+def dt(value: datetime | str | None, iso: bool = True) -> datetime | None:
     match value:
         case datetime() as dt:
             return dt.astimezone(timezone.utc)
         case str() as s:
+            if iso:
+                return datetime.fromisoformat(s).astimezone(timezone.utc)
             return datetime.strptime(s, "%Y-%m-%d %H:%M:%S %Z").astimezone(timezone.utc)
         case None:
             return None
