@@ -2,41 +2,86 @@
 set -euo pipefail
 
 # Creates:
-#   - Cognito User Pool: k9-user-pool
-#   - Cognito User Pool App Client: k9-admin-client
+#   - Cognito User Pool: k9-<stage>-user-pool
+#   - Cognito User Pool App Client: k9-<stage>-admin-client
+# Stores to SSM:
+#   - /k9/<stage>/identity/cognito/client-id
+#   - /k9/<stage>/identity/cognito/client-secret
+#   - /k9/<stage>/identity/cognito/user-pool-id
 
-POOL_NAME="k9-user-pool"
-CLIENT_NAME="k9-admin-client"
-AWS_REGION="us-east-2"
+AWS_REGION="${AWS_REGION:-us-east-2}"
+export AWS_PAGER=""
 
-require() {
-  command -v "$1" >/dev/null 2>&1 || {
-    echo "ERROR: $1 is required." >&2
-    exit 1
-  }
+usage() { echo "Usage: $0 <dev|stage|prod>" >&2; exit 1; }
+die()   { echo "ERROR: $*" >&2; exit 1; }
+
+require() { command -v "$1" >/dev/null 2>&1 || die "$1 is required"; }
+aws_cli() { aws --region "$AWS_REGION" "$@"; }
+
+put_ssm_string() {
+  aws_cli ssm put-parameter \
+    --name "$1" \
+    --type String \
+    --tier Standard \
+    --value "$2" \
+    --overwrite \
+    >/dev/null
 }
 
-json_get() {
-  jq -r "$1"
-}
+ssm_exists() { aws_cli ssm get-parameter --name "$1" >/dev/null 2>&1; }
 
 cleanup() {
   rm -f "${POOL_JSON:-}" "${CLIENT_JSON:-}"
 }
-
 trap cleanup EXIT
 
 require aws
 require jq
+
+STAGE="${1:-}"
+[[ "$STAGE" =~ ^(dev|stage|prod)$ ]] || usage
+
+POOL_NAME="k9-${STAGE}-user-pool"
+CLIENT_NAME="k9-${STAGE}-admin-client"
+
+SSM_CLIENT_ID="/k9/${STAGE}/identity/cognito/client-id"
+SSM_CLIENT_SECRET="/k9/${STAGE}/identity/cognito/client-secret"
+SSM_USER_POOL_ID="/k9/${STAGE}/identity/cognito/user-pool-id"
+
+preflight() {
+  local -a issues=()
+  local existing_pool_id=""
+
+  for name in "$SSM_USER_POOL_ID" "$SSM_CLIENT_ID" "$SSM_CLIENT_SECRET"; do
+    ssm_exists "$name" && issues+=("SSM parameter already exists: $name")
+  done
+
+  existing_pool_id="$(
+    aws_cli cognito-idp list-user-pools --max-results 60 --output json \
+      | jq -r --arg pool_name "$POOL_NAME" '
+          .UserPools[]
+          | select(.Name == $pool_name)
+          | .Id
+        ' \
+      | head -n1
+  )"
+
+  [[ -n "$existing_pool_id" ]] && \
+    issues+=("Cognito user pool already exists: $POOL_NAME ($existing_pool_id)")
+
+  if ((${#issues[@]} > 0)); then
+    echo "Preflight failed. Fix these issues, then rerun:" >&2
+    printf '  - %s\n' "${issues[@]}" >&2
+    exit 1
+  fi
+}
 
 create_pool_payload() {
   jq -n --arg pool_name "$POOL_NAME" '
     {
       PoolName: $pool_name,
       AliasAttributes: ["preferred_username"],
-      UsernameConfiguration: {
-        CaseSensitive: true
-      },
+      UsernameConfiguration: { CaseSensitive: true },
       Policies: {
         PasswordPolicy: {
           MinimumLength: 8,
@@ -57,40 +102,28 @@ create_pool_payload() {
           AttributeDataType: "String",
           Mutable: true,
           Required: true,
-          StringAttributeConstraints: {
-            MinLength: "1",
-            MaxLength: "99"
-          }
+          StringAttributeConstraints: { MinLength: "1", MaxLength: "99" }
         },
         {
           Name: "name",
           AttributeDataType: "String",
           Mutable: true,
           Required: true,
-          StringAttributeConstraints: {
-            MinLength: "1",
-            MaxLength: "2048"
-          }
+          StringAttributeConstraints: { MinLength: "1", MaxLength: "2048" }
         },
         {
           Name: "picture",
           AttributeDataType: "String",
           Mutable: true,
           Required: true,
-          StringAttributeConstraints: {
-            MinLength: "1",
-            MaxLength: "2048"
-          }
+          StringAttributeConstraints: { MinLength: "1", MaxLength: "2048" }
         },
         {
           Name: "role",
           AttributeDataType: "String",
           Mutable: true,
           Required: false,
-          StringAttributeConstraints: {
-            MinLength: "1",
-            MaxLength: "256"
-          }
+          StringAttributeConstraints: { MinLength: "1", MaxLength: "256" }
         },
         {
           Name: "last_login_at",
@@ -99,16 +132,9 @@ create_pool_payload() {
           Required: false
         }
       ],
-      AdminCreateUserConfig: {
-        AllowAdminCreateUserOnly: true
-      },
+      AdminCreateUserConfig: { AllowAdminCreateUserOnly: true },
       AccountRecoverySetting: {
-        RecoveryMechanisms: [
-          {
-            Name: "admin_only",
-            Priority: 1
-          }
-        ]
+        RecoveryMechanisms: [{ Name: "admin_only", Priority: 1 }]
       },
       DeletionProtection: "INACTIVE"
     }
@@ -116,9 +142,7 @@ create_pool_payload() {
 }
 
 create_client_payload() {
-  jq -n \
-    --arg user_pool_id "$USER_POOL_ID" \
-    --arg client_name "$CLIENT_NAME" '
+  jq -n --arg user_pool_id "$USER_POOL_ID" --arg client_name "$CLIENT_NAME" '
     {
       UserPoolId: $user_pool_id,
       ClientName: $client_name,
@@ -157,87 +181,59 @@ create_client_payload() {
   '
 }
 
+preflight
+
 echo "Creating Cognito user pool: $POOL_NAME"
 
 POOL_JSON="$(mktemp)"
-create_pool_payload > "$POOL_JSON"
+create_pool_payload >"$POOL_JSON"
 
 CREATE_POOL_OUTPUT="$(
-  aws cognito-idp create-user-pool \
-    --region "$AWS_REGION" \
-    --cli-input-json "file://$POOL_JSON"
+  aws_cli cognito-idp create-user-pool --cli-input-json "file://$POOL_JSON"
 )"
 
-USER_POOL_ID="$(printf '%s' "$CREATE_POOL_OUTPUT" | json_get '.UserPool.Id')"
-
-if [[ -z "$USER_POOL_ID" || "$USER_POOL_ID" == "null" ]]; then
-  echo "ERROR: Failed to create user pool or parse UserPool.Id." >&2
-  echo "$CREATE_POOL_OUTPUT" >&2
-  exit 1
-fi
+USER_POOL_ID="$(jq -r '.UserPool.Id // empty' <<<"$CREATE_POOL_OUTPUT")"
+[[ -n "$USER_POOL_ID" ]] || die "Failed to create user pool or parse UserPool.Id."
 
 echo "Enabling software token MFA"
 
-aws cognito-idp set-user-pool-mfa-config \
-  --region "$AWS_REGION" \
+aws_cli cognito-idp set-user-pool-mfa-config \
   --user-pool-id "$USER_POOL_ID" \
   --software-token-mfa-configuration Enabled=true \
-  --mfa-configuration OPTIONAL >/dev/null
+  --mfa-configuration OPTIONAL \
+  >/dev/null
 
 echo "Creating Cognito app client: $CLIENT_NAME"
 
 CLIENT_JSON="$(mktemp)"
-create_client_payload > "$CLIENT_JSON"
+create_client_payload >"$CLIENT_JSON"
 
 CREATE_CLIENT_OUTPUT="$(
-  aws cognito-idp create-user-pool-client \
-    --region "$AWS_REGION" \
-    --cli-input-json "file://$CLIENT_JSON"
+  aws_cli cognito-idp create-user-pool-client --cli-input-json "file://$CLIENT_JSON"
 )"
 
-CLIENT_ID="$(printf '%s' "$CREATE_CLIENT_OUTPUT" | json_get '.UserPoolClient.ClientId')"
-CLIENT_SECRET="$(printf '%s' "$CREATE_CLIENT_OUTPUT" | json_get '.UserPoolClient.ClientSecret')"
+CLIENT_ID="$(jq -r '.UserPoolClient.ClientId // empty' <<<"$CREATE_CLIENT_OUTPUT")"
+CLIENT_SECRET="$(jq -r '.UserPoolClient.ClientSecret // empty' <<<"$CREATE_CLIENT_OUTPUT")"
 
-if [[ -z "$CLIENT_ID" || "$CLIENT_ID" == "null" ]]; then
-  echo "ERROR: Failed to create app client or parse ClientId." >&2
-  echo "$CREATE_CLIENT_OUTPUT" >&2
-  exit 1
-fi
+[[ -n "$CLIENT_ID" ]]     || die "Failed to create app client or parse ClientId."
+[[ -n "$CLIENT_SECRET" ]] || die "Failed to create app client or parse ClientSecret."
+
+put_ssm_string "$SSM_USER_POOL_ID" "$USER_POOL_ID"
+put_ssm_string "$SSM_CLIENT_ID" "$CLIENT_ID"
+put_ssm_string "$SSM_CLIENT_SECRET" "$CLIENT_SECRET"
 
 cat <<EOF
 
 Created Cognito resources:
+  Stage:         $STAGE
   Region:        $AWS_REGION
   UserPoolName:  $POOL_NAME
   UserPoolId:    $USER_POOL_ID
   ClientName:    $CLIENT_NAME
   ClientId:      $CLIENT_ID
-  ClientSecret:  $CLIENT_SECRET
 
-Effective MFA configuration:
-  MfaConfiguration: OPTIONAL
-  EnabledMfas:      SOFTWARE_TOKEN_MFA
-
-Readable by app client:
-  - preferred_username
-  - name
-  - picture
-  - custom:role
-  - custom:last_login_at
-  - updated_at
-
-Writable by app client:
-  - preferred_username
-  - name
-  - picture
-  - custom:role
-  - custom:last_login_at
-
-Password policy note:
-  Cognito enforces:
-    - minimum length: 8
-    - uppercase required
-    - lowercase required
-    - number required
-    - symbol required
+Stored in SSM:
+  $SSM_USER_POOL_ID
+  $SSM_CLIENT_ID
+  $SSM_CLIENT_SECRET
 EOF
