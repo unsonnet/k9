@@ -92,6 +92,7 @@ class UploadForm(BaseModel, frozen=True):
 class Request:
     class List(BaseModel, frozen=True):
         q: Query[str | None] = None
+        sector: Query[list[CompanySector] | None] = None
         lat: Query[float | None] = None
         lon: Query[float | None] = None
         radius: Query[int | None] = None

@@ -46,6 +46,7 @@ class CompanyProvider(Protocol):
         self,
         *,
         q: str | None,
+        k: list[CompanySector] | None,
         g: tuple[float, float, int] | None,
         limit: int,
         cursor: str | None,
@@ -317,6 +318,7 @@ class DynamoDBCompanyProvider(BaseProvider):
         self,
         *,
         q: str | None,
+        k: list[CompanySector] | None,
         g: tuple[float, float, int] | None,
         limit: int,
         cursor: str | None,
@@ -324,6 +326,7 @@ class DynamoDBCompanyProvider(BaseProvider):
         xcursor = self._decode_cursor(cursor) if cursor else None
         return self._page(
             Search(using=self._os, index=self._os_idx)
+            .key("sector", options=[i.value for i in k] if k else None)
             .text("name", query=q)
             .near("locations", coord=g)
             .execute(limit=limit, cursor=xcursor)

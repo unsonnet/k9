@@ -19,6 +19,55 @@ class Search:
     _filter: list[dict[str, Any]] = field(default_factory=list)
     _geo: dict[str, Any] | None = None
 
+    # ──── Private Methods ────
+
+    def _query(self) -> dict[str, Any]:
+        if not self._should and not self._filter:
+            return {"match_all": {}}
+
+        bool_query: dict[str, Any] = {}
+
+        if self._should:
+            bool_query["should"] = self._should
+            bool_query["minimum_should_match"] = 1
+
+        if self._filter:
+            bool_query["filter"] = self._filter
+
+        return {"bool": bool_query}
+
+    def _sort(self) -> list[dict[str, Any]]:
+        sort: list[dict[str, Any]] = []
+
+        if self._should:
+            sort.append({"_score": {"order": "desc"}})
+
+        if self._geo:
+            sort.append(
+                {
+                    "_geo_distance": {
+                        **self._geo,
+                        "order": "asc",
+                        "unit": "km",
+                        "mode": "min",
+                        "distance_type": "arc",
+                    }
+                }
+            )
+
+        sort.append({"id": {"order": "asc"}})
+
+        return sort
+
+    # ──── Public Methods ────
+
+    def key(self, field: str, *, options: list[str] | None) -> Self:
+        if not options:
+            return self
+
+        self._filter.append({"terms": {field: options}})
+        return self
+
     def text(self, field: str, *, query: str | None) -> Self:
         if query is None or (q := sanitize_query(query)) is None:
             return self
@@ -115,41 +164,3 @@ class Search:
             ],
             "Cursor": hits[-1]["sort"] if len(hits) == limit else None,
         }
-
-    def _query(self) -> dict[str, Any]:
-        if not self._should and not self._filter:
-            return {"match_all": {}}
-
-        bool_query: dict[str, Any] = {}
-
-        if self._should:
-            bool_query["should"] = self._should
-            bool_query["minimum_should_match"] = 1
-
-        if self._filter:
-            bool_query["filter"] = self._filter
-
-        return {"bool": bool_query}
-
-    def _sort(self) -> list[dict[str, Any]]:
-        sort: list[dict[str, Any]] = []
-
-        if self._should:
-            sort.append({"_score": {"order": "desc"}})
-
-        if self._geo:
-            sort.append(
-                {
-                    "_geo_distance": {
-                        **self._geo,
-                        "order": "asc",
-                        "unit": "km",
-                        "mode": "min",
-                        "distance_type": "arc",
-                    }
-                }
-            )
-
-        sort.append({"id": {"order": "asc"}})
-
-        return sort

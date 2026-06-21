@@ -37,6 +37,7 @@ def list(
     try:
         page = provider.list_companies(
             q=request.q,
+            k=request.sector,
             g=(request.lat, request.lon, request.radius)
             if (
                 request.lat is not None
