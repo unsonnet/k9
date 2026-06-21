@@ -304,7 +304,9 @@ class DynamoDBStreamResolver:
     # ─── Resolve ──────────────────────────────────────────────────────────────────────
 
     def _handle_record(self, record: DynamoDBRecord) -> None:
-        event_name = EventName(record.event_name)
+        if record.event_name is None:
+            raise ValueError("Stream record missing event name")
+        event_name = EventName(record.event_name.name)
 
         try:
             handler = self._handlers[event_name]

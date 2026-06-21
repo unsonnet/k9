@@ -1,5 +1,6 @@
 from collections.abc import Iterable
 from typing import Protocol
+from urllib.parse import urlparse
 
 import boto3
 from opensearchpy import OpenSearch, RequestsHttpConnection
@@ -51,10 +52,12 @@ class OpenSearchIndexProvider(BaseProvider):
         *,
         region: str | None = None,
         company_index: str | None = None,
+        opensearch_endpoint: str | None = None,
     ) -> None:
         region = region or settings.aws_region
+        endpoint = urlparse(opensearch_endpoint or settings.opensearch_endpoint)
         self._os = OpenSearch(
-            hosts=[{"host": settings.opensearch_endpoint, "port": 443}],
+            hosts=[{"host": endpoint.hostname, "port": endpoint.port}],
             http_auth=settings.aws_auth(boto3.Session(region_name=region)),
             use_ssl=True,
             verify_certs=True,
@@ -72,7 +75,11 @@ class OpenSearchIndexProvider(BaseProvider):
     @property
     def permissions(self) -> Iterable[GrantSpec]:
         yield GrantSpec(
-            actions=("es:ESHttpPost", "es:ESHttpDelete"),
+            actions=(
+                "es:ESHttpPost",
+                "es:ESHttpPut",
+                "es:ESHttpDelete",
+            ),
             resources=("opensearch-domain",),
         )
 

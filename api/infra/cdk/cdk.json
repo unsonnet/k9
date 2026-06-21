@@ -62,7 +62,7 @@
           ],
           "tableName": "k9-dev-companies",
           "streamArnParameter": "/k9/dev/data/dynamodb/stream/companies",
-          "batchSize": 50,
+          "batchSize": 10,
           "retryAttempts": 10
         }
       }
@@ -128,7 +128,7 @@
           ],
           "tableName": "k9-stage-companies",
           "streamArnParameter": "/k9/stage/data/dynamodb/stream/companies",
-          "batchSize": 50,
+          "batchSize": 10,
           "retryAttempts": 10
         }
       }
@@ -194,7 +194,7 @@
           ],
           "tableName": "k9-prod-companies",
           "streamArnParameter": "/k9/prod/data/dynamodb/stream/companies",
-          "batchSize": 50,
+          "batchSize": 10,
           "retryAttempts": 10
         }
       }

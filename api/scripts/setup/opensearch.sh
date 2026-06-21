@@ -327,7 +327,7 @@ OS_ENDPOINT="$(
     --output text
 )"
 [[ -n "$OS_ENDPOINT" && "$OS_ENDPOINT" != "None" ]] || die "Failed to resolve OpenSearch endpoint."
-OS_ENDPOINT="https://${OS_ENDPOINT}"
+OS_ENDPOINT="https://${OS_ENDPOINT}:443"
 
 load_cli_credentials
 
