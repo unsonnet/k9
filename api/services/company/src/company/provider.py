@@ -6,10 +6,14 @@ from urllib.parse import urlparse
 
 import boto3
 from opensearchpy import OpenSearch, RequestsHttpConnection
-from opensearchpy.exceptions import NotFoundError
 from pydantic import HttpUrl
 from shared.config import GrantSpec, settings
-from shared.errors import DomainInvariantViolation, DomainNotFound
+from shared.errors import (
+    DomainForbidden,
+    DomainInvariantViolation,
+    DomainNotFound,
+    DomainRateLimited,
+)
 from shared.helpers import dt, now
 from shared.provider import BaseProvider, ExceptionMap, apimethod
 from shared.provider.opensearch import Search
@@ -162,7 +166,33 @@ class DynamoDBCompanyProvider(BaseProvider):
 
     @property
     def _exception_map(self) -> ExceptionMap:
-        return {DomainNotFound: [KeyError, NotFoundError]}
+        dbx = self._db.meta.client.exceptions
+        s3x = self._s3.meta.client.exceptions
+        gx = self._loc.exceptions
+        return {
+            DomainForbidden: [
+                s3x.AccessDenied,
+                gx.AccessDeniedException,
+            ],
+            DomainRateLimited: [
+                dbx.ProvisionedThroughputExceededException,
+                dbx.RequestLimitExceeded,
+                dbx.ThrottlingException,
+                gx.ThrottlingException,
+            ],
+            DomainInvariantViolation: [
+                dbx.ItemCollectionSizeLimitExceededException,
+                dbx.ReplicatedWriteConflictException,
+                dbx.TransactionConflictException,
+                gx.ValidationException,
+            ],
+            DomainNotFound: [
+                dbx.ConditionalCheckFailedException,
+                dbx.ResourceNotFoundException,
+                s3x.NoSuchBucket,
+                s3x.NoSuchKey,
+            ],
+        }
 
     # ──── Private Methods ────
 
@@ -292,7 +322,7 @@ class DynamoDBCompanyProvider(BaseProvider):
         cursor: str | None,
     ) -> Page:
         xcursor = self._decode_cursor(cursor) if cursor else None
-        return self._page(  # TODO: ensure index text analyzer matches search behavior
+        return self._page(
             Search(using=self._os, index=self._os_idx)
             .text("name", query=q)
             .near("locations", coord=g)
@@ -339,12 +369,13 @@ class DynamoDBCompanyProvider(BaseProvider):
         *,
         id: str,
     ) -> Company:
-        return self._company(
-            self._db.get_item(
-                Key={"id": id},
-                ConsistentRead=True,
-            )["Item"]  # type: ignore
+        response = self._db.get_item(
+            Key={"id": id},
+            ConsistentRead=True,
         )
+        if "Item" not in response:
+            raise DomainNotFound
+        return self._company(response["Item"])
 
     @apimethod
     def update_company(
