@@ -1,3 +1,4 @@
+from shared.errors import DomainNotFound
 from shared.stream import DynamoDBStreamResolver
 
 from .models import Request
@@ -24,7 +25,10 @@ def index(request: Request.Upsert) -> None:
 
 @app.remove
 def unindex(request: Request.Remove) -> None:
-    provider.unindex_company(id=request.id)
+    try:
+        provider.unindex_company(id=request.id)
+    except DomainNotFound:
+        pass  # already unindexed
 
 
 def lambda_handler(event, context):

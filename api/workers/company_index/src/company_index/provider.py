@@ -3,11 +3,11 @@ from typing import Protocol
 from urllib.parse import urlparse
 
 import boto3
+import opensearchpy.exceptions as osx
 from opensearchpy import OpenSearch, RequestsHttpConnection
-from opensearchpy.exceptions import NotFoundError
 from pydantic import HttpUrl
 from shared.config import GrantSpec, settings
-from shared.errors import DomainNotFound
+from shared.errors import DomainInvariantViolation, DomainNotFound
 from shared.provider import BaseProvider, ExceptionMap, apimethod
 
 from .models import Address, CompanySector
@@ -69,7 +69,8 @@ class OpenSearchIndexProvider(BaseProvider):
     @property
     def _exception_map(self) -> ExceptionMap:
         return {
-            DomainNotFound: [NotFoundError],
+            DomainNotFound: [osx.NotFoundError],
+            DomainInvariantViolation: [osx.ValidationException],
         }
 
     @property
