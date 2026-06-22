@@ -73,7 +73,7 @@ export function SearchFilters({ referenceProduct, onSearch, isSearching, filters
   const hasAbsoluteDimensions = format?.length?.unit !== 'none' && format?.width?.unit !== 'none';
 
   const keywordFilterOptions = useMemo(() => {
-    const merged = {
+    const merged: Record<keyof typeof KEYWORD_FILTER_OPTIONS, string[]> = {
       look: [...KEYWORD_FILTER_OPTIONS.look],
       texture: [...KEYWORD_FILTER_OPTIONS.texture],
       finish: [...KEYWORD_FILTER_OPTIONS.finish],
