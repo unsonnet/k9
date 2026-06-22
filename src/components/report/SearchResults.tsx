@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Grid, Heart, Package, Search, Download } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import type { ProductIndex, Product } from "@/types/report";
 import { useFavorites } from "@/hooks/useFavorites";
 import { ImageWithPlaceholder } from "@/components/ImageWithPlaceholder";
@@ -23,6 +23,7 @@ interface ViewMode {
 export function SearchResults({ results, isLoading, hasSearched, reportId }: SearchResultsProps) {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode["type"]>("grid");
+  const [nameFilter, setNameFilter] = useState("");
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState<{ current: number; total: number; message: string } | null>(null);
   const { favorites, isFavorited, toggleFavorite } = useFavorites(reportId, {
@@ -35,6 +36,60 @@ export function SearchResults({ results, isLoading, hasSearched, reportId }: Sea
     if (product.series) parts.push(product.series);
     if (product.model) parts.push(product.model);
     return parts.join(' ') || 'Unknown Product';
+  };
+
+  const normalizeText = (value: string) => value.toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, ' ').trim();
+
+  const isWithinEditDistance = (a: string, b: string, maxDistance: number) => {
+    const al = a.length;
+    const bl = b.length;
+    if (Math.abs(al - bl) > maxDistance) return false;
+    if (maxDistance === 0) return a === b;
+
+    const prev = new Array(bl + 1);
+    const curr = new Array(bl + 1);
+
+    for (let j = 0; j <= bl; j += 1) prev[j] = j;
+
+    for (let i = 1; i <= al; i += 1) {
+      curr[0] = i;
+      let rowMin = curr[0];
+
+      for (let j = 1; j <= bl; j += 1) {
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        curr[j] = Math.min(
+          prev[j] + 1,
+          curr[j - 1] + 1,
+          prev[j - 1] + cost
+        );
+        if (curr[j] < rowMin) rowMin = curr[j];
+      }
+
+      if (rowMin > maxDistance) return false;
+      for (let j = 0; j <= bl; j += 1) prev[j] = curr[j];
+    }
+
+    return prev[bl] <= maxDistance;
+  };
+
+  const fuzzyNameMatch = (name: string, query: string) => {
+    const normalizedName = normalizeText(name);
+    const normalizedQuery = normalizeText(query);
+    if (!normalizedQuery) return true;
+    if (!normalizedName) return false;
+    if (normalizedName.includes(normalizedQuery)) return true;
+
+    const queryTokens = normalizedQuery.split(' ').filter(Boolean);
+    const nameTokens = normalizedName.split(' ').filter(Boolean);
+
+    return queryTokens.every((queryToken) => {
+      const maxDistance = Math.max(1, Math.floor(queryToken.length * 0.3));
+      return nameTokens.some((nameToken) =>
+        nameToken.includes(queryToken) ||
+        queryToken.includes(nameToken) ||
+        isWithinEditDistance(nameToken, queryToken, maxDistance)
+      );
+    });
   };
 
   const formatProductName = (product: ProductIndex) => {
@@ -176,6 +231,32 @@ export function SearchResults({ results, isLoading, hasSearched, reportId }: Sea
           } as ProductIndex;
         })
       : results;
+
+  const filteredDisplayProducts = useMemo(() => {
+    if (!nameFilter.trim()) return displayProducts;
+    return displayProducts.filter((product) =>
+      fuzzyNameMatch(getProductNameText(product), nameFilter)
+    );
+  }, [displayProducts, nameFilter]);
+
+  const hasActiveNameFilter = nameFilter.trim().length > 0;
+  const totalDisplayCount = displayProducts.length;
+  const filteredDisplayCount = filteredDisplayProducts.length;
+
+  const countLabel = (() => {
+    if (viewMode === "favorites") {
+      if (hasActiveNameFilter) {
+        return `${filteredDisplayCount}/${totalDisplayCount} favorites`;
+      }
+      return `${filteredDisplayCount} ${filteredDisplayCount === 1 ? "favorite" : "favorites"}`;
+    }
+
+    if (hasActiveNameFilter) {
+      return `${filteredDisplayCount}/${totalDisplayCount} products found`;
+    }
+
+    return `${filteredDisplayCount} ${filteredDisplayCount === 1 ? "product found" : "products found"}`;
+  })();
 
   if (isLoading) {
     return (
@@ -379,14 +460,20 @@ export function SearchResults({ results, isLoading, hasSearched, reportId }: Sea
             )}
           </h3>
           <span className="search-results__count">
-            {displayProducts.length} {viewMode === "favorites" 
-              ? (displayProducts.length === 1 ? "favorite" : "favorites")
-              : (displayProducts.length === 1 ? "product found" : "products found")
-            }
+            {countLabel}
           </span>
         </div>
         
         <div className="search-results__header-actions">
+          <input
+            type="text"
+            value={nameFilter}
+            onChange={(event) => setNameFilter(event.target.value)}
+            placeholder="Filter by name"
+            className="form-control search-results__name-filter"
+            aria-label="Filter loaded results by product name"
+          />
+
           {/* Export button - always visible, disabled when searching or no favorites */}
           <button
             onClick={handleExportFavorites}
@@ -434,8 +521,15 @@ export function SearchResults({ results, isLoading, hasSearched, reportId }: Sea
 
       {/* Results content */}
       <div className="search-results__content">
+        {filteredDisplayProducts.length === 0 ? (
+          <div className="search-results__empty">
+            <Package className="w-12 h-12 text-gray-400" />
+            <h3>No matching products</h3>
+            <p>Try a looser name filter or clear the field.</p>
+          </div>
+        ) : (
         <div className="search-results__grid">
-          {displayProducts.map((product) => {
+          {filteredDisplayProducts.map((product) => {
             return (
             <div 
               key={product.id} 
@@ -481,6 +575,7 @@ export function SearchResults({ results, isLoading, hasSearched, reportId }: Sea
             );
           })}
         </div>
+        )}
       </div>
     </div>
   );

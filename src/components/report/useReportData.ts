@@ -153,13 +153,14 @@ export function useReportData({ reportId }: UseReportDataProps): UseReportDataRe
           
           // Transform component SearchFilters to API SearchFilters format
           const apiFilters = {
+            brand: filters.brand && filters.brand.length > 0 ? filters.brand : undefined,
             category: {
               type: filters.categories.type?.[0], // Take first type if multiple
               material: filters.categories.material?.[0], // Take first material if multiple
-              look: filters.categories.look?.[0],
-              texture: filters.categories.texture?.[0],
-              finish: filters.categories.finish?.[0],
-              edge: filters.categories.edge?.[0],
+              look: filters.categories.look,
+              texture: filters.categories.texture,
+              finish: filters.categories.finish,
+              edge: filters.categories.edge,
             },
             similarity: {
               selectMode: filters.selectMode,

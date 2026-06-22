@@ -54,10 +54,26 @@ export function ReportInfoHeader({ report }: ReportInfoHeaderProps) {
 
   // Helper to get all categories in preferred order, including unset ones
   const getAllCategories = () => {
-    return [
+    const categories = [
       { label: "Type", value: capitalize(reference.category.type) },
       { label: "Material", value: capitalize(reference.category.material) },
     ];
+    
+    // Add optional fields only if they have values
+    if (reference.category.look) {
+      categories.push({ label: "Look", value: capitalize(reference.category.look) });
+    }
+    if (reference.category.texture) {
+      categories.push({ label: "Texture", value: capitalize(reference.category.texture) });
+    }
+    if (reference.category.finish) {
+      categories.push({ label: "Finish", value: capitalize(reference.category.finish) });
+    }
+    if (reference.category.edge) {
+      categories.push({ label: "Edge", value: capitalize(reference.category.edge) });
+    }
+    
+    return categories;
   };
 
   const allCategories = getAllCategories();

@@ -20,14 +20,23 @@ interface OriginalApiMaterial {
   width: number;
   thickness: number | null;
   images: string[];
+  look?: string;
+  texture?: string;
+  finish?: string;
+  edge?: string;
 }
 
 interface OriginalApiSearchRequest {
   select_mode: 'color' | 'pattern';
+  brand?: string[];
   type_: {
     type: number;
     material: number;
     missing: boolean;
+    look?: string[];
+    texture?: string[];
+    finish?: string[];
+    edge?: string[];
   };
   shape: {
     length?: number;
@@ -198,7 +207,7 @@ function transformProductToOriginalFormat(product: Product): OriginalApiMaterial
     thickness: primaryFormat?.thickness
   });
   
-  return {
+  const materialData: OriginalApiMaterial = {
     type: (product.category.type || 'tile').toLowerCase(),
     material: (product.category.material || 'ceramic').toLowerCase(),
     length: convertedDimensions.length || 12, // fallback to 12 inches if not provided
@@ -220,6 +229,22 @@ function transformProductToOriginalFormat(product: Product): OriginalApiMaterial
       }
     })
   };
+  
+  // Add optional category fields if they exist
+  if (product.category.look) {
+    materialData.look = product.category.look.toLowerCase();
+  }
+  if (product.category.texture) {
+    materialData.texture = product.category.texture.toLowerCase();
+  }
+  if (product.category.finish) {
+    materialData.finish = product.category.finish.toLowerCase();
+  }
+  if (product.category.edge) {
+    materialData.edge = product.category.edge.toLowerCase();
+  }
+  
+  return materialData;
 }
 
 /**
@@ -445,6 +470,10 @@ function createFullProductFromOriginal(
     category: {
       type: capitalize(material.type),
       material: capitalize(material.material),
+      ...(material.look && { look: capitalize(material.look) }),
+      ...(material.texture && { texture: capitalize(material.texture) }),
+      ...(material.finish && { finish: capitalize(material.finish) }),
+      ...(material.edge && { edge: capitalize(material.edge) }),
     },
     formats: [{
       length: dimensions.length,
@@ -618,6 +647,24 @@ export class OriginalApiAdapter {
     }
     if (filters?.shape?.thickness) {
       searchRequest.shape.thickness = filters.shape.thickness;
+    }
+
+    if (filters?.brand && filters.brand.length > 0) {
+      searchRequest.brand = filters.brand;
+    }
+
+    // Add keyword category filters as list values inside type_
+    if (filters?.category?.look && filters.category.look.length > 0) {
+      searchRequest.type_.look = filters.category.look;
+    }
+    if (filters?.category?.texture && filters.category.texture.length > 0) {
+      searchRequest.type_.texture = filters.category.texture;
+    }
+    if (filters?.category?.finish && filters.category.finish.length > 0) {
+      searchRequest.type_.finish = filters.category.finish;
+    }
+    if (filters?.category?.edge && filters.category.edge.length > 0) {
+      searchRequest.type_.edge = filters.category.edge;
     }
 
     // Include start parameter in the request if provided

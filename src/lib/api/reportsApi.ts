@@ -34,12 +34,12 @@ export interface SearchFilters {
   category?: {
     type?: string;
     material?: string;
-    look?: string;
-    texture?: string;
-    finish?: string;
-    edge?: string;
+    look?: string[];
+    texture?: string[];
+    finish?: string[];
+    edge?: string[];
   };
-  brand?: string;
+  brand?: string[];
   priceRange?: {
     min?: number;
     max?: number;

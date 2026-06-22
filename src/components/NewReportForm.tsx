@@ -332,6 +332,76 @@ export function NewReportForm({ onSubmit, onDimensionsChange, onDimensionsValues
                 ))}
               </select>
             </div>
+
+            <div className="search-filters__field">
+              <label htmlFor="look" className="search-filters__label">
+                Look
+              </label>
+              <select
+                id="look"
+                value={form.look}
+                onChange={(e) => setForm((prev) => ({ ...prev, look: e.target.value }))}
+                className="form-control select-control"
+              >
+                <option value="Any">Any</option>
+                <option value="antiqued">Antiqued</option>
+                <option value="rustic">Rustic</option>
+              </select>
+            </div>
+
+            <div className="search-filters__field">
+              <label htmlFor="texture" className="search-filters__label">
+                Texture
+              </label>
+              <select
+                id="texture"
+                value={form.texture}
+                onChange={(e) => setForm((prev) => ({ ...prev, texture: e.target.value }))}
+                className="form-control select-control"
+              >
+                <option value="Any">Any</option>
+                <option value="hand-scraped">Hand-scraped</option>
+                <option value="sanded">Sanded</option>
+                <option value="textured">Textured</option>
+              </select>
+            </div>
+
+            <div className="search-filters__field">
+              <label htmlFor="finish" className="search-filters__label">
+                Finish
+              </label>
+              <select
+                id="finish"
+                value={form.finish}
+                onChange={(e) => setForm((prev) => ({ ...prev, finish: e.target.value }))}
+                className="form-control select-control"
+              >
+                <option value="Any">Any</option>
+                <option value="glossy">Glossy</option>
+                <option value="honed">Honed</option>
+                <option value="matte">Matte</option>
+                <option value="natural">Natural</option>
+                <option value="polished">Polished</option>
+                <option value="satin">Satin</option>
+              </select>
+            </div>
+
+            <div className="search-filters__field">
+              <label htmlFor="edge" className="search-filters__label">
+                Edge
+              </label>
+              <select
+                id="edge"
+                value={form.edge}
+                onChange={(e) => setForm((prev) => ({ ...prev, edge: e.target.value }))}
+                className="form-control select-control"
+              >
+                <option value="Any">Any</option>
+                <option value="beveled">Beveled</option>
+                <option value="chiseled">Chiseled</option>
+                <option value="rectified">Rectified</option>
+              </select>
+            </div>
           </div>
 
           <div className="search-filters__section">

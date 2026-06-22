@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Search, Sliders } from "lucide-react";
 import type { Product } from "@/types/report";
 
@@ -10,6 +10,7 @@ export interface SearchFilters {
   maxThicknessDiff?: number;
   aspectRatioTolerance?: number;
   selectMode: 'color' | 'pattern';
+  brand?: string[];
   categories: {
     type?: string[];
     material?: string[];
@@ -18,6 +19,45 @@ export interface SearchFilters {
     finish?: string[];
     edge?: string[];
   };
+}
+
+const KEYWORD_FILTER_OPTIONS = {
+  look: ['antiqued', 'rustic'],
+  texture: ['hand-scraped', 'sanded', 'textured'],
+  finish: ['glossy', 'honed', 'matte', 'natural', 'polished', 'satin'],
+  edge: ['beveled', 'chiseled', 'rectified'],
+} as const;
+
+const keywordFilterLabels: Record<keyof typeof KEYWORD_FILTER_OPTIONS, string> = {
+  look: 'Look',
+  texture: 'Texture',
+  finish: 'Finish',
+  edge: 'Edge',
+};
+
+const BRAND_FILTER_OPTIONS = [
+  'American Olean',
+  'D&B Tile',
+  'Floor & Decor',
+  'Happy Floors',
+  'Home Depot',
+  'Merola Tile',
+  'NHD Tile',
+  'Shaw Floors',
+  'Stone & Tile Shoppe',
+  'USTiles',
+] as const;
+
+function formatKeywordDisplay(value: string): string {
+  return value
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('-');
+}
+
+function normalizeKeywordValue(value?: string): string | undefined {
+  const normalized = value?.trim().toLowerCase();
+  return normalized ? normalized : undefined;
 }
 
 interface SearchFiltersProps {
@@ -31,6 +71,35 @@ interface SearchFiltersProps {
 export function SearchFilters({ referenceProduct, onSearch, isSearching, filters: externalFilters, onFiltersChange }: SearchFiltersProps) {
   const format = referenceProduct.formats?.[0];
   const hasAbsoluteDimensions = format?.length?.unit !== 'none' && format?.width?.unit !== 'none';
+
+  const keywordFilterOptions = useMemo(() => {
+    const merged = {
+      look: [...KEYWORD_FILTER_OPTIONS.look],
+      texture: [...KEYWORD_FILTER_OPTIONS.texture],
+      finish: [...KEYWORD_FILTER_OPTIONS.finish],
+      edge: [...KEYWORD_FILTER_OPTIONS.edge],
+    };
+
+    const referenceLook = normalizeKeywordValue(referenceProduct.category.look);
+    const referenceTexture = normalizeKeywordValue(referenceProduct.category.texture);
+    const referenceFinish = normalizeKeywordValue(referenceProduct.category.finish);
+    const referenceEdge = normalizeKeywordValue(referenceProduct.category.edge);
+
+    if (referenceLook && !merged.look.includes(referenceLook)) {
+      merged.look.push(referenceLook);
+    }
+    if (referenceTexture && !merged.texture.includes(referenceTexture)) {
+      merged.texture.push(referenceTexture);
+    }
+    if (referenceFinish && !merged.finish.includes(referenceFinish)) {
+      merged.finish.push(referenceFinish);
+    }
+    if (referenceEdge && !merged.edge.includes(referenceEdge)) {
+      merged.edge.push(referenceEdge);
+    }
+
+    return merged;
+  }, [referenceProduct.category.edge, referenceProduct.category.finish, referenceProduct.category.look, referenceProduct.category.texture]);
   
   // Determine which filters to show
   const hasLength = format?.length?.val;
@@ -58,10 +127,15 @@ export function SearchFilters({ referenceProduct, onSearch, isSearching, filters
     maxThicknessDiff: hasThickness ? 1 : undefined,
     aspectRatioTolerance: 2,
     selectMode: 'color',
+    brand: [],
     categories: {
       // Pre-populate with reference product categories for convenience
       type: referenceProduct.category.type ? [referenceProduct.category.type] : [],
       material: referenceProduct.category.material ? [referenceProduct.category.material] : [],
+      look: normalizeKeywordValue(referenceProduct.category.look) ? [normalizeKeywordValue(referenceProduct.category.look)!] : [],
+      texture: normalizeKeywordValue(referenceProduct.category.texture) ? [normalizeKeywordValue(referenceProduct.category.texture)!] : [],
+      finish: normalizeKeywordValue(referenceProduct.category.finish) ? [normalizeKeywordValue(referenceProduct.category.finish)!] : [],
+      edge: normalizeKeywordValue(referenceProduct.category.edge) ? [normalizeKeywordValue(referenceProduct.category.edge)!] : [],
     }
   });
 
@@ -101,6 +175,30 @@ export function SearchFilters({ referenceProduct, onSearch, isSearching, filters
 
   const handleSearch = () => {
     onSearch(filters);
+  };
+
+  const toggleKeywordValue = (
+    field: keyof Pick<SearchFilters['categories'], 'look' | 'texture' | 'finish' | 'edge'>,
+    value: string
+  ) => {
+    const currentValues = filters.categories[field] || [];
+    const nextValues = currentValues.includes(value)
+      ? currentValues.filter((item) => item !== value)
+      : [...currentValues, value];
+
+    handleFilterChange('categories', {
+      ...filters.categories,
+      [field]: nextValues,
+    });
+  };
+
+  const toggleBrandValue = (value: string) => {
+    const currentValues = filters.brand || [];
+    const nextValues = currentValues.includes(value)
+      ? currentValues.filter((item) => item !== value)
+      : [...currentValues, value];
+
+    handleFilterChange('brand', nextValues);
   };
 
   const resetFilters = () => {
@@ -297,6 +395,56 @@ export function SearchFilters({ referenceProduct, onSearch, isSearching, filters
                 <span className="checkbox-custom"></span>
                 Pattern
               </label>
+            </div>
+          </div>
+        </div>
+
+        <div className="search-filters__section">
+          <h4 className="search-filters__section-title">Keywords</h4>
+          {(Object.keys(keywordFilterOptions) as Array<keyof typeof keywordFilterOptions>).map((field) => (
+            <div key={field} className="search-filters__field search-filters__field--vertical">
+              <label className="search-filters__label">{keywordFilterLabels[field]}</label>
+              <div className="checkbox-group">
+                {keywordFilterOptions[field].map((value) => {
+                  const checked = (filters.categories[field] || []).includes(value);
+                  return (
+                    <label key={value} className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleKeywordValue(field, value)}
+                        className="checkbox-input"
+                      />
+                      <span className="checkbox-custom"></span>
+                      {formatKeywordDisplay(value)}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="search-filters__section">
+          <h4 className="search-filters__section-title">Branding</h4>
+          <div className="search-filters__field search-filters__field--vertical">
+            <label className="search-filters__label">Store</label>
+            <div className="checkbox-group">
+              {BRAND_FILTER_OPTIONS.map((value) => {
+                const checked = (filters.brand || []).includes(value);
+                return (
+                  <label key={value} className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleBrandValue(value)}
+                      className="checkbox-input"
+                    />
+                    <span className="checkbox-custom"></span>
+                    {value}
+                  </label>
+                );
+              })}
             </div>
           </div>
         </div>

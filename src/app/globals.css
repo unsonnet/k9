@@ -1847,6 +1847,14 @@ input[type="number"] {
   height: 100%; /* Ensure it takes full height of header */
 }
 
+.search-results__name-filter {
+  width: 280px;
+  min-width: 220px;
+  height: 2.125rem;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.875rem;
+}
+
 .search-results__export-btn {
   display: flex;
   align-items: center;
