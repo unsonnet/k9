@@ -21,21 +21,19 @@ app.grant(*provider.permissions)
 @app.get(
     "/",
     summary="List users",
-    description="List or search users. Requires admin role.",
+    description="List or search users.",
     tags=["user"],
     responses={
         200: "Users found",
         401: "Authentication required",
-        403: "Access denied",
         429: "Too many requests",
     },
 )
 def list(
     caller: Caller,
     request: Request.List,
-) -> OK[Response.Page] | Unauthorized | Forbidden | TooManyRequests:
+) -> OK[Response.Page] | Unauthorized | TooManyRequests:
     try:
-        require_admin(caller)
         page = provider.list_users(
             q=request.q,
             limit=request.limit or 25,
@@ -44,8 +42,6 @@ def list(
         return OK(Response.Page.pack(page))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
-    except DomainForbidden as exc:
-        return Forbidden(cause=exc)
     except DomainRateLimited as exc:
         return TooManyRequests(cause=exc)
 
