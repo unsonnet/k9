@@ -8,12 +8,12 @@ from shared.helpers import require_admin, require_admin_or_self
 from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Created, NoContent
-from shared.provider.user import generate_id, generate_password
+from shared.providers.user import generate_id, generate_password
 
 from .models import Request, Response
 from .provider import CognitoUserProvider, UserProvider
 
-app = HttpResolver(strip_prefixes=["/user"], enable_validation=True)
+app = HttpResolver(strip_prefixes=["/users"], enable_validation=True)
 provider: UserProvider = CognitoUserProvider()
 app.grant(*provider.permissions)
 

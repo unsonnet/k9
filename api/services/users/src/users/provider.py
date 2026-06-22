@@ -13,7 +13,7 @@ from shared.errors import (
 )
 from shared.helpers import dt
 from shared.http import Role
-from shared.provider import BaseProvider, ExceptionMap, apimethod
+from shared.providers import BaseProvider, ExceptionMap, apimethod
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 from types_boto3_cognito_idp.type_defs import AttributeTypeTypeDef
 from types_boto3_s3.service_resource import Bucket

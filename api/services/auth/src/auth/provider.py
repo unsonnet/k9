@@ -16,7 +16,7 @@ from shared.errors import (
     DomainRateLimited,
 )
 from shared.helpers import now
-from shared.provider import BaseProvider, ExceptionMap, apimethod
+from shared.providers import BaseProvider, ExceptionMap, apimethod
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 
 from .models import MFA, Challenge, ChallengeKey, Tokens

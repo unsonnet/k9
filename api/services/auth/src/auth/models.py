@@ -3,8 +3,8 @@ from typing import Self
 
 from pydantic import BaseModel, Field, field_validator
 from shared.http.requests import Body, Path
-from shared.provider.auth import validate_session, validate_token
-from shared.provider.user import validate_id, validate_name, validate_password
+from shared.providers.auth import validate_session, validate_token
+from shared.providers.user import validate_id, validate_name, validate_password
 
 __all__ = [
     "Tokens",

@@ -8,7 +8,7 @@ from opensearchpy import OpenSearch, RequestsHttpConnection
 from pydantic import HttpUrl
 from shared.config import GrantSpec, settings
 from shared.errors import DomainInvariantViolation, DomainNotFound
-from shared.provider import BaseProvider, ExceptionMap, apimethod
+from shared.providers import BaseProvider, ExceptionMap, apimethod
 
 from .models import Address, CompanySector
 

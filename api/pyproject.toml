@@ -4,10 +4,10 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "auth",
-    "company",
-    "user",
+    "companies",
+    "users",
     "shared",
-    "company_index",
+    "companies_index",
 ]
 
 [tool.uv]
@@ -23,10 +23,10 @@ members = [
 
 [tool.uv.sources]
 auth = { workspace = true }
-company = { workspace = true }
-user = { workspace = true }
+companies = { workspace = true }
+users = { workspace = true }
 shared = { workspace = true }
-company_index = { workspace = true }
+companies_index = { workspace = true }
 
 [dependency-groups]
 dev = [

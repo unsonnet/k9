@@ -30,9 +30,9 @@
             "identity"
           ]
         },
-        "user": {
-          "routePrefix": "/user",
-          "dockerfile": "services/user/Dockerfile",
+        "users": {
+          "routePrefix": "/users",
+          "dockerfile": "services/users/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -40,9 +40,9 @@
             "storage"
           ]
         },
-        "company": {
-          "routePrefix": "/company",
-          "dockerfile": "services/company/Dockerfile",
+        "companies": {
+          "routePrefix": "/companies",
+          "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -53,8 +53,8 @@
         }
       },
       "workers": {
-        "company_index": {
-          "dockerfile": "workers/company_index/Dockerfile",
+        "companies_index": {
+          "dockerfile": "workers/companies_index/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -96,9 +96,9 @@
             "identity"
           ]
         },
-        "user": {
-          "routePrefix": "/user",
-          "dockerfile": "services/user/Dockerfile",
+        "users": {
+          "routePrefix": "/users",
+          "dockerfile": "services/users/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -106,9 +106,9 @@
             "storage"
           ]
         },
-        "company": {
-          "routePrefix": "/company",
-          "dockerfile": "services/company/Dockerfile",
+        "companies": {
+          "routePrefix": "/companies",
+          "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -119,8 +119,8 @@
         }
       },
       "workers": {
-        "company_index": {
-          "dockerfile": "workers/company_index/Dockerfile",
+        "companies_index": {
+          "dockerfile": "workers/companies_index/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -162,9 +162,9 @@
             "identity"
           ]
         },
-        "user": {
-          "routePrefix": "/user",
-          "dockerfile": "services/user/Dockerfile",
+        "users": {
+          "routePrefix": "/users",
+          "dockerfile": "services/users/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -172,9 +172,9 @@
             "storage"
           ]
         },
-        "company": {
-          "routePrefix": "/company",
-          "dockerfile": "services/company/Dockerfile",
+        "companies": {
+          "routePrefix": "/companies",
+          "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -185,8 +185,8 @@
         }
       },
       "workers": {
-        "company_index": {
-          "dockerfile": "workers/company_index/Dockerfile",
+        "companies_index": {
+          "dockerfile": "workers/companies_index/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [

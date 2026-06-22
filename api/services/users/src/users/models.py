@@ -4,8 +4,8 @@ from typing import Self
 from pydantic import BaseModel, HttpUrl, StrictBool, field_validator
 from shared.http import ImageMIMEType, Role
 from shared.http.requests import Body, Path, Query
-from shared.provider.opensearch import sanitize_query
-from shared.provider.user import normalize_name, validate_id, validate_name
+from shared.providers.opensearch import sanitize_query
+from shared.providers.user import normalize_name, validate_id, validate_name
 
 __all__ = [
     "User",

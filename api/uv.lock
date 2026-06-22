@@ -5,12 +5,12 @@ requires-python = ">=3.12"
 [manifest]
 members = [
     "auth",
-    "company",
-    "company-index",
+    "companies",
+    "companies-index",
     "infra",
     "k9",
     "shared",
-    "user",
+    "users",
 ]
 
 [[package]]
@@ -352,9 +352,9 @@ wheels = [
 ]
 
 [[package]]
-name = "company"
-version = "0.1.0"
-source = { editable = "services/company" }
+name = "companies"
+version = "0.2.0"
+source = { editable = "services/companies" }
 dependencies = [
     { name = "boto3" },
     { name = "opensearch-py" },
@@ -373,9 +373,9 @@ requires-dist = [
 ]
 
 [[package]]
-name = "company-index"
-version = "0.1.0"
-source = { editable = "workers/company_index" }
+name = "companies-index"
+version = "0.2.0"
+source = { editable = "workers/companies_index" }
 dependencies = [
     { name = "boto3" },
     { name = "opensearch-py" },
@@ -744,10 +744,10 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "auth" },
-    { name = "company" },
-    { name = "company-index" },
+    { name = "companies" },
+    { name = "companies-index" },
     { name = "shared" },
-    { name = "user" },
+    { name = "users" },
 ]
 
 [package.dev-dependencies]
@@ -764,10 +764,10 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "auth", editable = "services/auth" },
-    { name = "company", editable = "services/company" },
-    { name = "company-index", editable = "workers/company_index" },
+    { name = "companies", editable = "services/companies" },
+    { name = "companies-index", editable = "workers/companies_index" },
     { name = "shared", editable = "shared" },
-    { name = "user", editable = "services/user" },
+    { name = "users", editable = "services/users" },
 ]
 
 [package.metadata.requires-dev]
@@ -1659,9 +1659,9 @@ wheels = [
 ]
 
 [[package]]
-name = "user"
-version = "0.1.0"
-source = { editable = "services/user" }
+name = "users"
+version = "0.2.0"
+source = { editable = "services/users" }
 dependencies = [
     { name = "boto3" },
     { name = "opensearch-py" },

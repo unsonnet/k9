@@ -15,8 +15,8 @@ from shared.errors import (
     DomainRateLimited,
 )
 from shared.helpers import dt, now
-from shared.provider import BaseProvider, ExceptionMap, apimethod
-from shared.provider.opensearch import Search
+from shared.providers import BaseProvider, ExceptionMap, apimethod
+from shared.providers.opensearch import Search
 from types_boto3_dynamodb.service_resource import Table
 from types_boto3_geo_places import LocationServicePlacesV2Client
 from types_boto3_s3.service_resource import Bucket

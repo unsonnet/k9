@@ -1,7 +1,7 @@
 [project]
-name = "company_index"
-version = "0.1.0"
-description = "Company Index Workers"
+name = "companies_index"
+version = "0.2.0"
+description = "Companies Index Workers"
 requires-python = ">=3.12"
 dependencies = [
 	"boto3>=1.42.85",

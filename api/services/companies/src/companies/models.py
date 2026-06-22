@@ -12,8 +12,8 @@ from pydantic import (
     model_validator,
 )
 from shared.http import Body, ImageMIMEType, Path, Query
-from shared.provider.company import validate_id
-from shared.provider.opensearch import sanitize_query
+from shared.providers.company import validate_id
+from shared.providers.opensearch import sanitize_query
 
 __all__ = [
     "GeoPoint",

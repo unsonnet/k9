@@ -8,12 +8,12 @@ from shared.helpers import require_admin
 from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Created, NoContent
-from shared.provider.company import generate_id
+from shared.providers.company import generate_id
 
 from .models import Request, Response
 from .provider import CompanyProvider, DynamoDBCompanyProvider
 
-app = HttpResolver(strip_prefixes=["/company"], enable_validation=True)
+app = HttpResolver(strip_prefixes=["/companies"], enable_validation=True)
 provider: CompanyProvider = DynamoDBCompanyProvider()
 app.grant(*provider.permissions)
 
