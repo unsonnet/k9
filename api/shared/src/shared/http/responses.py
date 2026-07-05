@@ -38,15 +38,15 @@ class Response[T: BaseModel | None](BaseResponse[T]):
 # 2xx Success
 
 
-class OK[T: BaseModel](Response[T]):
+class OK[T: BaseModel | None](Response[T]):
     status_code = HTTPStatus.OK
 
 
-class Created[T: BaseModel](Response[T]):
+class Created[T: BaseModel | None](Response[T]):
     status_code = HTTPStatus.CREATED
 
 
-class Accepted[T: BaseModel](Response[T]):
+class Accepted[T: BaseModel | None](Response[T]):
     status_code = HTTPStatus.ACCEPTED
 
 

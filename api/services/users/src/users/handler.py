@@ -13,13 +13,13 @@ from shared.providers.user import generate_id, generate_password
 from .models import Request, Response
 from .provider import CognitoUserProvider, UserProvider
 
-app = HttpResolver(strip_prefixes=["/users"], enable_validation=True)
+app = HttpResolver(enable_validation=True)
 provider: UserProvider = CognitoUserProvider()
 app.grant(*provider.permissions)
 
 
 @app.get(
-    "/",
+    "/users",
     summary="List users",
     description="List or search users.",
     tags=["user"],
@@ -47,7 +47,7 @@ def list(
 
 
 @app.post(
-    "/",
+    "/users",
     summary="Create user profile",
     description="Create a new user profile. Requires admin role.",
     tags=["user"],
@@ -81,7 +81,7 @@ def create(
 
 
 @app.get(
-    "/<id>",
+    "/users/<id>",
     summary="Read user profile",
     description=(
         "Read a user profile. "
@@ -118,7 +118,7 @@ def read(
 
 
 @app.patch(
-    "/<id>",
+    "/users/<id>",
     summary="Update user profile",
     description=(
         "Update a user profile. "
@@ -161,7 +161,7 @@ def update(
 
 
 @app.delete(
-    "/<id>",
+    "/users/<id>",
     summary="Delete user profile",
     description="Delete a user profile other than self. Requires admin role.",
     tags=["user"],
@@ -195,7 +195,7 @@ def delete(
 
 
 @app.post(
-    "/<id>/picture",
+    "/users/<id>/picture",
     summary="Create user picture upload form",
     description=(
         "Create a user picture upload form. "
@@ -235,7 +235,7 @@ def picture(
 
 
 @app.post(
-    "/<id>/reset",
+    "/users/<id>/reset",
     summary="Reset user credentials",
     description=(
         "Reset a user's password and disable their MFA device. "
