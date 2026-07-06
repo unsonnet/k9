@@ -16,13 +16,8 @@ from .config import FunctionConfig, ServiceConfig, StageName, WorkerConfig
 
 
 def pascal_case(name: str) -> str:
-    return "".join(part.capitalize() for part in name.replace("-", "_").split("_"))
-
-
-def normalize_route_path(route_prefix: str, rule: str) -> str:
-    if rule == "/":
-        return route_prefix
-    return f"{route_prefix}{rule}".replace("<", "{").replace(">", "}")
+    normalized = name.replace("-", "_").replace(".", "_")
+    return "".join(part.capitalize() for part in normalized.split("_"))
 
 
 def load_manifest(root: Path, kind: str, name: str) -> dict:
@@ -136,13 +131,16 @@ def create_function(
     config: FunctionConfig,
     manifest: dict,
 ) -> lambda_.DockerImageFunction:
+    module_name = name.replace("-", "_")
+    function_suffix = name.replace(".", "-")
     fn = lambda_.DockerImageFunction(
         scope,
         "Function",
-        function_name=f"k9-api-{stage}-{name}",
+        function_name=f"k9-api-{stage}-{function_suffix}",
         code=lambda_.DockerImageCode.from_image_asset(
             directory=str(root),
             file=config.dockerfile,
+            cmd=[f"{module_name}.handler.lambda_handler"],
         ),
         timeout=Duration.seconds(config.timeout),
         memory_size=config.memory,
@@ -185,7 +183,7 @@ class ServiceRegistration(Construct):
         integration = HttpLambdaIntegration("Integration", self.function)  # type: ignore[arg-type]
         for route in manifest.get("routes", []):
             http.add_routes(
-                path=normalize_route_path(config.route_prefix, route["rule"]),
+                path=route["rule"].replace("<", "{").replace(">", "}"),
                 methods=[apigwv2.HttpMethod(route["method"])],
                 integration=integration,
                 authorizer=authorizer if route.get("auth_required") else None,

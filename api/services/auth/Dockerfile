@@ -24,5 +24,3 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 COPY services/auth/src/ ${LAMBDA_TASK_ROOT}/
 COPY shared/src/ ${LAMBDA_TASK_ROOT}/
-
-CMD ["auth.handler.lambda_handler"]

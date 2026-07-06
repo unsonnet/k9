@@ -6,7 +6,7 @@ set -euo pipefail
 #   - OpenSearch index:  k9-<stage>-companies
 # Stores to SSM:
 #   - /k9/<stage>/data/opensearch/endpoint
-#   - /k9/<stage>/data/opensearch/index
+#   - /k9/<stage>/data/opensearch/index/companies
 
 AWS_REGION="${AWS_REGION:-us-east-2}"
 export AWS_PAGER=""
@@ -57,11 +57,10 @@ STAGE="${1:-}"
 [[ "$STAGE" =~ ^(dev|stage|prod)$ ]] || usage
 
 DOMAIN_NAME="k9-${STAGE}-os"
-INDEX_BASE="k9-${STAGE}"
-INDEX_NAME="${INDEX_BASE}-companies"
+COMPANIES_INDEX="k9-${STAGE}-companies"
 
 SSM_ENDPOINT="/k9/${STAGE}/data/opensearch/endpoint"
-SSM_INDEX="/k9/${STAGE}/data/opensearch/index"
+SSM_COMPANIES_INDEX="/k9/${STAGE}/data/opensearch/index/companies"
 
 if ! curl --help all 2>/dev/null | grep -q -- '--aws-sigv4'; then
   die "curl does not support --aws-sigv4. Update curl before running this script."
@@ -98,7 +97,7 @@ create_access_policy() {
   '
 }
 
-create_index_payload() {
+create_companies_index_payload() {
   jq -n '
     {
       settings: {
@@ -204,8 +203,9 @@ load_cli_credentials() {
   [[ -n "$AWS_SECRET_ACCESS_KEY" ]] || die "Failed to load SecretAccessKey from AWS CLI credentials."
 }
 
-os_put_index() {
-  local url="${OS_ENDPOINT}/${INDEX_NAME}"
+os_put() {
+  local url="$1"
+  local data_file="$2"
 
   RESPONSE_BODY="$(mktemp)"
   RESPONSE_HEADERS="$(mktemp)"
@@ -218,7 +218,7 @@ os_put_index() {
     --aws-sigv4 "aws:amz:${AWS_REGION}:es"
     --user "${AWS_ACCESS_KEY_ID}:${AWS_SECRET_ACCESS_KEY}"
     --header "content-type: application/json"
-    --data-binary "@${INDEX_JSON}"
+    --data-binary "@${data_file}"
     --output "$RESPONSE_BODY"
     --dump-header "$RESPONSE_HEADERS"
   )
@@ -282,9 +282,9 @@ preflight() {
     issues+=("SSM parameter already exists: $SSM_ENDPOINT = $existing")
   fi
 
-  if ssm_exists "$SSM_INDEX"; then
-    existing="$(ssm_get "$SSM_INDEX")"
-    issues+=("SSM parameter already exists: $SSM_INDEX = $existing")
+  if ssm_exists "$SSM_COMPANIES_INDEX"; then
+    existing="$(ssm_get "$SSM_COMPANIES_INDEX")"
+    issues+=("SSM parameter already exists: $SSM_COMPANIES_INDEX = $existing")
   fi
 
   domain_exists "$DOMAIN_NAME" && \
@@ -331,26 +331,25 @@ OS_ENDPOINT="https://${OS_ENDPOINT}:443"
 
 load_cli_credentials
 
-echo "Creating OpenSearch index: $INDEX_NAME"
+echo "Creating OpenSearch index: $COMPANIES_INDEX"
 
 INDEX_JSON="$(mktemp)"
-create_index_payload >"$INDEX_JSON"
-os_put_index
+create_companies_index_payload >"$INDEX_JSON"
+os_put "${OS_ENDPOINT}/${COMPANIES_INDEX}" "$INDEX_JSON"
 
 put_ssm_string "$SSM_ENDPOINT" "$OS_ENDPOINT"
-put_ssm_string "$SSM_INDEX" "$INDEX_BASE"
+put_ssm_string "$SSM_COMPANIES_INDEX" "$COMPANIES_INDEX"
 
 cat <<EOF
 
 Created OpenSearch resources:
-  Stage:      $STAGE
-  Region:     $AWS_REGION
-  DomainName: $DOMAIN_NAME
-  Endpoint:   $OS_ENDPOINT
-  IndexBase:  $INDEX_BASE
-  IndexName:  $INDEX_NAME
+  Stage:          $STAGE
+  Region:         $AWS_REGION
+  DomainName:     $DOMAIN_NAME
+  Endpoint:       $OS_ENDPOINT
+  CompaniesIndex: $COMPANIES_INDEX
 
 Stored in SSM:
   $SSM_ENDPOINT = $OS_ENDPOINT
-  $SSM_INDEX    = $INDEX_BASE
+  $SSM_COMPANIES_INDEX = $COMPANIES_INDEX
 EOF

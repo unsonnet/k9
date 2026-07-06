@@ -28,7 +28,7 @@ class FunctionConfig(BaseModel):
 
 
 class ServiceConfig(FunctionConfig):
-    route_prefix: str = Field(alias="routePrefix")
+    pass
 
 
 class WorkerConfig(FunctionConfig):

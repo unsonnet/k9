@@ -8,23 +8,23 @@ from shared.helpers import require_admin
 from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Created, NoContent
-from shared.providers.company import generate_id
+from shared.providers.company import generate_sub_id
 
 from .models import Request, Response
-from .provider import AWSCompanyProvider, CompanyProvider
+from .provider import AWSLocationProvider, LocationProvider
 
 app = HttpResolver(enable_validation=True)
-provider: CompanyProvider = AWSCompanyProvider()
+provider: LocationProvider = AWSLocationProvider()
 app.grant(*provider.permissions)
 
 
 @app.get(
-    "/companies",
-    summary="List companies",
-    description="List companies filtered by sector, name, and coordinates.",
-    tags=["company"],
+    "/companies/<id>/locations",
+    summary="List company locations",
+    description="List locations of a company filtered by coordinates.",
+    tags=["company", "location"],
     responses={
-        200: "Companies found",
+        200: "Locations found",
         401: "Authentication required",
         429: "Too many requests",
     },
@@ -34,9 +34,8 @@ def list(
     request: Request.List,
 ) -> OK[Response.Page] | Unauthorized | TooManyRequests:
     try:
-        page = provider.list_companies(
-            sector=request.sector,
-            name=request.name,
+        page = provider.list_locations(
+            id=request.id,
             geo=request.geo,
             limit=request.limit,
             cursor=request.cursor,
@@ -49,12 +48,12 @@ def list(
 
 
 @app.post(
-    "/companies",
-    summary="Create company",
-    description="Create a company. Requires admin role.",
-    tags=["company"],
+    "/companies/<id>/locations",
+    summary="Create company location",
+    description="Create a location of a company. Requires admin role.",
+    tags=["company", "location"],
     responses={
-        201: "Company created",
+        201: "Company location created",
         401: "Authentication required",
         403: "Access denied",
         429: "Too many requests",
@@ -63,16 +62,18 @@ def list(
 def create(
     caller: Caller,
     request: Request.Create,
-) -> Created[Response.Company] | Unauthorized | Forbidden | TooManyRequests:
+) -> Created[Response.Location] | Unauthorized | Forbidden | TooManyRequests:
     try:
         require_admin(caller)
-        company = provider.create_company(
-            id=generate_id(),
-            sector=request.sector,
-            name=request.name,
-            website=request.website,
+        location = provider.create_location(
+            id=request.id,
+            sid=generate_sub_id(),
+            street=request.street,
+            city=request.city,
+            state=request.state,
+            zip=request.zip,
         )
-        return Created(Response.Company.pack(company))
+        return Created(Response.Location.pack(location))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -82,26 +83,27 @@ def create(
 
 
 @app.get(
-    "/companies/<id>",
-    summary="Read company",
-    description="Read a company.",
-    tags=["company"],
+    "/companies/<id>/locations/<sid>",
+    summary="Read company location",
+    description="Read a location of a company.",
+    tags=["company", "location"],
     responses={
-        200: "Company found",
+        200: "Company location found",
         401: "Authentication required",
-        404: "Company not found",
+        404: "Company location not found",
         429: "Too many requests",
     },
 )
 def read(
     caller: Caller,
     request: Request.Read,
-) -> OK[Response.Company] | Unauthorized | NotFound | TooManyRequests:
+) -> OK[Response.Location] | Unauthorized | NotFound | TooManyRequests:
     try:
-        company = provider.read_company(
+        location = provider.read_location(
             id=request.id,
+            sid=request.sid,
         )
-        return OK(Response.Company.pack(company))
+        return OK(Response.Location.pack(location))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainNotFound as exc:
@@ -111,31 +113,33 @@ def read(
 
 
 @app.patch(
-    "/companies/<id>",
-    summary="Update company",
-    description="Update a company. Requires admin role.",
-    tags=["company"],
+    "/companies/<id>/locations/<sid>",
+    summary="Update company location",
+    description="Update a location of a company. Requires admin role.",
+    tags=["company", "location"],
     responses={
-        200: "Company updated",
+        200: "Company location updated",
         401: "Authentication required",
         403: "Access denied",
-        404: "Company not found",
+        404: "Company location not found",
         429: "Too many requests",
     },
 )
 def update(
     caller: Caller,
     request: Request.Update,
-) -> OK[Response.Company] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+) -> OK[Response.Location] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
         require_admin(caller)
-        company = provider.update_company(
+        location = provider.update_location(
             id=request.id,
-            sector=request.sector,
-            name=request.name,
-            website=request.website,
+            sid=request.sid,
+            street=request.street,
+            city=request.city,
+            state=request.state,
+            zip=request.zip,
         )
-        return OK(Response.Company.pack(company))
+        return OK(Response.Location.pack(location))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -147,12 +151,12 @@ def update(
 
 
 @app.delete(
-    "/companies/<id>",
-    summary="Delete company",
-    description="Delete a company. Requires admin role.",
-    tags=["company"],
+    "/companies/<id>/locations/<sid>",
+    summary="Delete company location",
+    description="Delete a location of a company. Requires admin role.",
+    tags=["company", "location"],
     responses={
-        200: "Company deleted",
+        200: "Company location deleted",
         401: "Authentication required",
         403: "Access denied",
         429: "Too many requests",
@@ -164,8 +168,9 @@ def delete(
 ) -> NoContent | Unauthorized | Forbidden | TooManyRequests:
     try:
         require_admin(caller)
-        provider.delete_company(
+        provider.delete_location(
             id=request.id,
+            sid=request.sid,
         )
         return NoContent()
     except DomainNotFound:
@@ -174,42 +179,6 @@ def delete(
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
         return Forbidden(cause=exc)
-    except DomainRateLimited as exc:
-        return TooManyRequests(cause=exc)
-
-
-@app.post(
-    "/companies/<id>/logo",
-    summary="Upload company logo",
-    description="Create a company logo upload form. Requires admin role.",
-    tags=["company"],
-    responses={
-        200: "Company logo upload form created",
-        401: "Authentication required",
-        403: "Access denied",
-        404: "Company not found",
-        429: "Too many requests",
-    },
-)
-def logo(
-    caller: Caller,
-    request: Request.Logo,
-) -> OK[Response.UploadForm] | Unauthorized | Forbidden | NotFound | TooManyRequests:
-    try:
-        require_admin(caller)
-        form = provider.upload_logo(
-            id=request.id,
-            content_type=request.contentType,
-            max_bytes=5 * 1024 * 1024,
-            max_seconds=5 * 60,
-        )
-        return OK(Response.UploadForm.pack(form))
-    except DomainUnauthorized as exc:
-        return Unauthorized(cause=exc)
-    except DomainForbidden as exc:
-        return Forbidden(cause=exc)
-    except DomainNotFound as exc:
-        return NotFound(cause=exc)
     except DomainRateLimited as exc:
         return TooManyRequests(cause=exc)
 

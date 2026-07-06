@@ -17,12 +17,11 @@
         "data": {
           "DYNAMODB_TABLE_PARAMETER": "/k9/dev/data/dynamodb/table",
           "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/dev/data/opensearch/endpoint",
-          "OPENSEARCH_INDEX_PARAMETER": "/k9/dev/data/opensearch/index"
+          "OPENSEARCH_INDEX_COMPANIES_PARAMETER": "/k9/dev/data/opensearch/index/companies"
         }
       },
       "services": {
         "auth": {
-          "routePrefix": "/auth",
           "dockerfile": "services/auth/Dockerfile",
           "timeout": 20,
           "memory": 512,
@@ -31,7 +30,6 @@
           ]
         },
         "users": {
-          "routePrefix": "/users",
           "dockerfile": "services/users/Dockerfile",
           "timeout": 20,
           "memory": 512,
@@ -41,7 +39,26 @@
           ]
         },
         "companies": {
-          "routePrefix": "/companies",
+          "dockerfile": "services/companies/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        },
+        "companies.contacts": {
+          "dockerfile": "services/companies/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        },
+        "companies.locations": {
           "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
@@ -60,8 +77,8 @@
           "shared": [
             "data"
           ],
-          "tableName": "k9-dev-companies",
-          "streamArnParameter": "/k9/dev/data/dynamodb/stream/companies",
+          "tableName": "k9-dev",
+          "streamArnParameter": "/k9/dev/data/dynamodb/stream",
           "batchSize": 10,
           "retryAttempts": 10
         }
@@ -83,12 +100,11 @@
         "data": {
           "DYNAMODB_TABLE_PARAMETER": "/k9/stage/data/dynamodb/table",
           "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/stage/data/opensearch/endpoint",
-          "OPENSEARCH_INDEX_PARAMETER": "/k9/stage/data/opensearch/index"
+          "OPENSEARCH_INDEX_COMPANIES_PARAMETER": "/k9/stage/data/opensearch/index/companies"
         }
       },
       "services": {
         "auth": {
-          "routePrefix": "/auth",
           "dockerfile": "services/auth/Dockerfile",
           "timeout": 20,
           "memory": 512,
@@ -97,7 +113,6 @@
           ]
         },
         "users": {
-          "routePrefix": "/users",
           "dockerfile": "services/users/Dockerfile",
           "timeout": 20,
           "memory": 512,
@@ -107,7 +122,26 @@
           ]
         },
         "companies": {
-          "routePrefix": "/companies",
+          "dockerfile": "services/companies/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        },
+        "companies.contacts": {
+          "dockerfile": "services/companies/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        },
+        "companies.locations": {
           "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
@@ -126,8 +160,8 @@
           "shared": [
             "data"
           ],
-          "tableName": "k9-stage-companies",
-          "streamArnParameter": "/k9/stage/data/dynamodb/stream/companies",
+          "tableName": "k9-stage",
+          "streamArnParameter": "/k9/stage/data/dynamodb/stream",
           "batchSize": 10,
           "retryAttempts": 10
         }
@@ -149,12 +183,11 @@
         "data": {
           "DYNAMODB_TABLE_PARAMETER": "/k9/prod/data/dynamodb/table",
           "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/prod/data/opensearch/endpoint",
-          "OPENSEARCH_INDEX_PARAMETER": "/k9/prod/data/opensearch/index"
+          "OPENSEARCH_INDEX_COMPANIES_PARAMETER": "/k9/prod/data/opensearch/index/companies"
         }
       },
       "services": {
         "auth": {
-          "routePrefix": "/auth",
           "dockerfile": "services/auth/Dockerfile",
           "timeout": 20,
           "memory": 512,
@@ -163,7 +196,6 @@
           ]
         },
         "users": {
-          "routePrefix": "/users",
           "dockerfile": "services/users/Dockerfile",
           "timeout": 20,
           "memory": 512,
@@ -173,7 +205,26 @@
           ]
         },
         "companies": {
-          "routePrefix": "/companies",
+          "dockerfile": "services/companies/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        },
+        "companies.contacts": {
+          "dockerfile": "services/companies/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        },
+        "companies.locations": {
           "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
@@ -192,8 +243,8 @@
           "shared": [
             "data"
           ],
-          "tableName": "k9-prod-companies",
-          "streamArnParameter": "/k9/prod/data/dynamodb/stream/companies",
+          "tableName": "k9-prod",
+          "streamArnParameter": "/k9/prod/data/dynamodb/stream",
           "batchSize": 10,
           "retryAttempts": 10
         }

@@ -4,74 +4,72 @@ import argparse
 import importlib
 import json
 import sys
+import traceback
 from pathlib import Path
-from typing import Any
-
-from shared.http import HttpResolver
+from typing import Any, Protocol
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-BASE_DIRS = {
-    "service": REPO_ROOT / "services",
-    "worker": REPO_ROOT / "workers",
-}
-OUTPUT_DIRS = {
-    "service": REPO_ROOT / "cdk.out" / "services",
-    "worker": REPO_ROOT / "cdk.out" / "workers",
-}
 
 
-def handler_path(kind: str, name: str) -> Path:
-    return BASE_DIRS[kind] / name / "src" / name / "handler.py"
+class ManifestApp(Protocol):
+    def manifest(self) -> dict[str, Any]: ...
+
+
+def collect_handlers(kind: str) -> dict[str, tuple[Path, Path]]:
+    base_dir = REPO_ROOT / kind
+    if not base_dir.exists():
+        return {}
+
+    handlers: dict[str, tuple[Path, Path]] = {}
+    for project_dir in sorted(p for p in base_dir.iterdir() if p.is_dir()):
+        src_dir = project_dir / "src"
+        if not src_dir.exists():
+            continue
+
+        for path in sorted(src_dir.glob("**/handler.py")):
+            name = ".".join(path.parent.relative_to(src_dir).parts)
+            if name in handlers and handlers[name][0] != path:
+                raise RuntimeError(
+                    f"Ambiguous handler for {name}: {handlers[name][0]}, {path}"
+                )
+            handlers[name] = (path, src_dir)
+
+    return handlers
 
 
 def discover(kind: str) -> list[str]:
-    base_dir = BASE_DIRS[kind]
-    if not base_dir.exists():
-        return []
-
-    return sorted(
-        path.name
-        for path in base_dir.iterdir()
-        if path.is_dir() and handler_path(kind, path.name).exists()
-    )
+    return sorted(collect_handlers(kind))
 
 
-def import_app(kind: str, name: str) -> Any:
-    src_dir = BASE_DIRS[kind] / name / "src"
-    path = handler_path(kind, name)
-    if not path.exists():
-        raise FileNotFoundError(f"Missing handler: {path}")
+def import_app(kind: str, name: str) -> ManifestApp:
+    try:
+        _, src_dir = collect_handlers(kind)[name]
+    except KeyError as exc:
+        raise FileNotFoundError(f"Missing handler for {kind}.{name}") from exc
 
-    src_dir_str = str(src_dir)
-    if src_dir_str not in sys.path:
-        sys.path.insert(0, src_dir_str)
+    if (src := str(src_dir)) not in sys.path:
+        sys.path.insert(0, src)
 
     module = importlib.import_module(f"{name}.handler")
     app = getattr(module, "app", None)
-
-    if kind == "service":
-        if not isinstance(app, HttpResolver):
-            raise TypeError(
-                f"{name}.handler.app must be HttpResolver; got {type(app).__name__}"
-            )
-    elif app is None or not hasattr(app, "manifest"):
-        raise TypeError(
-            f"{name}.handler.app must provide manifest(); got {type(app).__name__}"
-        )
-
-    return app
-
-
-def build_manifest(kind: str, name: str) -> dict[str, Any]:
-    return {kind: name, **import_app(kind, name).manifest()}
+    if not callable(getattr(app, "manifest", None)):
+        raise TypeError(f"{name}.handler.app must provide manifest(); got {type(app)}")
+    return app  # type: ignore
 
 
 def write_manifest(kind: str, name: str, manifest: dict[str, Any]) -> Path:
-    output_dir = OUTPUT_DIRS[kind]
+    output_dir = REPO_ROOT / "cdk.out" / kind
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{name}.json"
     output_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     return output_path
+
+
+def clear_manifests(kind: str) -> None:
+    output_dir = REPO_ROOT / "cdk.out" / kind
+    if output_dir.exists():
+        for path in output_dir.glob("*.json"):
+            path.unlink()
 
 
 def parse_args() -> argparse.Namespace:
@@ -107,35 +105,38 @@ def main() -> int:
     args = parse_args()
 
     if args.list_services:
-        print(*discover("service"), sep="\n")
+        print(*discover("services"), sep="\n")
         return 0
-
     if args.list_workers:
-        print(*discover("worker"), sep="\n")
+        print(*discover("workers"), sep="\n")
         return 0
 
     targets = {
-        "service": sorted(set(args.service or discover("service"))),
-        "worker": sorted(set(args.worker or discover("worker"))),
+        "services": sorted(set(args.service or discover("services"))),
+        "workers": sorted(set(args.worker or discover("workers"))),
     }
-
     if not any(targets.values()):
         print("No services or workers found.", file=sys.stderr)
         return 1
 
-    failures = 0
+    for kind, names in targets.items():
+        if names:
+            clear_manifests(kind)
 
+    failures = 0
     for kind, names in targets.items():
         for name in names:
             try:
-                output_path = write_manifest(kind, name, build_manifest(kind, name))
+                manifest = {kind: name, **import_app(kind, name).manifest()}
+                output_path = write_manifest(kind, name, manifest)
             except Exception as exc:
                 failures += 1
-                print(f"failed {name}: {exc}", file=sys.stderr)
+                print(f"failed {name}: {type(exc).__name__}: {exc}", file=sys.stderr)
+                traceback.print_exc()
             else:
                 print(f"wrote {output_path}")
 
-    return 1 if failures else 0
+    return int(failures > 0)
 
 
 if __name__ == "__main__":

@@ -1,10 +1,21 @@
 import os
 from dataclasses import dataclass
 from functools import cached_property
+from typing import TYPE_CHECKING, TypeAliasType, TypeGuard
 
 import boto3
+from pydantic_core import MISSING as missing  # type: ignore
 from requests_aws4auth import AWS4Auth
 from types_boto3_ssm import SSMClient
+from typing_extensions import Sentinel as MISSING
+
+if TYPE_CHECKING:
+    type missing = TypeAliasType
+    __all__ = ["MISSING"]
+
+
+def is_set[T](value: T | missing) -> TypeGuard[T]:
+    return value is not missing
 
 
 @dataclass(frozen=True)
@@ -99,8 +110,8 @@ class Settings:
         return self.env_or_parameter("OPENSEARCH_ENDPOINT")
 
     @cached_property
-    def opensearch_index(self) -> str:
-        return self.env_or_parameter("OPENSEARCH_INDEX")
+    def opensearch_index_companies(self) -> str:
+        return self.env_or_parameter("OPENSEARCH_INDEX_COMPANIES")
 
 
 settings = Settings()

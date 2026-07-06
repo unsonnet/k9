@@ -25,3 +25,23 @@ def validate_id(id: str) -> str:
     if not _ID_RE.fullmatch(id):
         raise ValueError("id contains invalid characters")
     return id
+
+
+# ──── SUB ID ──────────────────────────────────────────────────────────────────────────
+
+
+_SID_LENGTH: Final = 4
+_SID_RE: Final = re.compile(r"^\d{4}$")
+
+
+def generate_sub_id() -> str:
+    id = "".join(_RANDOM.choice(digits) for _ in range(4))
+    return validate_sub_id(id)
+
+
+def validate_sub_id(id: str) -> str:
+    if len(id) != _SID_LENGTH:
+        raise ValueError(f"sub id must be exactly {_SID_LENGTH} characters")
+    if not _SID_RE.fullmatch(id):
+        raise ValueError("sub id contains invalid characters")
+    return id

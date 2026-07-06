@@ -9,17 +9,17 @@ from pydantic import (
     Field,
     HttpUrl,
     field_validator,
-    model_validator,
 )
+from shared.config import missing
 from shared.http import Body, ImageMIMEType, Path, Query
 from shared.providers.company import validate_id
 from shared.providers.opensearch import sanitize_query
 
 __all__ = [
-    "GeoPoint",
-    "Address",
     "Contact",
-    "CompanySector",
+    "GeoPoint",
+    "Location",
+    "Sector",
     "Company",
     "CompanySummary",
     "Page",
@@ -30,26 +30,28 @@ __all__ = [
 
 
 class GeoPoint(BaseModel, frozen=True):
-    lat: Decimal = Field(ge=-90, le=90)
-    lon: Decimal = Field(ge=-180, le=180)
+    lat: Decimal
+    lon: Decimal
 
 
-class Address(BaseModel, frozen=True):
-    street: str = Field(min_length=1)
-    city: str = Field(min_length=1)
-    state: str = Field(min_length=2, max_length=2)
-    zip: str = Field(pattern=r"^\d{5}(-\d{4})?$")
-    geo: GeoPoint | None = None
+class Location(BaseModel, frozen=True):
+    id: str
+    street: str
+    city: str
+    state: str
+    zip: str
+    geo: GeoPoint
 
 
 class Contact(BaseModel, frozen=True):
-    name: str = Field(min_length=1)
+    id: str
+    name: str
     title: str | None
     email: EmailStr | None
     phone: str | None
 
 
-class CompanySector(StrEnum):
+class Sector(StrEnum):
     INSURANCE = "INSURANCE"
     MANUFACTURER = "MANUFACTURER"
     RETAILER = "RETAILER"
@@ -57,11 +59,11 @@ class CompanySector(StrEnum):
 
 class Company(BaseModel, frozen=True):
     id: str
-    sector: CompanySector
+    sector: Sector
     name: str
-    logo: HttpUrl
-    website: HttpUrl
-    locations: list[Address]
+    logo: HttpUrl | None
+    website: HttpUrl | None
+    locations: list[Location]
     contacts: list[Contact]
     created_at: datetime
     updated_at: datetime | None
@@ -69,16 +71,16 @@ class Company(BaseModel, frozen=True):
 
 class CompanySummary(BaseModel, frozen=True):
     id: str
-    sector: CompanySector
+    sector: Sector
     name: str
-    logo: HttpUrl
-    website: HttpUrl
-    locations: list[Address]
+    logo: HttpUrl | None
+    website: HttpUrl | None
+    locations: list[Location]
 
 
 class Page(BaseModel, frozen=True):
     companies: list[CompanySummary]
-    cursor: str | None = None
+    cursor: str | None
 
 
 class UploadForm(BaseModel, frozen=True):
@@ -91,44 +93,30 @@ class UploadForm(BaseModel, frozen=True):
 
 class Request:
     class List(BaseModel, frozen=True):
-        q: Query[str | None] = None
-        sector: Query[list[CompanySector] | None] = None
-        lat: Query[float | None] = None
-        lon: Query[float | None] = None
-        radius: Query[int | None] = None
-        limit: Query[int | None] = None
-        cursor: Query[str | None] = None
+        sector: Query[list[Sector] | missing] = missing
+        name: Query[str | missing] = missing
+        lat: Query[float | missing] = Field(missing, ge=-90, le=90)
+        lon: Query[float | missing] = Field(missing, ge=-180, le=180)
+        radius: Query[int | missing] = Field(missing, ge=1, le=500)
+        limit: Query[int] = Field(25, ge=1, le=60)
+        cursor: Query[str | missing] = missing
 
-        @field_validator("q")
-        @classmethod
-        def sanitize_q(cls, value: str | None) -> str | None:
-            return sanitize_query(value) if value else None
-
-        @field_validator("radius")
-        @classmethod
-        def clamp_radius(cls, value: int | None) -> int | None:
-            return max(min(value, 500), 1) if value is not None else None
-
-        @field_validator("limit")
-        @classmethod
-        def clamp_limit(cls, value: int | None) -> int | None:
-            return max(min(value, 60), 1) if value is not None else None
-
-        @model_validator(mode="after")
-        def verify_has_geo(self) -> Self:
+        @property
+        def geo(self) -> tuple[float, float, int] | missing:
             match self.lat, self.lon, self.radius:
-                case (None, None, None) | (float(), float(), int()):
-                    return self
-            raise ValueError(
-                "Either all or none of latitude, longitude, and radius are required"
-            )
+                case (float(), float(), int()):
+                    return (self.lat, self.lon, self.radius)
+            return missing
+
+        @field_validator("name")
+        @classmethod
+        def sanitize_name(cls, value: str) -> str | missing:
+            return q if (q := sanitize_query(value)) else missing
 
     class Create(BaseModel, frozen=True):
-        sector: Body[CompanySector]
-        name: Body[str]
-        website: Body[HttpUrl]
-        locations: Body[list[Address]]
-        contacts: Body[list[Contact]]
+        sector: Body[Sector]
+        name: Body[str] = Field(min_length=1)
+        website: Body[HttpUrl | None]
 
     class Read(BaseModel, frozen=True):
         id: Path[str]
@@ -140,11 +128,9 @@ class Request:
 
     class Update(BaseModel, frozen=True):
         id: Path[str]
-        sector: Body[CompanySector | None] = None
-        name: Body[str | None] = None
-        website: Body[HttpUrl | None] = None
-        locations: Body[list[Address] | None] = None
-        contacts: Body[list[Contact] | None] = None
+        sector: Body[Sector | missing] = missing
+        name: Body[str | missing] = Field(missing, min_length=1)
+        website: Body[HttpUrl | None | missing] = missing
 
         @field_validator("id")
         @classmethod
@@ -175,11 +161,11 @@ class Request:
 class Response:
     class Company(BaseModel, frozen=True):
         id: str
-        sector: CompanySector
+        sector: Sector
         name: str
-        logo: HttpUrl
-        website: HttpUrl
-        locations: list[Address]
+        logo: HttpUrl | None
+        website: HttpUrl | None
+        locations: list[Location]
         contacts: list[Contact]
         createdAt: datetime
         updatedAt: datetime | None
@@ -200,11 +186,11 @@ class Response:
 
     class CompanySummary(BaseModel, frozen=True):
         id: str
-        sector: CompanySector
+        sector: Sector
         name: str
-        logo: HttpUrl
-        website: HttpUrl
-        locations: list[Address]
+        logo: HttpUrl | None
+        website: HttpUrl | None
+        locations: list[Location]
 
         @classmethod
         def pack(cls, company: CompanySummary):

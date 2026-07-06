@@ -2,10 +2,10 @@
 set -euo pipefail
 
 # Creates:
-#   - DynamoDB table: k9-<stage>-companies
+#   - DynamoDB table: k9-<stage>
 # Stores to SSM:
 #   - /k9/<stage>/data/dynamodb/table
-#   - /k9/<stage>/data/dynamodb/stream/companies
+#   - /k9/<stage>/data/dynamodb/stream
 
 AWS_REGION="${AWS_REGION:-us-east-2}"
 export AWS_PAGER=""
@@ -47,10 +47,9 @@ require jq
 STAGE="${1:-}"
 [[ "$STAGE" =~ ^(dev|stage|prod)$ ]] || usage
 
-TABLE_BASE="k9-${STAGE}"
-TABLE_NAME="${TABLE_BASE}-companies"
+TABLE_NAME="k9-${STAGE}"
 SSM_TABLE="/k9/${STAGE}/data/dynamodb/table"
-SSM_STREAM_ARN="/k9/${STAGE}/data/dynamodb/stream/companies"
+SSM_STREAM_ARN="/k9/${STAGE}/data/dynamodb/stream"
 
 preflight() {
   local -a issues=()
@@ -81,10 +80,12 @@ create_table_payload() {
     {
       TableName: $table_name,
       AttributeDefinitions: [
-        { AttributeName: "id", AttributeType: "S" }
+        { AttributeName: "pk", AttributeType: "S" },
+        { AttributeName: "sk", AttributeType: "S" }
       ],
       KeySchema: [
-        { AttributeName: "id", KeyType: "HASH" }
+        { AttributeName: "pk", KeyType: "HASH" },
+        { AttributeName: "sk", KeyType: "RANGE" }
       ],
       BillingMode: "PAY_PER_REQUEST",
       StreamSpecification: {
@@ -116,7 +117,7 @@ aws_cli dynamodb update-continuous-backups \
     PointInTimeRecoveryEnabled=true,RecoveryPeriodInDays=35 \
   >/dev/null
 
-put_ssm_string "$SSM_TABLE" "$TABLE_BASE"
+put_ssm_string "$SSM_TABLE" "$TABLE_NAME"
 
 STREAM_ARN="$(
   aws_cli dynamodb describe-table \
@@ -132,15 +133,14 @@ cat <<EOF
 Created DynamoDB table:
   Stage:        $STAGE
   Region:       $AWS_REGION
-  TableBase:    $TABLE_BASE
   TableName:    $TABLE_NAME
-  PrimaryKey:   id (String)
+  PrimaryKey:   pk (String), sk (String)
   BillingMode:  PAY_PER_REQUEST
   StreamView:   NEW_AND_OLD_IMAGES
   StreamArn:    $STREAM_ARN
   PITR:         enabled (35 days)
 
 Stored in SSM:
-  $SSM_TABLE = $TABLE_BASE
+  $SSM_TABLE = $TABLE_NAME
   $SSM_STREAM_ARN = $STREAM_ARN
 EOF

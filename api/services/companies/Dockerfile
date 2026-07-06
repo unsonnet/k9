@@ -24,5 +24,3 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
 COPY services/companies/src/ ${LAMBDA_TASK_ROOT}/
 COPY shared/src/ ${LAMBDA_TASK_ROOT}/
-
-CMD ["companies.handler.lambda_handler"]

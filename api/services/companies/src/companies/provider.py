@@ -1,13 +1,12 @@
 import base64
 import json
-from decimal import Decimal
 from typing import Any, Iterable, Mapping, Protocol
 from urllib.parse import urlparse
 
 import boto3
 from opensearchpy import OpenSearch, RequestsHttpConnection
 from pydantic import HttpUrl
-from shared.config import GrantSpec, settings
+from shared.config import GrantSpec, is_set, missing, settings
 from shared.errors import (
     DomainForbidden,
     DomainInvariantViolation,
@@ -18,23 +17,21 @@ from shared.helpers import dt, now
 from shared.providers import BaseProvider, ExceptionMap, apimethod
 from shared.providers.opensearch import Search
 from types_boto3_dynamodb.service_resource import Table
-from types_boto3_geo_places import LocationServicePlacesV2Client
 from types_boto3_s3.service_resource import Bucket
 
 from .models import (
-    Address,
     Company,
-    CompanySector,
     CompanySummary,
     Contact,
-    GeoPoint,
+    Location,
     Page,
+    Sector,
     UploadForm,
 )
 
 __all__ = [
     "CompanyProvider",
-    "DynamoDBCompanyProvider",
+    "AWSCompanyProvider",
 ]
 
 
@@ -45,22 +42,20 @@ class CompanyProvider(Protocol):
     def list_companies(
         self,
         *,
-        q: str | None,
-        k: list[CompanySector] | None,
-        g: tuple[float, float, int] | None,
+        sector: list[Sector] | missing,
+        name: str | missing,
+        geo: tuple[float, float, int] | missing,
         limit: int,
-        cursor: str | None,
+        cursor: str | missing,
     ) -> Page: ...
 
     def create_company(
         self,
         *,
         id: str,
-        sector: CompanySector,
+        sector: Sector,
         name: str,
-        website: HttpUrl,
-        locations: list[Address],
-        contacts: list[Contact],
+        website: HttpUrl | None,
     ) -> Company: ...
 
     def read_company(
@@ -73,11 +68,9 @@ class CompanyProvider(Protocol):
         self,
         *,
         id: str,
-        sector: CompanySector | None,
-        name: str | None,
-        website: HttpUrl | None,
-        locations: list[Address] | None,
-        contacts: list[Contact] | None,
+        sector: Sector | missing,
+        name: str | missing,
+        website: HttpUrl | None | missing,
     ) -> Company: ...
 
     def delete_company(
@@ -86,7 +79,7 @@ class CompanyProvider(Protocol):
         id: str,
     ) -> None: ...
 
-    def generate_upload_form(
+    def upload_logo(
         self,
         *,
         id: str,
@@ -99,13 +92,12 @@ class CompanyProvider(Protocol):
 # ──── AWS Company Provider ────────────────────────────────────────────────────────────
 
 
-class DynamoDBCompanyProvider(BaseProvider):
+class AWSCompanyProvider(BaseProvider):
     _db: Table
     _s3: Bucket
     _s3_url: str
     _os: OpenSearch
     _os_idx: str
-    _loc: LocationServicePlacesV2Client
 
     def __init__(
         self,
@@ -118,7 +110,7 @@ class DynamoDBCompanyProvider(BaseProvider):
     ) -> None:
         region = region or settings.aws_region
         # dynamodb
-        table = company_table or settings.dynamodb_table + "-companies"
+        table = company_table or settings.dynamodb_table
         self._db = boto3.resource("dynamodb", region).Table(table)
         # s3
         bucket = bucket or settings.s3_bucket
@@ -134,9 +126,7 @@ class DynamoDBCompanyProvider(BaseProvider):
             connection_class=RequestsHttpConnection,
             timeout=300,
         )
-        self._os_idx = company_index or settings.opensearch_index + "-companies"
-        # location
-        self._loc = boto3.client("geo-places", region_name=region)
+        self._os_idx = company_index or settings.opensearch_index_companies
 
     @property
     def permissions(self) -> Iterable[GrantSpec]:
@@ -160,32 +150,24 @@ class DynamoDBCompanyProvider(BaseProvider):
             actions=("es:ESHttpPost",),
             resources=("opensearch-domain",),
         )
-        yield GrantSpec(
-            actions=("geo-places:Geocode",),
-            resources=("*",),
-        )
 
     @property
     def _exception_map(self) -> ExceptionMap:
         dbx = self._db.meta.client.exceptions
         s3x = self._s3.meta.client.exceptions
-        gx = self._loc.exceptions
         return {
             DomainForbidden: [
                 s3x.AccessDenied,
-                gx.AccessDeniedException,
             ],
             DomainRateLimited: [
                 dbx.ProvisionedThroughputExceededException,
                 dbx.RequestLimitExceeded,
                 dbx.ThrottlingException,
-                gx.ThrottlingException,
             ],
             DomainInvariantViolation: [
                 dbx.ItemCollectionSizeLimitExceededException,
                 dbx.ReplicatedWriteConflictException,
                 dbx.TransactionConflictException,
-                gx.ValidationException,
             ],
             DomainNotFound: [
                 dbx.ConditionalCheckFailedException,
@@ -215,20 +197,6 @@ class DynamoDBCompanyProvider(BaseProvider):
             raise ValueError("Invalid cursor")
         return value
 
-    def _geocode(self, loc: Address) -> Address:
-        if loc.geo is not None:
-            return loc
-        response = self._loc.geocode(
-            QueryText=f"{loc.street}, {loc.city}, {loc.state} {loc.zip}, USA",
-            MaxResults=1,
-        )
-        match response:
-            case {"ResultItems": [{"Position": [float(lon), float(lat)]}, *_]}:
-                return loc.model_copy(
-                    update={"geo": GeoPoint(lat=Decimal(lat), lon=Decimal(lon))}
-                )
-        raise DomainInvariantViolation(f"Unexpected geocode address: {response}")
-
     @classmethod
     def _company(cls, response: Mapping[str, Any]) -> Company:
         response = dict(response)
@@ -247,11 +215,11 @@ class DynamoDBCompanyProvider(BaseProvider):
             }:
                 return Company(
                     id=id,
-                    sector=CompanySector(sector),
+                    sector=Sector(sector),
                     name=name,
                     logo=HttpUrl(logo),
                     website=HttpUrl(website),
-                    locations=[Address.model_validate(i) for i in locations],
+                    locations=[Location.model_validate(i) for i in locations],
                     contacts=[Contact.model_validate(i) for i in contacts],
                     created_at=dt(created_at),
                     updated_at=dt(updated_at),
@@ -273,11 +241,11 @@ class DynamoDBCompanyProvider(BaseProvider):
             }:
                 return CompanySummary(
                     id=id,
-                    sector=CompanySector(sector),
+                    sector=Sector(sector),
                     name=name,
                     logo=HttpUrl(logo),
                     website=HttpUrl(website),
-                    locations=[Address.model_validate(i) for i in locations],
+                    locations=[Location.model_validate(i) for i in locations],
                 )
         raise DomainInvariantViolation(
             f"Unexpected opensearch company summary: {response}"
@@ -317,18 +285,18 @@ class DynamoDBCompanyProvider(BaseProvider):
     def list_companies(
         self,
         *,
-        q: str | None,
-        k: list[CompanySector] | None,
-        g: tuple[float, float, int] | None,
+        sector: list[Sector] | missing,
+        name: str | missing,
+        geo: tuple[float, float, int] | missing,
         limit: int,
-        cursor: str | None,
+        cursor: str | missing,
     ) -> Page:
-        xcursor = self._decode_cursor(cursor) if cursor else None
+        xcursor = self._decode_cursor(cursor) if is_set(cursor) else None
         return self._page(
             Search(using=self._os, index=self._os_idx)
-            .key("sector", options=[i.value for i in k] if k else None)
-            .text("name", query=q)
-            .near("locations", coord=g)
+            .key("sector", options=[str(i) for i in sector] if is_set(sector) else None)
+            .text("name", query=name if is_set(name) else None)
+            .near("locations", coord=geo if is_set(geo) else None)
             .execute(limit=limit, cursor=xcursor)
         )
 
@@ -337,32 +305,23 @@ class DynamoDBCompanyProvider(BaseProvider):
         self,
         *,
         id: str,
-        sector: CompanySector,
+        sector: Sector,
         name: str,
-        website: HttpUrl,
-        locations: list[Address],
-        contacts: list[Contact],
+        website: HttpUrl | None,
     ) -> Company:
         self._db.put_item(
             Item={
                 "id": id,
                 "sector": sector.value,
                 "name": name,
-                "logo": f"{self._s3_url}/companies/{id}/logo.jxl",
-                "website": str(website),
-                "locations": [self._geocode(i).model_dump() for i in locations],
-                "contacts": [i.model_dump() for i in contacts],
+                "logo": None,
+                "website": str(website) if website is not None else None,
+                "locations": [],
+                "contacts": [],
                 "created_at": now().isoformat(),
                 "updated_at": None,
             },
             ConditionExpression="attribute_not_exists(id)",
-        )
-        self._s3.copy(
-            Key=f"companies/{id}/logo.jxl",
-            CopySource={
-                "Bucket": self._s3.name,
-                "Key": "companies/default/logo.jxl",
-            },
         )
         return self.read_company(id=id)
 
@@ -385,23 +344,18 @@ class DynamoDBCompanyProvider(BaseProvider):
         self,
         *,
         id: str,
-        sector: CompanySector | None,
-        name: str | None,
-        website: HttpUrl | None,
-        locations: list[Address] | None,
-        contacts: list[Contact] | None,
+        sector: Sector | missing,
+        name: str | missing,
+        website: HttpUrl | None | missing,
     ) -> Company:
+        # TODO: setup as a suggestion
         updates: dict[str, Any] = {"updated_at": now().isoformat()}
-        if sector is not None:
+        if is_set(sector):
             updates["sector"] = sector.value
-        if name is not None:
+        if is_set(name):
             updates["name"] = name
-        if website is not None:
-            updates["website"] = str(website)
-        if locations is not None:
-            updates["locations"] = [self._geocode(i).model_dump() for i in locations]
-        if contacts is not None:
-            updates["contacts"] = [i.model_dump() for i in contacts]
+        if is_set(website):
+            updates["website"] = str(website) if website is not None else None
         self._db.update_item(
             Key={"id": id},
             UpdateExpression="SET " + ", ".join(f"#{k} = :{k}" for k in updates),
@@ -424,7 +378,7 @@ class DynamoDBCompanyProvider(BaseProvider):
         return None
 
     @apimethod
-    def generate_upload_form(
+    def upload_logo(
         self,
         *,
         id: str,

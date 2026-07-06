@@ -64,7 +64,7 @@ class OpenSearchIndexProvider(BaseProvider):
             connection_class=RequestsHttpConnection,
             timeout=300,
         )
-        self._os_idx = company_index or f"{settings.opensearch_index}-companies"
+        self._os_idx = company_index or settings.opensearch_index_companies
 
     @property
     def _exception_map(self) -> ExceptionMap:

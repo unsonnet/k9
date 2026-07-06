@@ -12,7 +12,6 @@
       },
       "services": {
         "<service-name>": {
-          "routePrefix": "/<route>",
           "dockerfile": "services/<service-name>/Dockerfile",
           "timeout": 20,
           "memory": 512,
