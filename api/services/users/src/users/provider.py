@@ -4,7 +4,7 @@ from typing import Any, Iterable, Mapping, Protocol, Sequence
 
 import boto3
 from pydantic import HttpUrl
-from shared.config import GrantSpec, settings
+from shared.config import GrantSpec, is_set, missing, settings
 from shared.errors import (
     DomainForbidden,
     DomainInvariantViolation,
@@ -33,9 +33,9 @@ class UserProvider(Protocol):
     def list_users(
         self,
         *,
-        q: str | None,
+        q: str | missing,
         limit: int,
-        cursor: str | None,
+        cursor: str | missing,
     ) -> Page: ...
 
     def create_user(
@@ -58,9 +58,9 @@ class UserProvider(Protocol):
         self,
         *,
         id: str,
-        name: str | None,
-        role: Role | None,
-        enabled: bool | None,
+        name: str | missing,
+        role: Role | missing,
+        enabled: bool | missing,
     ) -> User: ...
 
     def delete_user(
@@ -208,15 +208,9 @@ class CognitoUserProvider(BaseProvider):
     @classmethod
     def _user_summary(cls, response: Mapping[str, Any]) -> UserSummary:
         match dict(response):
-            case {
-                "Username": str(xid),
-                "Attributes": list(attrs),
-            }:
+            case {"Username": str(xid), "Attributes": list(attrs)}:
                 match cls._unpack(attrs):
-                    case {
-                        "name": str(name),
-                        "picture": str(picture),
-                    }:
+                    case {"name": str(name), "picture": str(picture)}:
                         return UserSummary(
                             id=cls._decode_id(xid),
                             name=name,
@@ -229,10 +223,7 @@ class CognitoUserProvider(BaseProvider):
         response = dict(response)
         response.setdefault("PaginationToken", None)
         match response:
-            case {
-                "Users": list(users),
-                "PaginationToken": str() | None as cursor,
-            }:
+            case {"Users": list(users), "PaginationToken": str() | None as cursor}:
                 return Page(
                     users=[cls._user_summary(raw) for raw in users],
                     cursor=cursor,
@@ -242,10 +233,7 @@ class CognitoUserProvider(BaseProvider):
     @classmethod
     def _upload_form(cls, response: Mapping[str, Any]) -> UploadForm:
         match response:
-            case {
-                "url": str(url),
-                "fields": dict(fields),
-            }:
+            case {"url": str(url), "fields": dict(fields)}:
                 return UploadForm(
                     url=url,
                     fields=fields,
@@ -258,16 +246,16 @@ class CognitoUserProvider(BaseProvider):
     def list_users(
         self,
         *,
-        q: str | None,
+        q: str | missing,
         limit: int,
-        cursor: str | None,
+        cursor: str | missing,
     ) -> Page:
         return self._page(
             self._idp.list_users(
                 UserPoolId=self._idp_pool,
                 Limit=limit,
-                **({"Filter": f'name ^= "{q}"'} if q else {}),
-                **({"PaginationToken": cursor} if cursor else {}),
+                **({"Filter": f'name ^= "{q}"'} if is_set(q) else {}),
+                **({"PaginationToken": cursor} if is_set(cursor) else {}),
             )
         )
 
@@ -336,25 +324,25 @@ class CognitoUserProvider(BaseProvider):
         self,
         *,
         id: str,
-        name: str | None,
-        role: Role | None,
-        enabled: bool | None,
+        name: str | missing,
+        role: Role | missing,
+        enabled: bool | missing,
     ) -> User:
         xid = self._encode_id(id)
-        if name is not None or role is not None:
+        if is_set(name) or is_set(role):
             attrs: list[AttributeTypeTypeDef] = []
-            if name is not None:
+            if is_set(name):
                 xname = self._encode_name(name)
                 attrs.append({"Name": "preferred_username", "Value": xname})
                 attrs.append({"Name": "name", "Value": name})
-            if role is not None:
+            if is_set(role):
                 attrs.append({"Name": "custom:role", "Value": role.value})
             self._idp.admin_update_user_attributes(
                 UserPoolId=self._idp_pool,
                 Username=xid,
                 UserAttributes=attrs,
             )
-        if enabled is not None:
+        if is_set(enabled):
             if enabled:
                 self._idp.admin_enable_user(
                     UserPoolId=self._idp_pool,

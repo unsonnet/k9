@@ -1,7 +1,8 @@
 from datetime import datetime
 from typing import Self
 
-from pydantic import BaseModel, HttpUrl, StrictBool, field_validator
+from pydantic import BaseModel, Field, HttpUrl, StrictBool, field_validator
+from shared.config import missing
 from shared.http import ImageMIMEType, Role
 from shared.http.requests import Body, Path, Query
 from shared.providers.opensearch import sanitize_query
@@ -56,22 +57,17 @@ class UploadForm(BaseModel, frozen=True):
 
 class Request:
     class List(BaseModel, frozen=True):
-        q: Query[str | None] = None
-        limit: Query[int | None] = None
-        cursor: Query[str | None] = None
+        q: Query[str | missing] = missing
+        limit: Query[int] = Field(25, ge=1, le=60)
+        cursor: Query[str | missing] = missing
 
         @field_validator("q")
         @classmethod
-        def sanitize_q(cls, value: str | None) -> str | None:
-            return sanitize_query(normalize_name(value)) if value else None
-
-        @field_validator("limit")
-        @classmethod
-        def clamp_limit(cls, value: int | None) -> int | None:
-            return max(min(value, 60), 1) if value is not None else None
+        def sanitize_q(cls, value: str) -> str | missing:
+            return q if (q := sanitize_query(normalize_name(value))) else missing
 
     class Create(BaseModel, frozen=True):
-        name: Body[str]
+        name: Body[str] = Field(min_length=1)
         role: Body[Role]
         enabled: Body[StrictBool] = True
 
@@ -90,9 +86,9 @@ class Request:
 
     class Update(BaseModel, frozen=True):
         id: Path[str]
-        name: Body[str | None] = None
-        role: Body[Role | None] = None
-        enabled: Body[StrictBool | None] = None
+        name: Body[str | missing] = Field(missing, min_length=1)
+        role: Body[Role | missing] = missing
+        enabled: Body[StrictBool | missing] = missing
 
         @field_validator("id")
         @classmethod
@@ -101,8 +97,8 @@ class Request:
 
         @field_validator("name")
         @classmethod
-        def validate_name(cls, value: str | None) -> str | None:
-            return validate_name(value) if value else None
+        def validate_name(cls, value: str) -> str | missing:
+            return validate_name(value)
 
     class Delete(BaseModel, frozen=True):
         id: Path[str]

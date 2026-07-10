@@ -1,3 +1,4 @@
+from shared.config import is_set
 from shared.errors import (
     DomainForbidden,
     DomainNotFound,
@@ -36,7 +37,7 @@ def list(
     try:
         page = provider.list_users(
             q=request.q,
-            limit=request.limit or 25,
+            limit=request.limit,
             cursor=request.cursor,
         )
         return OK(Response.Page.pack(page))
@@ -141,7 +142,7 @@ def update(
     try:
         user_id = require_admin_or_self(caller, request.id)
         if caller.id == user_id:
-            if request.role is not None or request.enabled is not None:
+            if is_set(request.role) or is_set(request.enabled):
                 raise DomainForbidden("Cannot update own `role` or `enabled` status")
         user = provider.update_user(
             id=user_id,

@@ -207,9 +207,7 @@ class CognitoAuthProvider(BaseProvider):
     @classmethod
     def _mfa(cls, response: Mapping[str, Any], *, name: str) -> MFA:
         match response:
-            case {
-                "SecretCode": str(secret),
-            }:
+            case {"SecretCode": str(secret)}:
                 issuer = quote("Amazon Web Services")
                 label = f"{issuer}:{quote(f'K9 - {name}')}"
                 return MFA(
