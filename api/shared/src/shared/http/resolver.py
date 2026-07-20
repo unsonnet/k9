@@ -145,16 +145,16 @@ class HttpResolver(APIGatewayHttpResolver):
             raise DomainInvariantViolation("Unknown user for access token") from exc
         match response:
             case {
-                "Username": str(xid),
                 "UserAttributes": list(attrs),
             }:
                 match self._unpack(attrs):
                     case {
+                        "id": id,
                         "name": str(name),
                         "custom:role": Role.USER | Role.ADMIN as role,
                     }:
                         return Caller(
-                            id=self._decode_id(xid),
+                            id=id,
                             name=name,
                             role=Role(role),
                             token=token,

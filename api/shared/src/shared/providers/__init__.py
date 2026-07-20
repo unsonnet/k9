@@ -1,10 +1,10 @@
-from abc import ABC, abstractmethod
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from functools import cached_property, wraps
 from typing import Concatenate
 
-from shared.errors import DomainError, DomainUnknown
+from ..config import GrantSpec
+from ..errors import DomainError, DomainUnknown
 
 __all__ = [
     "ExceptionMap",
@@ -16,10 +16,14 @@ __all__ = [
 type ExceptionMap = dict[type[DomainError], list[type[Exception]]]
 
 
-class BaseProvider(ABC):
+class BaseProvider:
     @property
-    @abstractmethod
-    def _exception_map(self) -> ExceptionMap: ...
+    def permissions(self) -> Iterable[GrantSpec]:
+        return ()
+
+    @property
+    def exception_map(self) -> ExceptionMap:
+        return {}
 
     @cached_property
     def _exc_map(self) -> defaultdict[type[Exception], type[DomainError]]:
@@ -27,18 +31,16 @@ class BaseProvider(ABC):
             lambda: DomainUnknown,
             {
                 exc_type: domain_error
-                for domain_error, exc_types in self._exception_map.items()
+                for domain_error, exc_types in self.exception_map.items()
                 for exc_type in exc_types
             },
         )
 
 
-type PrivateMethod[T: BaseProvider, **P, R] = Callable[Concatenate[T, P], R]
+type APIMethod[T: BaseProvider, **P, R] = Callable[Concatenate[T, P], R]
 
 
-def apimethod[T: BaseProvider, **P, R](
-    fn: Callable[Concatenate[T, P], R],
-) -> Callable[Concatenate[T, P], R]:
+def apimethod[T: BaseProvider, **P, R](fn: APIMethod[T, P, R]) -> APIMethod[T, P, R]:
     @wraps(fn)
     def wrapped(self: T, *args: P.args, **kwargs: P.kwargs) -> R:
         try:
@@ -47,8 +49,5 @@ def apimethod[T: BaseProvider, **P, R](
             raise
         except Exception as exc:
             raise self._exc_map[type(exc)]() from exc
-
-    if getattr(fn, "__isabstractmethod__", False):
-        wrapped.__isabstractmethod__ = True  # type: ignore[attr-defined]
 
     return wrapped

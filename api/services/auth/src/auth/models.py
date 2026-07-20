@@ -1,41 +1,15 @@
-from enum import StrEnum
 from typing import Self
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, field_validator
+from shared.helpers import validate_id, validate_name, validate_password
 from shared.http.requests import Body, Path
-from shared.providers.auth import validate_session, validate_token
-from shared.providers.user import validate_id, validate_name, validate_password
+
+from .provider import MFA, Challenge, ChallengeKey, Tokens
 
 __all__ = [
-    "Tokens",
-    "ChallengeKey",
-    "Challenge",
-    "MFA",
     "Request",
     "Response",
 ]
-
-
-class Tokens(BaseModel, frozen=True):
-    access_token: str
-    expires_in: int
-    refresh_token: str
-    id_token: str
-
-
-class ChallengeKey(StrEnum):
-    NEW_PASSWORD = "NEW_PASSWORD"
-    MFA = "MFA"
-
-
-class Challenge(BaseModel, frozen=True):
-    session: str
-    challenge: ChallengeKey
-
-
-class MFA(BaseModel, frozen=True):
-    secret: str
-    url: str
 
 
 # ──── Request Payloads ────────────────────────────────────────────────────────────────
@@ -59,12 +33,7 @@ class Request:
     class Challenge(BaseModel, frozen=True):
         session: Body[str]
         challenge: Body[ChallengeKey]
-        response: Body[dict[str, str]] = Field(min_length=1)
-
-        @field_validator("session")
-        @classmethod
-        def validate_session(cls, value: str) -> str:
-            return validate_session(value)
+        response: Body[dict[str, str]]
 
         @field_validator("response")
         @classmethod
@@ -76,15 +45,10 @@ class Request:
             return value
 
     class Verify(BaseModel, frozen=True):
-        code: Body[str] = Field(min_length=1)
+        code: Body[str]
 
     class Refresh(BaseModel, frozen=True):
         refreshToken: Body[str]
-
-        @field_validator("refreshToken")
-        @classmethod
-        def validate_token(cls, value: str) -> str:
-            return validate_token(value)
 
     class Logout(BaseModel, frozen=True):
         id: Path[str]

@@ -98,6 +98,13 @@ create_pool_payload() {
       MfaConfiguration: "OFF",
       Schema: [
         {
+          Name: "id",
+          AttributeDataType: "String",
+          Mutable: false,
+          Required: false,
+          StringAttributeConstraints: { MinLength: "6", MaxLength: "6" }
+        },
+        {
           Name: "preferred_username",
           AttributeDataType: "String",
           Mutable: true,
@@ -115,7 +122,7 @@ create_pool_payload() {
           Name: "picture",
           AttributeDataType: "String",
           Mutable: true,
-          Required: true,
+          Required: false,
           StringAttributeConstraints: { MinLength: "1", MaxLength: "2048" }
         },
         {
@@ -162,6 +169,7 @@ create_client_payload() {
         IdToken: "hours"
       },
       ReadAttributes: [
+        "custom:id",
         "preferred_username",
         "name",
         "picture",
@@ -170,6 +178,7 @@ create_client_payload() {
         "updated_at"
       ],
       WriteAttributes: [
+        "custom:id",
         "preferred_username",
         "name",
         "picture",

@@ -54,18 +54,14 @@ name = "auth"
 version = "0.1.0"
 source = { editable = "services/auth" }
 dependencies = [
-    { name = "boto3" },
     { name = "pydantic" },
     { name = "shared" },
-    { name = "types-boto3", extra = ["cognito-idp"] },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "boto3", specifier = ">=1.42.85" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "shared", editable = "shared" },
-    { name = "types-boto3", extras = ["cognito-idp"], specifier = ">=1.42.85" },
 ]
 
 [[package]]
@@ -1453,7 +1449,7 @@ dependencies = [
     { name = "boto3" },
     { name = "pydantic" },
     { name = "requests-aws4auth" },
-    { name = "types-boto3", extra = ["cognito-idp", "ssm"] },
+    { name = "types-boto3", extra = ["cognito-idp", "s3", "ssm"] },
 ]
 
 [package.metadata]
@@ -1462,7 +1458,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.42.85" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "requests-aws4auth", specifier = ">=1.3.2" },
-    { name = "types-boto3", extras = ["cognito-idp", "ssm"], specifier = ">=1.42.85" },
+    { name = "types-boto3", extras = ["cognito-idp", "ssm", "s3"], specifier = ">=1.42.85" },
 ]
 
 [[package]]
@@ -1663,20 +1659,14 @@ name = "users"
 version = "0.2.0"
 source = { editable = "services/users" }
 dependencies = [
-    { name = "boto3" },
-    { name = "opensearch-py" },
     { name = "pydantic" },
     { name = "shared" },
-    { name = "types-boto3", extra = ["cognito-idp", "s3"] },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "boto3", specifier = ">=1.42.85" },
-    { name = "opensearch-py", specifier = ">=3.2.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "shared", editable = "shared" },
-    { name = "types-boto3", extras = ["cognito-idp", "s3"], specifier = ">=1.42.85" },
 ]
 
 [[package]]

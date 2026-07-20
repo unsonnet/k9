@@ -4,11 +4,11 @@ from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Accepted, NoContent
 
-from .models import Challenge, Request, Response, Tokens
-from .provider import AuthProvider, CognitoAuthProvider
+from .models import Request, Response
+from .provider import AuthProvider, Challenge, Tokens
 
 app = HttpResolver(enable_validation=True)
-provider: AuthProvider = CognitoAuthProvider()
+provider = AuthProvider()
 app.grant(*provider.permissions)
 
 

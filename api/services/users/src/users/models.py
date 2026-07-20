@@ -3,53 +3,16 @@ from typing import Self
 
 from pydantic import BaseModel, Field, HttpUrl, StrictBool, field_validator
 from shared.config import missing
+from shared.helpers import validate_id, validate_name
 from shared.http import ImageMIMEType, Role
 from shared.http.requests import Body, Path, Query
-from shared.providers.opensearch import sanitize_query
-from shared.providers.user import normalize_name, validate_id, validate_name
+
+from .provider import UploadURL, User, UserCredentials, UserPage
 
 __all__ = [
-    "User",
-    "UserSummary",
-    "Page",
-    "Credentials",
-    "UploadForm",
     "Request",
     "Response",
 ]
-
-
-class User(BaseModel, frozen=True):
-    id: str
-    name: str
-    picture: HttpUrl
-    role: Role
-    enabled: bool
-    created_at: datetime
-    updated_at: datetime | None = None
-    last_login_at: datetime | None = None
-
-
-class UserSummary(BaseModel, frozen=True):
-    id: str
-    name: str
-    picture: HttpUrl
-
-
-class Page(BaseModel, frozen=True):
-    users: list[UserSummary]
-    cursor: str | None = None
-
-
-class Credentials(BaseModel, frozen=True):
-    id: str
-    name: str
-    password: str
-
-
-class UploadForm(BaseModel, frozen=True):
-    url: str
-    fields: dict[str, str]
 
 
 # ──── Request Payloads ────────────────────────────────────────────────────────────────
@@ -57,17 +20,11 @@ class UploadForm(BaseModel, frozen=True):
 
 class Request:
     class List(BaseModel, frozen=True):
-        q: Query[str | missing] = missing
         limit: Query[int] = Field(25, ge=1, le=60)
         cursor: Query[str | missing] = missing
 
-        @field_validator("q")
-        @classmethod
-        def sanitize_q(cls, value: str) -> str | missing:
-            return q if (q := sanitize_query(normalize_name(value))) else missing
-
     class Create(BaseModel, frozen=True):
-        name: Body[str] = Field(min_length=1)
+        name: Body[str]
         role: Body[Role]
         enabled: Body[StrictBool] = True
 
@@ -86,7 +43,8 @@ class Request:
 
     class Update(BaseModel, frozen=True):
         id: Path[str]
-        name: Body[str | missing] = Field(missing, min_length=1)
+        name: Body[str | missing] = missing
+        picture: Body[None | missing] = missing
         role: Body[Role | missing] = missing
         enabled: Body[StrictBool | missing] = missing
 
@@ -133,7 +91,7 @@ class Response:
     class User(BaseModel, frozen=True):
         id: str
         name: str
-        picture: HttpUrl
+        picture: HttpUrl | None
         role: Role
         enabled: StrictBool
         createdAt: datetime
@@ -143,10 +101,10 @@ class Response:
         @classmethod
         def pack(cls, user: User) -> Self:
             return cls(
-                id=user.id,
-                name=user.name,
-                picture=user.picture,
-                role=user.role,
+                id=user["id"],  # type: ignore
+                name=user["name"],  # type: ignore
+                picture=user["picture"],  # type: ignore
+                role=user["role"],  # type: ignore
                 enabled=user.enabled,
                 createdAt=user.created_at,
                 updatedAt=user.updated_at,
@@ -156,14 +114,14 @@ class Response:
     class UserSummary(BaseModel, frozen=True):
         id: str
         name: str
-        picture: HttpUrl
+        picture: HttpUrl | None
 
         @classmethod
-        def pack(cls, user: UserSummary) -> Self:
+        def pack(cls, user: User) -> Self:
             return cls(
-                id=user.id,
-                name=user.name,
-                picture=user.picture,
+                id=user["id"],  # type: ignore
+                name=user["name"],  # type: ignore
+                picture=user["picture"],  # type: ignore
             )
 
     class Page(BaseModel, frozen=True):
@@ -171,7 +129,7 @@ class Response:
         cursor: str | None
 
         @classmethod
-        def pack(cls, page: Page) -> Self:
+        def pack(cls, page: UserPage) -> Self:
             return cls(
                 users=[Response.UserSummary.pack(user) for user in page.users],
                 cursor=page.cursor,
@@ -183,19 +141,19 @@ class Response:
         password: str
 
         @classmethod
-        def pack(cls, creds: Credentials) -> Self:
+        def pack(cls, creds: UserCredentials) -> Self:
             return cls(
                 id=creds.id,
                 name=creds.name,
                 password=creds.password,
             )
 
-    class UploadForm(BaseModel, frozen=True):
+    class UploadURL(BaseModel, frozen=True):
         url: str
         fields: dict[str, str]
 
         @classmethod
-        def pack(cls, upload: UploadForm) -> Self:
+        def pack(cls, upload: UploadURL) -> Self:
             return cls(
                 url=upload.url,
                 fields=upload.fields,

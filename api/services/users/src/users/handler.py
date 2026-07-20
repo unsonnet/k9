@@ -5,17 +5,21 @@ from shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from shared.helpers import require_admin, require_admin_or_self
+from shared.helpers import (
+    generate_id,
+    generate_password,
+    require_admin,
+    require_admin_or_self,
+)
 from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Created, NoContent
-from shared.providers.user import generate_id, generate_password
 
 from .models import Request, Response
-from .provider import CognitoUserProvider, UserProvider
+from .provider import UserProvider
 
 app = HttpResolver(enable_validation=True)
-provider: UserProvider = CognitoUserProvider()
+provider = UserProvider()
 app.grant(*provider.permissions)
 
 
@@ -36,7 +40,6 @@ def list(
 ) -> OK[Response.Page] | Unauthorized | TooManyRequests:
     try:
         page = provider.list_users(
-            q=request.q,
             limit=request.limit,
             cursor=request.cursor,
         )
@@ -147,6 +150,7 @@ def update(
         user = provider.update_user(
             id=user_id,
             name=request.name,
+            picture=request.picture,
             role=request.role,
             enabled=request.enabled,
         )
@@ -215,16 +219,16 @@ def delete(
 def picture(
     caller: Caller,
     request: Request.Picture,
-) -> OK[Response.UploadForm] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+) -> OK[Response.UploadURL] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
         user_id = require_admin_or_self(caller, request.id)
-        form = provider.generate_upload_form(
+        form = provider.upload_picture(
             id=user_id,
             content_type=request.contentType,
             max_bytes=5 * 1024 * 1024,
             max_seconds=5 * 60,
         )
-        return OK(Response.UploadForm.pack(form))
+        return OK(Response.UploadURL.pack(form))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
