@@ -1,14 +1,11 @@
 [project]
 name = "companies"
-version = "0.2.0"
+version = "0.3.0"
 description = "Company API Endpoints"
 requires-python = ">=3.12"
 dependencies = [
-    "boto3>=1.42.85",
-    "opensearch-py>=3.2.0",
     "pydantic[email]>=2.12.5",
     "shared",
-    "types-boto3[dynamodb,geo-places,location,s3]>=1.42.85",
 ]
 
 [tool.uv.sources]

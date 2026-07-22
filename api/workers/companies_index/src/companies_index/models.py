@@ -1,52 +1,35 @@
-from decimal import Decimal
 from enum import StrEnum
+from typing import Literal
 
-from pydantic import BaseModel, Field, HttpUrl
-from shared.stream import Keys, NewImage
+from pydantic import BaseModel, Field
+from shared.stream import NewImage, OldImage
 
 __all__ = [
-    "GeoPoint",
-    "Address",
-    "CompanySector",
-    "CompanySummary",
     "Request",
 ]
 
 
-class GeoPoint(BaseModel, frozen=True):
-    lat: Decimal = Field(ge=-90, le=90)
-    lon: Decimal = Field(ge=-180, le=180)
-
-
-class Address(BaseModel, frozen=True):
-    street: str = Field(min_length=1)
-    city: str = Field(min_length=1)
-    state: str = Field(min_length=2, max_length=2)
-    zip: str = Field(pattern=r"^\d{5}(-\d{4})?$")
-    geo: GeoPoint
-
-
-class CompanySector(StrEnum):
+class Sector(StrEnum):
     INSURANCE = "INSURANCE"
     MANUFACTURER = "MANUFACTURER"
     RETAILER = "RETAILER"
 
 
-class CompanySummary(BaseModel, frozen=True):
+class CompanyItem(BaseModel, frozen=True):
+    type: Literal["COMPANY"]
     id: str
-    sector: CompanySector
+    sector: Sector
     name: str = Field(min_length=1)
-    logo: HttpUrl
-    website: HttpUrl
-    locations: list[Address]
+    logo: str | None
+    website: str | None
 
 
-# ──── Request Payloads ────────────────────────────────────────────────────────────────
+StreamItem = CompanyItem
 
 
 class Request:
     class Upsert(BaseModel, frozen=True):
-        company: NewImage[CompanySummary]
+        item: NewImage[StreamItem]
 
     class Remove(BaseModel, frozen=True):
-        id: Keys[str]
+        item: OldImage[StreamItem]

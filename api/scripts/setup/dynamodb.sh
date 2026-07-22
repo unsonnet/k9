@@ -1,30 +1,49 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Creates:
-#   - DynamoDB table: k9-<stage>
-# Stores to SSM:
-#   - /k9/<stage>/data/dynamodb/table
-#   - /k9/<stage>/data/dynamodb/stream
+# Creates: DynamoDB table
+# Usage: dynamodb.sh <dev|stage|prod>
+# Reads from SSM: none
+# Writes to SSM:
+# - /k9/<stage>/data/dynamodb/table
+# - /k9/<stage>/data/dynamodb/stream
+# Rerun: no
 
 AWS_REGION="${AWS_REGION:-us-east-2}"
 export AWS_PAGER=""
 
-usage() { echo "Usage: $0 <dev|stage|prod>" >&2; exit 1; }
-die()   { echo "ERROR: $*" >&2; exit 1; }
+usage() {
+  echo "Usage: $0 <dev|stage|prod>" >&2
+  exit 1
+}
 
-require() { command -v "$1" >/dev/null 2>&1 || die "$1 is required"; }
-aws_cli() { aws --region "$AWS_REGION" "$@"; }
+die() {
+  echo "ERROR: $*" >&2
+  exit 1
+}
 
-ssm_exists() { aws_cli ssm get-parameter --name "$1" >/dev/null 2>&1; }
+need() {
+  command -v "$1" >/dev/null 2>&1 || die "$1 is required"
+}
+
+aws_cli() {
+  aws --region "$AWS_REGION" "$@"
+}
+
+validate_stage() {
+  local stage="${1:-}"
+  [[ "$stage" =~ ^(dev|stage|prod)$ ]] || usage
+}
+
 ssm_get() {
   aws_cli ssm get-parameter \
     --name "$1" \
     --query 'Parameter.Value' \
-    --output text
+    --output text \
+    2>/dev/null || return 1
 }
 
-put_ssm_string() {
+ssm_put() {
   aws_cli ssm put-parameter \
     --name "$1" \
     --type String \
@@ -38,109 +57,94 @@ table_exists() {
   aws_cli dynamodb describe-table --table-name "$1" >/dev/null 2>&1
 }
 
-cleanup() { rm -f "${TABLE_JSON:-}"; }
-trap cleanup EXIT
+enable_pitr() {
+  local table_name="$1"
+  local attempt
 
-require aws
-require jq
+  echo "Enabling point-in-time recovery"
 
-STAGE="${1:-}"
-[[ "$STAGE" =~ ^(dev|stage|prod)$ ]] || usage
+  for attempt in 1 2 3 4 5; do
+    if aws_cli dynamodb update-continuous-backups \
+      --table-name "$table_name" \
+      --point-in-time-recovery-specification PointInTimeRecoveryEnabled=true \
+      >/dev/null 2>&1; then
+      return 0
+    fi
 
-TABLE_NAME="k9-${STAGE}"
-SSM_TABLE="/k9/${STAGE}/data/dynamodb/table"
-SSM_STREAM_ARN="/k9/${STAGE}/data/dynamodb/stream"
-
-preflight() {
-  local -a issues=()
-  local existing_value=""
-
-  if ssm_exists "$SSM_TABLE"; then
-    existing_value="$(ssm_get "$SSM_TABLE")"
-    issues+=("SSM parameter already exists: $SSM_TABLE = $existing_value")
-  fi
-
-  if ssm_exists "$SSM_STREAM_ARN"; then
-    existing_value="$(ssm_get "$SSM_STREAM_ARN")"
-    issues+=("SSM parameter already exists: $SSM_STREAM_ARN = $existing_value")
-  fi
-
-  table_exists "$TABLE_NAME" && \
-    issues+=("DynamoDB table already exists: $TABLE_NAME")
-
-  if ((${#issues[@]} > 0)); then
-    echo "Preflight failed. Fix these issues, then rerun:" >&2
-    printf '  - %s\n' "${issues[@]}" >&2
-    exit 1
-  fi
+    (( attempt < 5 )) || die "Failed to enable point-in-time recovery after $attempt attempts"
+    sleep 5
+  done
 }
 
-create_table_payload() {
-  jq -n --arg table_name "$TABLE_NAME" '
-    {
-      TableName: $table_name,
-      AttributeDefinitions: [
-        { AttributeName: "pk", AttributeType: "S" },
-        { AttributeName: "sk", AttributeType: "S" }
-      ],
-      KeySchema: [
-        { AttributeName: "pk", KeyType: "HASH" },
-        { AttributeName: "sk", KeyType: "RANGE" }
-      ],
-      BillingMode: "PAY_PER_REQUEST",
-      StreamSpecification: {
-        StreamEnabled: true,
-        StreamViewType: "NEW_AND_OLD_IMAGES"
+main() {
+  need aws
+  need jq
+
+  local stage="${1:-}"
+  validate_stage "$stage"
+
+  local table_name="k9-${stage}"
+  local ssm_table="/k9/${stage}/data/dynamodb/table"
+  local ssm_stream="/k9/${stage}/data/dynamodb/stream"
+
+  ssm_get "$ssm_table" >/dev/null && die "SSM parameter already exists: $ssm_table"
+  ssm_get "$ssm_stream" >/dev/null && die "SSM parameter already exists: $ssm_stream"
+  table_exists "$table_name" && die "DynamoDB table already exists: $table_name"
+
+  local payload
+  payload="$(
+    jq -cn --arg name "$table_name" '
+      {
+        TableName: $name,
+        AttributeDefinitions: [
+          { AttributeName: "pk", AttributeType: "S" },
+          { AttributeName: "sk", AttributeType: "S" }
+        ],
+        KeySchema: [
+          { AttributeName: "pk", KeyType: "HASH" },
+          { AttributeName: "sk", KeyType: "RANGE" }
+        ],
+        BillingMode: "PAY_PER_REQUEST",
+        StreamSpecification: {
+          StreamEnabled: true,
+          StreamViewType: "NEW_AND_OLD_IMAGES"
+        },
+        SSESpecification: {
+          Enabled: true
+        },
+        DeletionProtectionEnabled: true
       }
-    }
-  '
+    '
+  )"
+
+  echo "Creating DynamoDB table: $table_name"
+  aws_cli dynamodb create-table --cli-input-json "$payload" >/dev/null
+
+  echo "Waiting for table to become active"
+  aws_cli dynamodb wait table-exists --table-name "$table_name"
+
+  enable_pitr "$table_name"
+
+  local stream_arn
+  stream_arn="$(
+    aws_cli dynamodb describe-table \
+      --table-name "$table_name" \
+      --query 'Table.LatestStreamArn' \
+      --output text
+  )"
+
+  [[ -n "$stream_arn" && "$stream_arn" != "None" ]] || die "Failed to resolve stream ARN"
+
+  ssm_put "$ssm_table" "$table_name"
+  ssm_put "$ssm_stream" "$stream_arn"
+
+  cat <<EOF
+Created:
+  DynamoDB table: $table_name
+Wrote to SSM:
+  $ssm_table = $table_name
+  $ssm_stream = $stream_arn
+EOF
 }
 
-preflight
-
-echo "Creating DynamoDB table: $TABLE_NAME"
-
-TABLE_JSON="$(mktemp)"
-create_table_payload >"$TABLE_JSON"
-
-aws_cli dynamodb create-table \
-  --cli-input-json "file://$TABLE_JSON" \
-  >/dev/null
-
-echo "Waiting for table to become ACTIVE"
-aws_cli dynamodb wait table-exists --table-name "$TABLE_NAME"
-
-echo "Enabling point-in-time recovery"
-aws_cli dynamodb update-continuous-backups \
-  --table-name "$TABLE_NAME" \
-  --point-in-time-recovery-specification \
-    PointInTimeRecoveryEnabled=true,RecoveryPeriodInDays=35 \
-  >/dev/null
-
-put_ssm_string "$SSM_TABLE" "$TABLE_NAME"
-
-STREAM_ARN="$(
-  aws_cli dynamodb describe-table \
-    --table-name "$TABLE_NAME" \
-    --query 'Table.LatestStreamArn' \
-    --output text
-)"
-
-put_ssm_string "$SSM_STREAM_ARN" "$STREAM_ARN"
-
-cat <<EOF
-
-Created DynamoDB table:
-  Stage:        $STAGE
-  Region:       $AWS_REGION
-  TableName:    $TABLE_NAME
-  PrimaryKey:   pk (String), sk (String)
-  BillingMode:  PAY_PER_REQUEST
-  StreamView:   NEW_AND_OLD_IMAGES
-  StreamArn:    $STREAM_ARN
-  PITR:         enabled (35 days)
-
-Stored in SSM:
-  $SSM_TABLE = $TABLE_NAME
-  $SSM_STREAM_ARN = $STREAM_ARN
-EOF
+main "$@"

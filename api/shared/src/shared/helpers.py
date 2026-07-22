@@ -44,23 +44,64 @@ def require_admin_or_self(caller: Caller, id: str) -> str:
     return caller.id if id == "me" else id
 
 
-# ──── ID ──────────────────────────────────────────────────────────────────────────────
+# ──── USER ID ─────────────────────────────────────────────────────────────────────────
 
 
-_ID_LENGTH: Final = 6
-_ID_RE: Final = re.compile(r"^[a-z]{3}\d{3}$")
+_USER_ID_LENGTH: Final = 6
+_USER_ID_RE: Final = re.compile(r"^[a-z]{3}\d{3}$")
 
 
-def generate_id() -> str:
+def generate_user_id() -> str:
     id = "".join(_RANDOM.choices(ascii_lowercase, k=3) + _RANDOM.choices(digits, k=3))
-    return validate_id(id)
+    return validate_user_id(id)
 
 
-def validate_id(id: str) -> str:
-    if len(id) != _ID_LENGTH:
-        raise ValueError(f"id must be exactly {_ID_LENGTH} characters")
-    if not _ID_RE.fullmatch(id):
+def validate_user_id(id: str) -> str:
+    if len(id) != _USER_ID_LENGTH:
+        raise ValueError(f"id must be exactly {_USER_ID_LENGTH} characters")
+    if not _USER_ID_RE.fullmatch(id):
         raise ValueError("id contains invalid characters")
+    return id
+
+
+# ──── Company ID ──────────────────────────────────────────────────────────────────────
+
+
+_COMPANY_ID_LENGTH: Final = 11
+_COMPANY_ID_RE: Final = re.compile(r"^\d{3}-\d{3}-\d{3}$")
+
+
+def generate_company_id() -> str:
+    id = "".join(_RANDOM.choice(digits) for _ in range(9))
+    id = id[:3] + "-" + id[3:6] + "-" + id[6:]
+    return validate_company_id(id)
+
+
+def validate_company_id(id: str) -> str:
+    if len(id) != _COMPANY_ID_LENGTH:
+        raise ValueError(f"id must be exactly {_COMPANY_ID_LENGTH} characters")
+    if not _COMPANY_ID_RE.fullmatch(id):
+        raise ValueError("id contains invalid characters")
+    return id
+
+
+# ──── SUB ID ──────────────────────────────────────────────────────────────────────────
+
+
+_SID_LENGTH: Final = 4
+_SID_RE: Final = re.compile(r"^\d{4}$")
+
+
+def generate_sub_id() -> str:
+    id = "".join(_RANDOM.choice(digits) for _ in range(4))
+    return validate_sub_id(id)
+
+
+def validate_sub_id(id: str) -> str:
+    if len(id) != _SID_LENGTH:
+        raise ValueError(f"sub id must be exactly {_SID_LENGTH} characters")
+    if not _SID_RE.fullmatch(id):
+        raise ValueError("sub id contains invalid characters")
     return id
 
 
@@ -120,3 +161,10 @@ def validate_password(password: str) -> str:
     if not any(char in _PASSWORD_SPECIALS for char in password):
         raise ValueError("password must contain a symbol")
     return password
+
+
+# ──── Query ───────────────────────────────────────────────────────────────────────────
+
+
+def sanitize_query(q: str) -> str | None:
+    return q.replace("\\", "\\\\").replace('"', '\\"') if (q := q.strip()) else None

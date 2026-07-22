@@ -3,7 +3,13 @@ from typing import Iterable
 
 from shared.config import GrantSpec, settings
 from shared.providers import BaseProvider, apimethod
-from shared.providers.idp import MFA, Challenge, ChallengeKey, IdentityProvider, Tokens
+from shared.providers.identity import (
+    MFA,
+    Challenge,
+    ChallengeKey,
+    IdentityProvider,
+    Tokens,
+)
 
 __all__ = [
     "ChallengeKey",

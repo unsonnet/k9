@@ -447,7 +447,10 @@ class IdentityProvider(BaseProvider):
         raise DomainInvariantViolation(f"Unexpected cognito MFA: {response}")
 
     def _auth(
-        self, response: Mapping[str, Any], /, username: str
+        self,
+        response: Mapping[str, Any],
+        /,
+        username: str,
     ) -> Tokens | Challenge:
         match response:
             case {"AuthenticationResult": dict(response)}:

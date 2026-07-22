@@ -1,91 +1,25 @@
 from datetime import datetime
-from decimal import Decimal
-from enum import StrEnum
 from typing import Self
 
-from pydantic import (
-    BaseModel,
-    EmailStr,
-    Field,
-    HttpUrl,
-    field_validator,
-)
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 from shared.config import missing
+from shared.helpers import sanitize_query, validate_company_id
 from shared.http import Body, ImageMIMEType, Path, Query
-from shared.providers.company import validate_id
-from shared.providers.opensearch import sanitize_query
+
+from .provider import (
+    Company,
+    CompanySector,
+    CompanySummary,
+    Contact,
+    Location,
+    Page,
+    UploadURL,
+)
 
 __all__ = [
-    "Contact",
-    "GeoPoint",
-    "Location",
-    "Sector",
-    "Company",
-    "CompanySummary",
-    "Page",
-    "UploadForm",
     "Request",
     "Response",
 ]
-
-
-class GeoPoint(BaseModel, frozen=True):
-    lat: Decimal
-    lon: Decimal
-
-
-class Location(BaseModel, frozen=True):
-    id: str
-    street: str
-    city: str
-    state: str
-    zip: str
-    geo: GeoPoint
-
-
-class Contact(BaseModel, frozen=True):
-    id: str
-    name: str
-    title: str | None
-    email: EmailStr | None
-    phone: str | None
-
-
-class Sector(StrEnum):
-    INSURANCE = "INSURANCE"
-    MANUFACTURER = "MANUFACTURER"
-    RETAILER = "RETAILER"
-
-
-class Company(BaseModel, frozen=True):
-    id: str
-    sector: Sector
-    name: str
-    logo: HttpUrl | None
-    website: HttpUrl | None
-    locations: list[Location]
-    contacts: list[Contact]
-    created_at: datetime
-    updated_at: datetime | None
-
-
-class CompanySummary(BaseModel, frozen=True):
-    id: str
-    sector: Sector
-    name: str
-    logo: HttpUrl | None
-    website: HttpUrl | None
-    locations: list[Location]
-
-
-class Page(BaseModel, frozen=True):
-    companies: list[CompanySummary]
-    cursor: str | None
-
-
-class UploadForm(BaseModel, frozen=True):
-    url: str
-    fields: dict[str, str]
 
 
 # ──── Request Payloads ────────────────────────────────────────────────────────────────
@@ -93,7 +27,7 @@ class UploadForm(BaseModel, frozen=True):
 
 class Request:
     class List(BaseModel, frozen=True):
-        sector: Query[list[Sector] | missing] = missing
+        sector: Query[list[CompanySector] | missing] = missing
         name: Query[str | missing] = missing
         lat: Query[float | missing] = Field(missing, ge=-90, le=90)
         lon: Query[float | missing] = Field(missing, ge=-180, le=180)
@@ -114,7 +48,7 @@ class Request:
             return q if (q := sanitize_query(value)) else missing
 
     class Create(BaseModel, frozen=True):
-        sector: Body[Sector]
+        sector: Body[CompanySector]
         name: Body[str] = Field(min_length=1)
         website: Body[HttpUrl | None]
 
@@ -124,18 +58,19 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return validate_id(value)
+            return validate_company_id(value)
 
     class Update(BaseModel, frozen=True):
         id: Path[str]
-        sector: Body[Sector | missing] = missing
+        sector: Body[CompanySector | missing] = missing
         name: Body[str | missing] = Field(missing, min_length=1)
+        logo: Body[None | missing] = missing
         website: Body[HttpUrl | None | missing] = missing
 
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return validate_id(value)
+            return validate_company_id(value)
 
     class Delete(BaseModel, frozen=True):
         id: Path[str]
@@ -143,7 +78,7 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return validate_id(value)
+            return validate_company_id(value)
 
     class Logo(BaseModel, frozen=True):
         id: Path[str]
@@ -152,7 +87,7 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return validate_id(value)
+            return validate_company_id(value)
 
 
 # ──── Response Payloads ───────────────────────────────────────────────────────────────
@@ -161,7 +96,7 @@ class Request:
 class Response:
     class Company(BaseModel, frozen=True):
         id: str
-        sector: Sector
+        sector: CompanySector
         name: str
         logo: HttpUrl | None
         website: HttpUrl | None
@@ -186,7 +121,7 @@ class Response:
 
     class CompanySummary(BaseModel, frozen=True):
         id: str
-        sector: Sector
+        sector: CompanySector
         name: str
         logo: HttpUrl | None
         website: HttpUrl | None
@@ -208,20 +143,20 @@ class Response:
         cursor: str | None
 
         @classmethod
-        def pack(cls, page: Page):
+        def pack(cls, page: Page[CompanySummary]):
             return cls(
                 companies=[
-                    Response.CompanySummary.pack(company) for company in page.companies
+                    Response.CompanySummary.pack(company) for company in page.items
                 ],
                 cursor=page.cursor,
             )
 
-    class UploadForm(BaseModel, frozen=True):
+    class UploadURL(BaseModel, frozen=True):
         url: str
         fields: dict[str, str]
 
         @classmethod
-        def pack(cls, upload: UploadForm) -> Self:
+        def pack(cls, upload: UploadURL) -> Self:
             return cls(
                 url=upload.url,
                 fields=upload.fields,

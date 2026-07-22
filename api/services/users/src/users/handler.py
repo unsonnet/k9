@@ -6,8 +6,8 @@ from shared.errors import (
     DomainUnauthorized,
 )
 from shared.helpers import (
-    generate_id,
     generate_password,
+    generate_user_id,
     require_admin,
     require_admin_or_self,
 )
@@ -69,7 +69,7 @@ def create(
     try:
         require_admin(caller)
         creds = provider.create_user(
-            id=generate_id(),
+            id=generate_user_id(),
             name=request.name,
             password=generate_password(),
             role=request.role,

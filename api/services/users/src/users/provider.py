@@ -1,12 +1,12 @@
 import base64
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Iterable
 
 from shared.config import GrantSpec, is_set, missing, settings
 from shared.http import Role
 from shared.providers import BaseProvider, apimethod
-from shared.providers.idp import IdentityProvider, User, UserPage
-from shared.providers.mem import StorageProvider, UploadURL
+from shared.providers.identity import IdentityProvider, User, UserPage
+from shared.providers.storage import StorageProvider, UploadURL
 
 __all__ = [
     "User",
@@ -78,13 +78,13 @@ class UserProvider(BaseProvider):
     ) -> UserCredentials:
         self._idp.create_user(
             username=f"id:{id}",
-            preferred_username=f"name:{self._encode(name)}",
             password=password,
+            enabled=enabled,
             id=id,
+            preferred_username=f"name:{self._encode(name)}",
             name=name,
             picture=None,
             role=role.value,
-            enabled=enabled,
         )
         return UserCredentials(
             id=id,
@@ -112,7 +112,7 @@ class UserProvider(BaseProvider):
         role: Role | missing,
         enabled: bool | missing,
     ) -> User:
-        attrs: dict[str, Any] = {}
+        attrs: dict[str, str | None] = {}
         if is_set(name):
             attrs["preferred_username"] = f"name:{self._encode(name)}"
             attrs["name"] = name
@@ -120,10 +120,9 @@ class UserProvider(BaseProvider):
             attrs["picture"] = picture
         if is_set(role):
             attrs["role"] = role.value
-        if is_set(enabled):
-            attrs["enabled"] = enabled
         return self._idp.update_user(
             username=f"id:{id}",
+            enabled=enabled,
             **attrs,
         )
 

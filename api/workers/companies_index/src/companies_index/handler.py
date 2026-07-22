@@ -2,33 +2,25 @@ from shared.errors import DomainNotFound
 from shared.stream import DynamoDBStreamResolver
 
 from .models import Request
-from .provider import IndexProvider, OpenSearchIndexProvider
+from .provider import CompanyIndexProvider
 
 app = DynamoDBStreamResolver()
-provider: IndexProvider = OpenSearchIndexProvider()
+provider = CompanyIndexProvider()
 app.grant(*provider.permissions)
 
 
 @app.insert
 @app.modify
-def index(request: Request.Upsert) -> None:
-    company = request.company
-    provider.index_company(
-        id=company.id,
-        sector=company.sector,
-        name=company.name,
-        logo=company.logo,
-        website=company.website,
-        locations=company.locations,
-    )
+def sync(request: Request.Upsert) -> None:
+    provider.sync_company(item=request.item)
 
 
 @app.remove
-def unindex(request: Request.Remove) -> None:
+def remove(request: Request.Remove) -> None:
     try:
-        provider.unindex_company(id=request.id)
+        provider.delete_company(item=request.item)
     except DomainNotFound:
-        pass  # already unindexed
+        pass
 
 
 def lambda_handler(event, context):

@@ -4,17 +4,16 @@ from shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from shared.helpers import require_admin
+from shared.helpers import generate_company_id, require_admin
 from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Created, NoContent
-from shared.providers.company import generate_id
 
 from .models import Request, Response
-from .provider import AWSCompanyProvider, CompanyProvider
+from .provider import CompanyProvider
 
 app = HttpResolver(enable_validation=True)
-provider: CompanyProvider = AWSCompanyProvider()
+provider = CompanyProvider()
 app.grant(*provider.permissions)
 
 
@@ -67,7 +66,7 @@ def create(
     try:
         require_admin(caller)
         company = provider.create_company(
-            id=generate_id(),
+            id=generate_company_id(),
             sector=request.sector,
             name=request.name,
             website=request.website,
@@ -133,6 +132,7 @@ def update(
             id=request.id,
             sector=request.sector,
             name=request.name,
+            logo=request.logo,
             website=request.website,
         )
         return OK(Response.Company.pack(company))
@@ -194,7 +194,7 @@ def delete(
 def logo(
     caller: Caller,
     request: Request.Logo,
-) -> OK[Response.UploadForm] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+) -> OK[Response.UploadURL] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
         require_admin(caller)
         form = provider.upload_logo(
@@ -203,7 +203,7 @@ def logo(
             max_bytes=5 * 1024 * 1024,
             max_seconds=5 * 60,
         )
-        return OK(Response.UploadForm.pack(form))
+        return OK(Response.UploadURL.pack(form))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:

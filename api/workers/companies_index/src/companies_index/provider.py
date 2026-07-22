@@ -1,126 +1,52 @@
 from collections.abc import Iterable
-from typing import Protocol
-from urllib.parse import urlparse
 
-import boto3
-import opensearchpy.exceptions as osx
-from opensearchpy import OpenSearch, RequestsHttpConnection
-from pydantic import HttpUrl
 from shared.config import GrantSpec, settings
-from shared.errors import DomainInvariantViolation, DomainNotFound
-from shared.providers import BaseProvider, ExceptionMap, apimethod
+from shared.providers import BaseProvider, apimethod
+from shared.providers.search import SearchProvider
 
-from .models import Address, CompanySector
+from .models import CompanyItem
 
 __all__ = [
-    "IndexProvider",
-    "OpenSearchIndexProvider",
+    "CompanyIndexProvider",
 ]
 
 
-class IndexProvider(Protocol):
-    @property
-    def permissions(self) -> Iterable[GrantSpec]: ...
-
-    def index_company(
-        self,
-        *,
-        id: str,
-        sector: CompanySector,
-        name: str,
-        logo: HttpUrl,
-        website: HttpUrl,
-        locations: list[Address],
-    ) -> None: ...
-
-    def unindex_company(
-        self,
-        *,
-        id: str,
-    ) -> None: ...
-
-
-# ──── OpenSearch Index Provider ───────────────────────────────────────────────────────
-
-
-class OpenSearchIndexProvider(BaseProvider):
-    _os: OpenSearch
-    _os_idx: str
+class CompanyIndexProvider(BaseProvider):
+    _os: SearchProvider
 
     def __init__(
         self,
         *,
         region: str | None = None,
-        company_index: str | None = None,
-        opensearch_endpoint: str | None = None,
+        endpoint: str | None = None,
+        index: str | None = None,
     ) -> None:
-        region = region or settings.aws_region
-        endpoint = urlparse(opensearch_endpoint or settings.opensearch_endpoint)
-        self._os = OpenSearch(
-            hosts=[{"host": endpoint.hostname, "port": endpoint.port}],
-            http_auth=settings.aws_auth(boto3.Session(region_name=region)),
-            use_ssl=True,
-            verify_certs=True,
-            connection_class=RequestsHttpConnection,
-            timeout=300,
+        self._os = SearchProvider(
+            region=region or settings.aws_region,
+            endpoint=endpoint or settings.opensearch_endpoint,
+            index=index or settings.opensearch_index_companies,
         )
-        self._os_idx = company_index or settings.opensearch_index_companies
-
-    @property
-    def _exception_map(self) -> ExceptionMap:
-        return {
-            DomainNotFound: [osx.NotFoundError],
-            DomainInvariantViolation: [osx.ValidationException],
-        }
 
     @property
     def permissions(self) -> Iterable[GrantSpec]:
-        yield GrantSpec(
-            actions=(
-                "es:ESHttpPost",
-                "es:ESHttpPut",
-                "es:ESHttpDelete",
-            ),
-            resources=("opensearch-domain",),
-        )
+        yield from self._os.permissions
 
     # ──── Public Methods ────
 
     @apimethod
-    def index_company(
-        self,
-        *,
-        id: str,
-        sector: CompanySector,
-        name: str,
-        logo: HttpUrl,
-        website: HttpUrl,
-        locations: list[Address],
-    ) -> None:
-        self._os.index(
-            index=self._os_idx,
-            id=id,
-            body={
-                "id": id,
-                "sector": sector.value,
-                "name": name,
-                "logo": str(logo),
-                "website": str(website),
-                "locations": [location.model_dump() for location in locations],
-            },
-            params={"refresh": "wait_for"},
+    def sync_company(self, *, item: CompanyItem) -> None:
+        self._os.index_document(
+            type="COMPANY",
+            id=item.id,
+            sector=item.sector.value,
+            name=item.name,
+            logo=item.logo,
+            website=item.website,
         )
-        return None
 
     @apimethod
-    def unindex_company(
-        self,
-        *,
-        id: str,
-    ) -> None:
-        self._os.delete(
-            index=self._os_idx,
-            id=id,
-            params={"refresh": "wait_for"},
+    def delete_company(self, *, item: CompanyItem) -> None:
+        self._os.delete_document(
+            type="COMPANY",
+            id=item.id,
         )
-        return None

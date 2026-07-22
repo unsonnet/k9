@@ -132,7 +132,7 @@ class HttpResolver(APIGatewayHttpResolver):
     @staticmethod
     def _decode_id(xid: str) -> str:
         if not xid.startswith("id:"):
-            raise DomainInvariantViolation(f"Invalid id format: {xid}")
+            raise DomainInvariantViolation(f"Unexpected id: {xid}")
         return xid.removeprefix("id:")
 
     def caller(self) -> Caller:

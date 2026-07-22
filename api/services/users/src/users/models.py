@@ -3,7 +3,7 @@ from typing import Self
 
 from pydantic import BaseModel, Field, HttpUrl, StrictBool, field_validator
 from shared.config import missing
-from shared.helpers import validate_id, validate_name
+from shared.helpers import validate_name, validate_user_id
 from shared.http import ImageMIMEType, Role
 from shared.http.requests import Body, Path, Query
 
@@ -39,7 +39,7 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return value if value == "me" else validate_id(value)
+            return value if value == "me" else validate_user_id(value)
 
     class Update(BaseModel, frozen=True):
         id: Path[str]
@@ -51,7 +51,7 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return value if value == "me" else validate_id(value)
+            return value if value == "me" else validate_user_id(value)
 
         @field_validator("name")
         @classmethod
@@ -64,7 +64,7 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return validate_id(value)
+            return validate_user_id(value)
 
     class Picture(BaseModel, frozen=True):
         id: Path[str]
@@ -73,7 +73,7 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return value if value == "me" else validate_id(value)
+            return value if value == "me" else validate_user_id(value)
 
     class Reset(BaseModel, frozen=True):
         id: Path[str]
@@ -81,7 +81,7 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return value if value == "me" else validate_id(value)
+            return value if value == "me" else validate_user_id(value)
 
 
 # ──── Response Payloads ───────────────────────────────────────────────────────────────

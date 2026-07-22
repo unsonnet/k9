@@ -1,7 +1,7 @@
 from typing import Self
 
 from pydantic import BaseModel, field_validator
-from shared.helpers import validate_id, validate_name, validate_password
+from shared.helpers import validate_name, validate_password, validate_user_id
 from shared.http.requests import Body, Path
 
 from .provider import MFA, Challenge, ChallengeKey, Tokens
@@ -56,7 +56,7 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return value if value == "me" else validate_id(value)
+            return value if value == "me" else validate_user_id(value)
 
 
 # ──── Response Payloads ───────────────────────────────────────────────────────────────
