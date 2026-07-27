@@ -89,7 +89,7 @@ class User:
     last_login_at: datetime | None
 
     def __getitem__(self, key: str) -> str | None:
-        return self.attributes[key]
+        return self.attributes.get(key)
 
 
 @dataclass(frozen=True, slots=True)
@@ -484,9 +484,9 @@ class IdentityProvider(BaseProvider):
 
     @staticmethod
     def _unpack(attrs: Sequence[AttributeTypeTypeDef]) -> dict[str, str | None]:
-        return {"last_login_at": None} | {
-            kv["Name"].removeprefix("custom:"): kv.get("Value") for kv in attrs
-        }
+        a = {kv["Name"].removeprefix("custom:"): kv.get("Value") for kv in attrs}
+        a.setdefault("last_login_at", None)
+        return a
 
     @classmethod
     def _user(cls, response: Mapping[str, Any], /) -> User:

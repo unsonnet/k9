@@ -64,8 +64,11 @@ def resolve_grant_resources(
                 table_base = ssm.StringParameter.value_for_string_parameter(
                     scope, parameter
                 )
-                resolved.append(
-                    f"arn:aws:dynamodb:{stack.region}:{stack.account}:table/{table_base}-*"
+                resolved.extend(
+                    [
+                        f"arn:aws:dynamodb:{stack.region}:{stack.account}:table/{table_base}",
+                        f"arn:aws:dynamodb:{stack.region}:{stack.account}:table/{table_base}/index/*",
+                    ]
                 )
             case "opensearch-domain":
                 resolved.append(
