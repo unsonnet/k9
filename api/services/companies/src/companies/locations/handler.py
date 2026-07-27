@@ -4,47 +4,17 @@ from shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from shared.helpers import require_admin
+from shared.helpers import generate_subresource_id, require_admin
 from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Created, NoContent
-from shared.providers.company import generate_sub_id
 
 from .models import Request, Response
-from .provider import AWSLocationProvider, LocationProvider
+from .provider import CompanyLocationProvider
 
 app = HttpResolver(enable_validation=True)
-provider: LocationProvider = AWSLocationProvider()
+provider = CompanyLocationProvider()
 app.grant(*provider.permissions)
-
-
-@app.get(
-    "/companies/<id>/locations",
-    summary="List company locations",
-    description="List locations of a company filtered by coordinates.",
-    tags=["company", "location"],
-    responses={
-        200: "Locations found",
-        401: "Authentication required",
-        429: "Too many requests",
-    },
-)
-def list(
-    caller: Caller,
-    request: Request.List,
-) -> OK[Response.Page] | Unauthorized | TooManyRequests:
-    try:
-        page = provider.list_locations(
-            id=request.id,
-            geo=request.geo,
-            limit=request.limit,
-            cursor=request.cursor,
-        )
-        return OK(Response.Page.pack(page))
-    except DomainUnauthorized as exc:
-        return Unauthorized(cause=exc)
-    except DomainRateLimited as exc:
-        return TooManyRequests(cause=exc)
 
 
 @app.post(
@@ -67,7 +37,7 @@ def create(
         require_admin(caller)
         location = provider.create_location(
             id=request.id,
-            sid=generate_sub_id(),
+            sid=generate_subresource_id(),
             street=request.street,
             city=request.city,
             state=request.state,
@@ -106,44 +76,6 @@ def read(
         return OK(Response.Location.pack(location))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
-    except DomainNotFound as exc:
-        return NotFound(cause=exc)
-    except DomainRateLimited as exc:
-        return TooManyRequests(cause=exc)
-
-
-@app.patch(
-    "/companies/<id>/locations/<sid>",
-    summary="Update company location",
-    description="Update a location of a company. Requires admin role.",
-    tags=["company", "location"],
-    responses={
-        200: "Company location updated",
-        401: "Authentication required",
-        403: "Access denied",
-        404: "Company location not found",
-        429: "Too many requests",
-    },
-)
-def update(
-    caller: Caller,
-    request: Request.Update,
-) -> OK[Response.Location] | Unauthorized | Forbidden | NotFound | TooManyRequests:
-    try:
-        require_admin(caller)
-        location = provider.update_location(
-            id=request.id,
-            sid=request.sid,
-            street=request.street,
-            city=request.city,
-            state=request.state,
-            zip=request.zip,
-        )
-        return OK(Response.Location.pack(location))
-    except DomainUnauthorized as exc:
-        return Unauthorized(cause=exc)
-    except DomainForbidden as exc:
-        return Forbidden(cause=exc)
     except DomainNotFound as exc:
         return NotFound(cause=exc)
     except DomainRateLimited as exc:

@@ -12,6 +12,7 @@ from shared.providers.storage import StorageProvider, UploadURL
 __all__ = [
     "Contact",
     "UploadURL",
+    "CompanyContactProvider",
 ]
 
 
@@ -24,7 +25,7 @@ class Contact(BaseModel, frozen=True):
     phone: PhoneNumber | None
 
 
-class ContactProvider(BaseProvider):
+class CompanyContactProvider(BaseProvider):
     _mem: StorageProvider
     _db: DatabaseProvider
 

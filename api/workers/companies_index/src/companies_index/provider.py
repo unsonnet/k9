@@ -11,8 +11,12 @@ __all__ = [
     "Sector",
     "CompanyItem",
     "ContactItem",
+    "LocationItem",
     "CompanyIndexProvider",
 ]
+
+
+from decimal import Decimal
 
 
 class Sector(StrEnum):
@@ -38,6 +42,17 @@ class ContactItem(BaseModel, frozen=True):
     profile: str | None
     email: str | None
     phone: str | None
+
+
+class LocationItem(BaseModel, frozen=True):
+    type: Literal["company.location"]
+    id: str
+    street: str
+    city: str
+    state: str
+    zip: str
+    lat: Decimal
+    lon: Decimal
 
 
 class CompanyIndexProvider(BaseProvider):
@@ -94,6 +109,25 @@ class CompanyIndexProvider(BaseProvider):
 
     @apimethod
     def delete_contact(self, *, item: ContactItem) -> None:
+        self._os.delete_document(
+            type=item.type,
+            id=item.id,
+        )
+
+    @apimethod
+    def sync_location(self, *, item: LocationItem) -> None:
+        self._os.create_document(
+            type=item.type,
+            id=item.id,
+            street=item.street,
+            city=item.city,
+            state=item.state,
+            zip=item.zip,
+            geo={"lat": float(item.lat), "lon": float(item.lon)},
+        )
+
+    @apimethod
+    def delete_location(self, *, item: LocationItem) -> None:
         self._os.delete_document(
             type=item.type,
             id=item.id,

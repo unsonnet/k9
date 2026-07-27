@@ -1,6 +1,5 @@
 from collections.abc import Iterable
 from datetime import datetime
-from decimal import Decimal
 from enum import StrEnum
 
 from pydantic import BaseModel, Field, HttpUrl
@@ -12,9 +11,9 @@ from shared.providers.search import Near, Page, SearchProvider, Term, Text
 from shared.providers.storage import StorageProvider, UploadURL
 
 from .contacts.provider import Contact
+from .locations.provider import Location
 
 __all__ = [
-    "GeoPoint",
     "Location",
     "Contact",
     "Sector",
@@ -24,20 +23,6 @@ __all__ = [
     "UploadURL",
     "CompanyProvider",
 ]
-
-
-class GeoPoint(BaseModel, frozen=True):
-    lat: Decimal
-    lon: Decimal
-
-
-class Location(BaseModel, frozen=True):
-    id: str
-    street: str
-    city: str
-    state: str
-    zip: str
-    geo: GeoPoint
 
 
 class Sector(StrEnum):

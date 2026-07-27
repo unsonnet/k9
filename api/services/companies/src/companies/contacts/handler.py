@@ -10,10 +10,10 @@ from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorize
 from shared.http.responses import OK, Created, NoContent
 
 from .models import Request, Response
-from .provider import ContactProvider
+from .provider import CompanyContactProvider
 
 app = HttpResolver(enable_validation=True)
-provider = ContactProvider()
+provider = CompanyContactProvider()
 app.grant(*provider.permissions)
 
 
