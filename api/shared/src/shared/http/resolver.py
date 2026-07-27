@@ -54,6 +54,13 @@ class Caller:
         return self.role == Role.ADMIN
 
 
+CALLER_PARAM = Parameter(
+    name="caller",
+    kind=Parameter.POSITIONAL_OR_KEYWORD,
+    annotation=Caller,
+)
+
+
 class RouteOptions(TypedDict):
     cors: NotRequired[bool]
     compress: NotRequired[bool]
@@ -176,7 +183,7 @@ class HttpResolver(APIGatewayHttpResolver):
             bound = signature(super(HttpResolver, self).route).bind_partial(**options)
             bound.apply_defaults()
 
-            auth = next(iter(signature(func).parameters.values()), None) is Caller
+            auth = signature(func).parameters.get("caller", None) == CALLER_PARAM
             opid: str | None = bound.arguments["operation_id"]
             text: str | None = bound.arguments["summary"]
             tags: tuple[str, ...] = tuple(bound.arguments["tags"] or ())
