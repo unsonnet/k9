@@ -32,7 +32,7 @@ class _Node:
     def serialize(self) -> dict[str, DatabaseTypes]:
         subitems: dict[str, list[dict[str, DatabaseTypes]]] = {}
         for (k, _), node in self.subitems.items():
-            subitems.setdefault(f".{k}", []).append(node.serialize())
+            subitems.setdefault(f"${k}", []).append(node.serialize())
         return self.item | subitems
 
 
@@ -52,6 +52,7 @@ class DatabaseProvider(BaseProvider):
         yield GrantSpec(
             actions=(
                 "dynamodb:BatchWriteItem",
+                "dynamodb:ConditionCheckItem",
                 "dynamodb:DeleteItem",
                 "dynamodb:GetItem",
                 "dynamodb:PutItem",

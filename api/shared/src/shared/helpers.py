@@ -10,6 +10,8 @@ from .http import Caller
 
 _RANDOM: Final = SystemRandom()
 
+# ──── Datetime ────────────────────────────────────────────────────────────────────────
+
 
 def now() -> datetime:
     return datetime.now(timezone.utc)
@@ -33,6 +35,9 @@ def dt(value: datetime | str | None, iso: bool = True) -> datetime | None:
             return None
 
 
+# ──── Caller Permissions ──────────────────────────────────────────────────────────────
+
+
 def require_admin(caller: Caller) -> None:
     if not caller.is_admin:
         raise DomainForbidden("Admin role required")
@@ -44,7 +49,7 @@ def require_admin_or_self(caller: Caller, id: str) -> str:
     return caller.id if id == "me" else id
 
 
-# ──── USER ID ─────────────────────────────────────────────────────────────────────────
+# ──── User ID ─────────────────────────────────────────────────────────────────────────
 
 
 _USER_ID_LENGTH: Final = 6
@@ -64,43 +69,42 @@ def validate_user_id(id: str) -> str:
     return id
 
 
-# ──── Company ID ──────────────────────────────────────────────────────────────────────
+# ──── Resource ID ─────────────────────────────────────────────────────────────────────
 
 
-_COMPANY_ID_LENGTH: Final = 11
-_COMPANY_ID_RE: Final = re.compile(r"^\d{3}-\d{3}-\d{3}$")
+_RESOURCE_ID_LENGTH: Final = 9
+_RESOURCE_ID_RE: Final = re.compile(rf"^\d{{{_RESOURCE_ID_LENGTH}}}$")
 
 
-def generate_company_id() -> str:
-    id = "".join(_RANDOM.choice(digits) for _ in range(9))
-    id = id[:3] + "-" + id[3:6] + "-" + id[6:]
-    return validate_company_id(id)
+def generate_resource_id() -> str:
+    id = "".join(_RANDOM.choice(digits) for _ in range(_RESOURCE_ID_LENGTH))
+    return validate_resource_id(id)
 
 
-def validate_company_id(id: str) -> str:
-    if len(id) != _COMPANY_ID_LENGTH:
-        raise ValueError(f"id must be exactly {_COMPANY_ID_LENGTH} characters")
-    if not _COMPANY_ID_RE.fullmatch(id):
+def validate_resource_id(id: str) -> str:
+    if len(id) != _RESOURCE_ID_LENGTH:
+        raise ValueError(f"id must be exactly {_RESOURCE_ID_LENGTH} characters")
+    if not _RESOURCE_ID_RE.fullmatch(id):
         raise ValueError("id contains invalid characters")
     return id
 
 
-# ──── SUB ID ──────────────────────────────────────────────────────────────────────────
+# ──── Subresource ID ──────────────────────────────────────────────────────────────────
 
 
-_SID_LENGTH: Final = 4
-_SID_RE: Final = re.compile(r"^\d{4}$")
+_SUBRESOURCE_ID_LENGTH: Final = 4
+_SUBRESOURCE_ID_RE: Final = re.compile(rf"^\d{{{_SUBRESOURCE_ID_LENGTH}}}$")
 
 
-def generate_sub_id() -> str:
-    id = "".join(_RANDOM.choice(digits) for _ in range(4))
-    return validate_sub_id(id)
+def generate_subresource_id() -> str:
+    id = "".join(_RANDOM.choice(digits) for _ in range(_SUBRESOURCE_ID_LENGTH))
+    return validate_subresource_id(id)
 
 
-def validate_sub_id(id: str) -> str:
-    if len(id) != _SID_LENGTH:
-        raise ValueError(f"sub id must be exactly {_SID_LENGTH} characters")
-    if not _SID_RE.fullmatch(id):
+def validate_subresource_id(id: str) -> str:
+    if len(id) != _SUBRESOURCE_ID_LENGTH:
+        raise ValueError(f"sub id must be exactly {_SUBRESOURCE_ID_LENGTH} characters")
+    if not _SUBRESOURCE_ID_RE.fullmatch(id):
         raise ValueError("sub id contains invalid characters")
     return id
 

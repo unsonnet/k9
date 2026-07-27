@@ -6,13 +6,14 @@ from typing import (
     Annotated,
     Any,
     Protocol,
-    TypeVar,
-    cast,
+    TypeGuard,
     get_args,
     get_origin,
     get_type_hints,
+    overload,
 )
 
+from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.batch import (
     BatchProcessor,
     EventType,
@@ -22,13 +23,12 @@ from aws_lambda_powertools.utilities.data_classes.dynamo_db_stream_event import 
     DynamoDBRecord,
 )
 from aws_lambda_powertools.utilities.typing import LambdaContext
-from pydantic import AliasChoices, AliasPath, BaseModel, TypeAdapter
+from pydantic import BaseModel
 
 from ..config import GrantSpec
 from .requests import StreamKeys, StreamNewImage, StreamOldImage, StreamRecord
 
-RequestModelT = TypeVar("RequestModelT", bound=BaseModel)
-ReturnT = TypeVar("ReturnT")
+LOG = Logger()
 
 
 class EventName(StrEnum):
@@ -37,35 +37,56 @@ class EventName(StrEnum):
     REMOVE = "REMOVE"
 
 
-class RouteDecorator(Protocol):
-    def __call__(
-        self, func: Callable[[RequestModelT], ReturnT]
-    ) -> Callable[[RequestModelT], ReturnT]: ...
-
-
 StreamMarker = StreamNewImage | StreamOldImage | StreamKeys | StreamRecord
 
 
+class RouteDecorator[R: BaseModel, T](Protocol):
+    def __call__(self, func: Callable[[R], T]) -> Callable[[R], T]: ...
+
+
 class DynamoDBStreamResolver:
+    _processor: BatchProcessor
+    _handlers: dict[EventName, Callable[[DynamoDBRecord], Any]]
+    _grants: list[GrantSpec]
+
     def __init__(self) -> None:
         self._processor = BatchProcessor(event_type=EventType.DynamoDBStreams)
-        self._handlers: dict[EventName, Callable[[Any], Any]] = {}
-        self._models: dict[EventName, type[BaseModel]] = {}
-        self._grant_specs: list[GrantSpec] = []
-
-    # ─── Manifest ─────────────────────────────────────────────────────────────────────
-
-    @property
-    def grants(self) -> tuple[GrantSpec, ...]:
-        return tuple(self._grant_specs)
-
-    def grant(self, *grants: GrantSpec) -> None:
-        self._grant_specs.extend(grants)
+        self._handlers = {}
+        self._grants = []
 
     def manifest(self) -> dict[str, Any]:
         return {
-            "grants": [asdict(grant) for grant in self._grant_specs],
+            "grants": [asdict(grant) for grant in self._grants],
         }
+
+    # ─── Grants ───────────────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _all[T](items: tuple[Any, ...], type: type[T]) -> TypeGuard[tuple[T, ...]]:
+        return all(isinstance(item, type) for item in items)
+
+    @overload
+    def grant(self, *grants: GrantSpec) -> None: ...
+
+    @overload
+    def grant(
+        self,
+        *actions: str,
+        resources: tuple[str, ...] = ("*",),
+        effect: str = "allow",
+    ) -> None: ...
+
+    def grant(
+        self,
+        *raw: str | GrantSpec,
+        resources: tuple[str, ...] = ("*",),
+        effect: str = "allow",
+    ) -> None:
+        match raw:
+            case grants if self._all(grants, GrantSpec):
+                self._grants.extend(grants)
+            case actions if self._all(actions, str):
+                self._grants.append(GrantSpec(effect, actions, resources))
 
     # ─── Routes ───────────────────────────────────────────────────────────────────────
 
@@ -82,240 +103,122 @@ class DynamoDBStreamResolver:
         return self.route(EventName.REMOVE)
 
     def route(self, event_name: EventName) -> RouteDecorator:
-        def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
-            model_cls = self._request_model(func)
-
-            self._handlers[event_name] = func
-            self._models[event_name] = model_cls
-
+        def decorator[T](func: Callable[..., T]) -> Callable[..., T]:
+            self._handlers[event_name] = self._expand(func)
             return func
 
-        return cast(RouteDecorator, decorator)
+        return decorator
 
-    # ─── Request Model Inspection ─────────────────────────────────────────────────────
-
-    @staticmethod
-    def _is_request_model(annotation: Any) -> bool:
-        return isinstance(annotation, type) and issubclass(annotation, BaseModel)
-
-    @classmethod
-    def _request_model(cls, func: Callable[..., Any]) -> type[BaseModel]:
-        sig = signature(func)
-        params = list(sig.parameters.values())
-
-        if len(params) != 1:
-            raise TypeError(
-                f"{func.__name__} must accept exactly one Pydantic request model"
-            )
-
-        param = params[0]
-
-        if param.kind not in {
-            Parameter.POSITIONAL_ONLY,
-            Parameter.POSITIONAL_OR_KEYWORD,
-            Parameter.KEYWORD_ONLY,
-        }:
-            raise TypeError(f"{func.__name__}.{param.name} must be a normal parameter")
-
-        hints = get_type_hints(func, include_extras=True)
-        annotation = hints.get(param.name, param.annotation)
-
-        if not cls._is_request_model(annotation):
-            raise TypeError(
-                f"{func.__name__}.{param.name} must be annotated with a "
-                "Pydantic request model"
-            )
-
-        return annotation
+    # ─── Request Model Expansion ──────────────────────────────────────────────────────
 
     @staticmethod
-    def _param_marker(annotation: Any) -> StreamMarker | None:
-        if get_origin(annotation) is not Annotated:
-            return None
-
-        for meta in get_args(annotation)[1:]:
-            if isinstance(
-                meta,
-                (
-                    StreamNewImage,
-                    StreamOldImage,
-                    StreamKeys,
-                    StreamRecord,
-                ),
-            ):
-                return meta
-
-        return None
-
-    @staticmethod
-    def _param_type(annotation: Any) -> Any:
+    def _marker(annotation: Any) -> StreamMarker:
         if get_origin(annotation) is Annotated:
-            return get_args(annotation)[0]
-        return annotation
+            for metadata in get_args(annotation)[1:]:
+                if isinstance(
+                    metadata,
+                    (
+                        StreamNewImage,
+                        StreamOldImage,
+                        StreamKeys,
+                        StreamRecord,
+                    ),
+                ):
+                    return metadata
 
-    # ─── Pydantic Alias Handling ──────────────────────────────────────────────────────
-
-    @staticmethod
-    def _alias_path_values(alias: AliasPath) -> list[str | int]:
-        return list(alias.convert_to_aliases())
-
-    @classmethod
-    def _field_keys(
-        cls,
-        *,
-        model_cls: type[BaseModel],
-        field_name: str,
-    ) -> list[str | int]:
-        field = model_cls.model_fields[field_name]
-
-        if isinstance(field.validation_alias, str):
-            return [field.validation_alias]
-
-        if isinstance(field.validation_alias, AliasPath):
-            return cls._alias_path_values(field.validation_alias)
-
-        if isinstance(field.validation_alias, AliasChoices):
-            choices = field.validation_alias.convert_to_aliases()
-            if not choices:
-                return [field_name]
-
-            first = choices[0]
-
-            if isinstance(first, str):
-                return [first]
-
-            return list(first)
-
-        if isinstance(field.alias, str):
-            return [field.alias]
-
-        return [field_name]
+        raise TypeError(
+            "Stream request fields must be annotated with "
+            "NewImage[T], OldImage[T], Keys[T], or Record[T]"
+        )
 
     @staticmethod
-    def _get_path(source: Mapping[str, Any], keys: list[str | int]) -> Any:
-        value: Any = source
-
-        for key in keys:
-            if isinstance(value, Mapping):
-                try:
-                    value = value[key]
-                except KeyError as exc:
-                    path = ".".join(str(part) for part in keys)
-                    raise ValueError(f"Stream source missing field {path!r}") from exc
-            elif isinstance(value, list) and isinstance(key, int):
-                try:
-                    value = value[key]
-                except IndexError as exc:
-                    path = ".".join(str(part) for part in keys)
-                    raise ValueError(f"Stream source missing field {path!r}") from exc
-            else:
-                path = ".".join(str(part) for part in keys)
-                raise TypeError(f"Stream source cannot resolve path {path!r}")
-
-        return value
-
-    # ─── Stream Source Extraction ─────────────────────────────────────────────────────
-
-    @staticmethod
-    def _mapping(value: Any, source: str) -> Mapping[str, Any]:
-        if value is None:
-            raise ValueError(f"Stream record missing {source}")
-
-        if not isinstance(value, Mapping):
-            raise TypeError(f"Stream {source} must be a mapping")
-
-        return value
-
-    def _source_for(self, marker: StreamMarker, record: DynamoDBRecord) -> Any:
+    def _source(
+        marker: StreamMarker,
+        record: DynamoDBRecord,
+    ) -> Any:
         if isinstance(marker, StreamRecord):
             return record
 
         if record.dynamodb is None:
             raise ValueError("Stream record missing dynamodb payload")
 
-        if isinstance(marker, StreamNewImage):
-            return self._mapping(record.dynamodb.new_image, "NewImage")
+        match marker:
+            case StreamNewImage():
+                source = record.dynamodb.new_image
+            case StreamOldImage():
+                source = record.dynamodb.old_image
+            case StreamKeys():
+                source = record.dynamodb.keys
 
-        if isinstance(marker, StreamOldImage):
-            return self._mapping(record.dynamodb.old_image, "OldImage")
-
-        if isinstance(marker, StreamKeys):
-            return self._mapping(record.dynamodb.keys, "Keys")
-
-        raise TypeError(f"Unsupported stream marker: {marker!r}")
-
-    def _value_for_field(
-        self,
-        *,
-        model_cls: type[BaseModel],
-        field_name: str,
-        field_type: Any,
-        marker: StreamMarker,
-        record: DynamoDBRecord,
-    ) -> Any:
-        source = self._source_for(marker, record)
-
-        if isinstance(marker, StreamRecord):
-            return TypeAdapter(field_type).validate_python(source)
-
-        if self._is_request_model(field_type):
-            return TypeAdapter(field_type).validate_python(source)
-
-        keys = self._field_keys(model_cls=model_cls, field_name=field_name)
-
-        return self._get_path(source, keys)
-
-    def _build_request(
-        self,
-        model_cls: type[BaseModel],
-        record: DynamoDBRecord,
-    ) -> BaseModel:
-        model_hints = get_type_hints(model_cls, include_extras=True)
-        values: dict[str, Any] = {}
-
-        for field_name in model_cls.model_fields:
-            annotation = model_hints.get(field_name)
-
-            if annotation is None:
-                raise TypeError(
-                    f"{model_cls.__name__}.{field_name} is missing an annotation"
-                )
-
-            marker = self._param_marker(annotation)
-
-            if marker is None:
-                raise TypeError(
-                    f"{model_cls.__name__}.{field_name} must be annotated as "
-                    "NewImage[T], OldImage[T], Keys[T], or Record[T]"
-                )
-
-            field_type = self._param_type(annotation)
-
-            values[field_name] = self._value_for_field(
-                model_cls=model_cls,
-                field_name=field_name,
-                field_type=field_type,
-                marker=marker,
-                record=record,
+        if source is None:
+            raise ValueError(
+                f"Stream record missing {type(marker).__name__.removeprefix('Stream')}"
             )
 
-        return model_cls.model_validate(values)
+        return source
 
-    # ─── Resolve ──────────────────────────────────────────────────────────────────────
+    @classmethod
+    def _request(
+        cls,
+        reqT: type[BaseModel],
+        record: DynamoDBRecord,
+    ) -> BaseModel:
+        annotations = get_type_hints(reqT, include_extras=True)
 
-    def _handle_record(self, record: DynamoDBRecord) -> None:
+        return reqT.model_validate(
+            {
+                name: cls._source(cls._marker(annotations[name]), record)
+                for name in reqT.model_fields
+            }
+        )
+
+    @classmethod
+    def _expand[T](
+        cls,
+        func: Callable[..., T],
+    ) -> Callable[[DynamoDBRecord], T]:
+        params = signature(func).parameters
+
+        match params.get("request", None):
+            case Parameter() as reqP if len(params) == 1:
+                reqT = get_type_hints(func, include_extras=True)["request"]
+
+                if not isinstance(reqT, type) or not issubclass(reqT, BaseModel):
+                    raise TypeError(
+                        f"{func.__name__}.{reqP.name} must be a Pydantic model"
+                    )
+
+                def wrapper(record: DynamoDBRecord) -> T:
+                    request = cls._request(reqT, record)
+                    return func(request=request)
+
+                return wrapper
+
+        raise TypeError(
+            f"{func.__name__} must accept exactly one Pydantic parameter "
+            "named 'request'"
+        )
+
+    # ─── Resolution ───────────────────────────────────────────────────────────────────
+
+    def _handle(self, record: DynamoDBRecord) -> Any:
         if record.event_name is None:
             raise ValueError("Stream record missing event name")
         event_name = EventName(record.event_name.name)
 
         try:
             handler = self._handlers[event_name]
-            model_cls = self._models[event_name]
         except KeyError as exc:
             raise RuntimeError(f"No handler registered for {event_name}") from exc
 
-        request = self._build_request(model_cls, record)
-        handler(request)
+        try:
+            return handler(record)
+        except Exception as exc:
+            LOG.error(
+                "Stream record processing failed",
+                exc_info=(type(exc), exc, exc.__traceback__),
+            )
+            raise
 
     def resolve(
         self,
@@ -324,7 +227,7 @@ class DynamoDBStreamResolver:
     ) -> Mapping[str, Any]:
         return process_partial_response(
             event=event,
-            record_handler=self._handle_record,
+            record_handler=self._handle,
             processor=self._processor,
             context=context,
         )

@@ -4,7 +4,7 @@ from shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from shared.helpers import generate_company_id, require_admin
+from shared.helpers import generate_resource_id, require_admin
 from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Created, NoContent
@@ -66,7 +66,7 @@ def create(
     try:
         require_admin(caller)
         company = provider.create_company(
-            id=generate_company_id(),
+            id=generate_resource_id(),
             sector=request.sector,
             name=request.name,
             website=request.website,

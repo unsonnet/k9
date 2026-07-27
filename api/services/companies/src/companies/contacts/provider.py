@@ -1,81 +1,60 @@
-from typing import Iterable, Protocol
+from collections.abc import Iterable
 
-from shared.config import GrantSpec, missing
-
-from .models import Contact, Page
+from pydantic import BaseModel, HttpUrl
+from pydantic.networks import EmailStr
+from pydantic_extra_types.phone_numbers import PhoneNumber
+from shared.config import GrantSpec, is_set, missing, settings
+from shared.http import ImageMIMEType
+from shared.providers import BaseProvider, apimethod
+from shared.providers.database import DatabaseProvider, DatabaseTypes
+from shared.providers.storage import StorageProvider, UploadURL
 
 __all__ = [
-    "ContactProvider",
-    "AWSContactProvider",
+    "Contact",
+    "UploadURL",
 ]
 
 
-class ContactProvider(Protocol):
-    @property
-    def permissions(self) -> Iterable[GrantSpec]: ...
+class Contact(BaseModel, frozen=True):
+    id: str
+    name: str
+    title: str | None
+    profile: HttpUrl | None
+    email: EmailStr | None
+    phone: PhoneNumber | None
 
-    def list_contacts(
+
+class ContactProvider(BaseProvider):
+    _mem: StorageProvider
+    _db: DatabaseProvider
+
+    def __init__(
         self,
         *,
-        id: str,
-        limit: int,
-        cursor: str | missing,
-    ) -> Page: ...
+        region: str | None = None,
+        bucket: str | None = None,
+        table: str | None = None,
+    ) -> None:
+        region = region or settings.aws_region
+        # s3
+        self._mem = StorageProvider(
+            region=region,
+            bucket=bucket or settings.s3_bucket,
+        )
+        # dynamodb
+        self._db = DatabaseProvider(
+            region=region,
+            table=table or settings.dynamodb_table,
+        )
 
-    def create_contact(
-        self,
-        *,
-        id: str,
-        sid: str,
-        name: str,
-        title: str | None,
-        email: str | None,
-        phone: str | None,
-    ) -> Contact: ...
-
-    def read_contact(
-        self,
-        *,
-        id: str,
-        sid: str,
-    ) -> Contact: ...
-
-    def update_contact(
-        self,
-        *,
-        id: str,
-        sid: str,
-        name: str | missing,
-        title: str | None | missing,
-        email: str | None | missing,
-        phone: str | None | missing,
-    ) -> Contact: ...
-
-    def delete_contact(
-        self,
-        *,
-        id: str,
-        sid: str,
-    ) -> None: ...
-
-
-# ──── AWS Contact Provider ────────────────────────────────────────────────────────────
-
-
-class AWSContactProvider:
     @property
     def permissions(self) -> Iterable[GrantSpec]:
-        return []
+        yield from self._mem.permissions
+        yield from self._db.permissions
 
-    def list_contacts(
-        self,
-        *,
-        id: str,
-        limit: int,
-        cursor: str | missing,
-    ) -> Page:
-        raise NotImplementedError()
+    # ──── Public Methods ────
 
+    @apimethod
     def create_contact(
         self,
         *,
@@ -83,19 +62,36 @@ class AWSContactProvider:
         sid: str,
         name: str,
         title: str | None,
-        email: str | None,
-        phone: str | None,
+        email: EmailStr | None,
+        phone: PhoneNumber | None,
     ) -> Contact:
-        raise NotImplementedError()
+        return Contact.model_validate(
+            self._db.create_item(
+                type="company.contact",
+                id=f"{id}.{sid}",
+                name=name,
+                title=title,
+                profile=None,
+                email=email,
+                phone=phone,
+            )
+        )
 
+    @apimethod
     def read_contact(
         self,
         *,
         id: str,
         sid: str,
     ) -> Contact:
-        raise NotImplementedError()
+        return Contact.model_validate(
+            self._db.read_item(
+                type="company.contact",
+                id=f"{id}.{sid}",
+            )
+        )
 
+    @apimethod
     def update_contact(
         self,
         *,
@@ -103,15 +99,55 @@ class AWSContactProvider:
         sid: str,
         name: str | missing,
         title: str | None | missing,
-        email: str | None | missing,
-        phone: str | None | missing,
+        profile: None | missing,
+        email: EmailStr | None | missing,
+        phone: PhoneNumber | None | missing,
     ) -> Contact:
-        raise NotImplementedError()
+        attrs: dict[str, DatabaseTypes] = {}
+        if is_set(name):
+            attrs["name"] = name
+        if is_set(title):
+            attrs["title"] = title
+        if is_set(profile):
+            attrs["profile"] = profile
+        if is_set(email):
+            attrs["email"] = email
+        if is_set(phone):
+            attrs["phone"] = phone
+        return Contact.model_validate(
+            self._db.update_item(
+                type="company.contact",
+                id=f"{id}.{sid}",
+                **attrs,
+            )
+        )
 
+    @apimethod
     def delete_contact(
         self,
         *,
         id: str,
         sid: str,
     ) -> None:
-        raise NotImplementedError()
+        self._db.delete_item(
+            type="company.contact",
+            id=f"{id}.{sid}",
+        )
+        return None
+
+    @apimethod
+    def upload_profile(
+        self,
+        *,
+        id: str,
+        sid: str,
+        content_type: ImageMIMEType,
+        max_bytes: int,
+        max_seconds: int,
+    ) -> UploadURL:
+        return self._mem.presign_post(
+            f"companies/{id}/contacts/{sid}/profile.jxl",
+            content_type=content_type.value,
+            max_bytes=max_bytes,
+            max_seconds=max_seconds,
+        )

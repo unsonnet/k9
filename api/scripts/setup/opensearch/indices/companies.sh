@@ -205,7 +205,7 @@ main() {
             },
             logo: { type: "keyword", index: false },
             website: { type: "keyword", index: false },
-            location: {
+            "$location": {
               properties: {
                 id: { type: "keyword" },
                 type: { type: "keyword" },
@@ -214,6 +214,17 @@ main() {
                 state: { type: "keyword" },
                 zip: { type: "keyword" },
                 geo: { type: "geo_point" }
+              }
+            },
+            "$contact": {
+              properties: {
+                id: { type: "keyword" },
+                type: { type: "keyword" },
+                name: { type: "keyword" },
+                title: { type: "keyword" },
+                profile: { type: "keyword", index: false },
+                email: { type: "keyword" },
+                phone: { type: "keyword" }
               }
             }
           }

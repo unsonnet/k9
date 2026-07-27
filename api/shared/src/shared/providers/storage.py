@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import boto3
+from pydantic import HttpUrl
 from types_boto3_s3.service_resource import Bucket
 
 from ..config import GrantSpec
@@ -17,7 +18,7 @@ __all__ = [
 
 @dataclass(frozen=True, slots=True)
 class UploadURL:
-    url: str
+    url: HttpUrl
     fields: dict[str, str]
 
 
@@ -86,7 +87,7 @@ class StorageProvider(BaseProvider):
         match response:
             case {"url": str(url), "fields": dict(fields)}:
                 return UploadURL(
-                    url=url,
+                    url=HttpUrl(url),
                     fields={str(key): str(value) for key, value in fields.items()},
                 )
         raise DomainUnknown(f"Unexpected s3 upload url: {response}")

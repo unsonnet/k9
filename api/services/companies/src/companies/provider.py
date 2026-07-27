@@ -4,18 +4,20 @@ from decimal import Decimal
 from enum import StrEnum
 
 from pydantic import BaseModel, Field, HttpUrl
-from pydantic.networks import EmailStr
 from shared.config import GrantSpec, is_set, missing, settings
+from shared.http import ImageMIMEType
 from shared.providers import BaseProvider, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
 from shared.providers.search import Near, Page, SearchProvider, Term, Text
 from shared.providers.storage import StorageProvider, UploadURL
 
+from .contacts.provider import Contact
+
 __all__ = [
     "GeoPoint",
     "Location",
     "Contact",
-    "CompanySector",
+    "Sector",
     "Company",
     "CompanySummary",
     "Page",
@@ -38,15 +40,7 @@ class Location(BaseModel, frozen=True):
     geo: GeoPoint
 
 
-class Contact(BaseModel, frozen=True):
-    id: str
-    name: str
-    title: str | None
-    email: EmailStr | None
-    phone: str | None
-
-
-class CompanySector(StrEnum):
+class Sector(StrEnum):
     INSURANCE = "INSURANCE"
     MANUFACTURER = "MANUFACTURER"
     RETAILER = "RETAILER"
@@ -54,23 +48,23 @@ class CompanySector(StrEnum):
 
 class Company(BaseModel):
     id: str
-    sector: CompanySector
+    sector: Sector
     name: str
     logo: HttpUrl | None
     website: HttpUrl | None
-    locations: list[Location] = Field(default_factory=list, alias=".location")
-    contacts: list[Contact] = Field(default_factory=list, alias=".contact")
+    locations: list[Location] = Field(default_factory=list, alias="$location")
+    contacts: list[Contact] = Field(default_factory=list, alias="$contact")
     created_at: datetime
     updated_at: datetime | None
 
 
 class CompanySummary(BaseModel):
     id: str
-    sector: CompanySector
+    sector: Sector
     name: str
     logo: HttpUrl | None
     website: HttpUrl | None
-    locations: list[Location] = Field(default_factory=list, alias=".location")
+    locations: list[Location] = Field(default_factory=list, alias="$location")
 
 
 class CompanyProvider(BaseProvider):
@@ -117,7 +111,7 @@ class CompanyProvider(BaseProvider):
     def list_companies(
         self,
         *,
-        sector: list[CompanySector] | missing,
+        sector: list[Sector] | missing,
         name: str | missing,
         geo: tuple[float, float, int] | missing,
         limit: int,
@@ -126,7 +120,7 @@ class CompanyProvider(BaseProvider):
         return self._os.search(
             Term("sector", [i.value for i in sector] if is_set(sector) else None),
             Text("name", name if is_set(name) else None),
-            Near(".location", geo if is_set(geo) else None),
+            Near("$location", geo if is_set(geo) else None),
             limit=limit,
             cursor=cursor if is_set(cursor) else None,
         ).hydrate(CompanySummary)
@@ -136,13 +130,13 @@ class CompanyProvider(BaseProvider):
         self,
         *,
         id: str,
-        sector: CompanySector,
+        sector: Sector,
         name: str,
         website: HttpUrl | None,
     ) -> Company:
         return Company.model_validate(
             self._db.create_item(
-                type="COMPANY",
+                type="company",
                 id=id,
                 sector=sector.value,
                 name=name,
@@ -159,7 +153,7 @@ class CompanyProvider(BaseProvider):
     ) -> Company:
         return Company.model_validate(
             self._db.read_item(
-                type="COMPANY",
+                type="company",
                 id=id,
             )
         )
@@ -169,7 +163,7 @@ class CompanyProvider(BaseProvider):
         self,
         *,
         id: str,
-        sector: CompanySector | missing,
+        sector: Sector | missing,
         name: str | missing,
         logo: None | missing,
         website: HttpUrl | None | missing,
@@ -185,7 +179,7 @@ class CompanyProvider(BaseProvider):
             attrs["website"] = str(website) if website is not None else None
         return Company.model_validate(
             self._db.update_item(
-                type="COMPANY",
+                type="company",
                 id=id,
                 **attrs,
             )
@@ -198,7 +192,7 @@ class CompanyProvider(BaseProvider):
         id: str,
     ) -> None:
         self._db.delete_item(
-            type="COMPANY",
+            type="company",
             id=id,
         )
         return None
@@ -208,13 +202,13 @@ class CompanyProvider(BaseProvider):
         self,
         *,
         id: str,
-        content_type: str,
+        content_type: ImageMIMEType,
         max_bytes: int,
         max_seconds: int,
     ) -> UploadURL:
         return self._mem.presign_post(
             f"companies/{id}/logo.jxl",
-            content_type=content_type,
+            content_type=content_type.value,
             max_bytes=max_bytes,
             max_seconds=max_seconds,
         )

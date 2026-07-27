@@ -1,14 +1,43 @@
 from collections.abc import Iterable
+from enum import StrEnum
+from typing import Literal
 
+from pydantic import BaseModel
 from shared.config import GrantSpec, settings
 from shared.providers import BaseProvider, apimethod
 from shared.providers.search import SearchProvider
 
-from .models import CompanyItem
-
 __all__ = [
+    "Sector",
+    "CompanyItem",
+    "ContactItem",
     "CompanyIndexProvider",
 ]
+
+
+class Sector(StrEnum):
+    INSURANCE = "INSURANCE"
+    MANUFACTURER = "MANUFACTURER"
+    RETAILER = "RETAILER"
+
+
+class CompanyItem(BaseModel, frozen=True):
+    type: Literal["company"]
+    id: str
+    sector: Sector
+    name: str
+    logo: str | None
+    website: str | None
+
+
+class ContactItem(BaseModel, frozen=True):
+    type: Literal["company.contact"]
+    id: str
+    name: str
+    title: str | None
+    profile: str | None
+    email: str | None
+    phone: str | None
 
 
 class CompanyIndexProvider(BaseProvider):
@@ -35,8 +64,8 @@ class CompanyIndexProvider(BaseProvider):
 
     @apimethod
     def sync_company(self, *, item: CompanyItem) -> None:
-        self._os.index_document(
-            type="COMPANY",
+        self._os.create_document(
+            type=item.type,
             id=item.id,
             sector=item.sector.value,
             name=item.name,
@@ -47,6 +76,25 @@ class CompanyIndexProvider(BaseProvider):
     @apimethod
     def delete_company(self, *, item: CompanyItem) -> None:
         self._os.delete_document(
-            type="COMPANY",
+            type=item.type,
+            id=item.id,
+        )
+
+    @apimethod
+    def sync_contact(self, *, item: ContactItem) -> None:
+        self._os.create_document(
+            type=item.type,
+            id=item.id,
+            name=item.name,
+            title=item.title,
+            profile=item.profile,
+            email=item.email,
+            phone=item.phone,
+        )
+
+    @apimethod
+    def delete_contact(self, *, item: ContactItem) -> None:
+        self._os.delete_document(
+            type=item.type,
             id=item.id,
         )

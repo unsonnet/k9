@@ -55,12 +55,12 @@ class Text:
         should: list[dict[str, Any]],
         filters: list[dict[str, Any]],
     ) -> None:
-        if q := sanitize_query(self.query or ""):
+        if query := sanitize_query(self.query or ""):
             should.extend(
                 [
                     {
                         "multi_match": {
-                            "query": q,
+                            "query": query,
                             "fields": [f"{self.field}^5", f"{self.field}.wdg^4"],
                             "type": "best_fields",
                             "operator": "and",
@@ -68,7 +68,7 @@ class Text:
                     },
                     {
                         "multi_match": {
-                            "query": q,
+                            "query": query,
                             "fields": [
                                 f"{self.field}.sat",
                                 f"{self.field}.sat._2gram",
@@ -80,7 +80,7 @@ class Text:
                     },
                     {
                         "multi_match": {
-                            "query": q,
+                            "query": query,
                             "fields": [f"{self.field}^2", f"{self.field}.wdg"],
                             "type": "best_fields",
                             "operator": "and",
@@ -205,7 +205,7 @@ class SearchProvider(BaseProvider):
         )
 
     @apimethod
-    def index_document(
+    def create_document(
         self,
         *,
         type: str,
@@ -233,8 +233,8 @@ class SearchProvider(BaseProvider):
                     "params": {
                         "parent_types": parent_types,
                         "parent_ids": parent_ids,
-                        "field": f".{field}",
-                        "item": {"id": item_id, "type": type, **attrs},
+                        "field": f"${field}",
+                        "item": {"type": type, "id": item_id, **attrs},
                     },
                 }
             },
@@ -271,7 +271,7 @@ class SearchProvider(BaseProvider):
                     "params": {
                         "parent_types": parent_types,
                         "parent_ids": parent_ids,
-                        "field": f".{field}",
+                        "field": f"${field}",
                         "item": {"id": item_id, "type": type, **attrs},
                     },
                 }
@@ -307,7 +307,7 @@ class SearchProvider(BaseProvider):
                     "params": {
                         "parent_types": parent_types,
                         "parent_ids": parent_ids,
-                        "field": f".{field}",
+                        "field": f"${field}",
                         "id": item_id,
                     },
                 }
@@ -331,7 +331,7 @@ class SearchProvider(BaseProvider):
         return """
             def node = ctx._source;
             for (int depth = 0; depth < params.parent_types.size(); depth++) {
-                def field = '.' + params.parent_types[depth];
+                def field = '$' + params.parent_types[depth];
                 def items = node[field];
                 if (items == null) {
                     throw new IllegalArgumentException('Missing parent collection: ' + field);
@@ -367,7 +367,7 @@ class SearchProvider(BaseProvider):
         return """
             def node = ctx._source;
             for (int depth = 0; depth < params.parent_types.size(); depth++) {
-                def field = '.' + params.parent_types[depth];
+                def field = '$' + params.parent_types[depth];
                 def items = node[field];
                 if (items == null) {
                     throw new IllegalArgumentException('Missing parent collection: ' + field);
@@ -477,6 +477,6 @@ class SearchProvider(BaseProvider):
                 return {
                     "id": id,
                     **source,
-                    ".score": float(score) if score is not None else None,
+                    "$score": float(score) if score is not None else None,
                 }
         raise DomainInvariantViolation(f"Unexpected opensearch hit: {raw}")

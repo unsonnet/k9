@@ -1,30 +1,16 @@
-from enum import StrEnum
-from typing import Literal
+from typing import Annotated
 
 from pydantic import BaseModel, Field
 from shared.stream import NewImage, OldImage
+
+from .provider import CompanyItem, ContactItem
 
 __all__ = [
     "Request",
 ]
 
 
-class Sector(StrEnum):
-    INSURANCE = "INSURANCE"
-    MANUFACTURER = "MANUFACTURER"
-    RETAILER = "RETAILER"
-
-
-class CompanyItem(BaseModel, frozen=True):
-    type: Literal["COMPANY"]
-    id: str
-    sector: Sector
-    name: str = Field(min_length=1)
-    logo: str | None
-    website: str | None
-
-
-StreamItem = CompanyItem
+StreamItem = Annotated[CompanyItem | ContactItem, Field(discriminator="type")]
 
 
 class Request:

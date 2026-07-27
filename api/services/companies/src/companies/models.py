@@ -3,16 +3,16 @@ from typing import Self
 
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 from shared.config import missing
-from shared.helpers import sanitize_query, validate_company_id
+from shared.helpers import sanitize_query, validate_resource_id
 from shared.http import Body, ImageMIMEType, Path, Query
 
 from .provider import (
     Company,
-    CompanySector,
     CompanySummary,
     Contact,
     Location,
     Page,
+    Sector,
     UploadURL,
 )
 
@@ -27,7 +27,7 @@ __all__ = [
 
 class Request:
     class List(BaseModel, frozen=True):
-        sector: Query[list[CompanySector] | missing] = missing
+        sector: Query[list[Sector] | missing] = missing
         name: Query[str | missing] = missing
         lat: Query[float | missing] = Field(missing, ge=-90, le=90)
         lon: Query[float | missing] = Field(missing, ge=-180, le=180)
@@ -48,7 +48,7 @@ class Request:
             return q if (q := sanitize_query(value)) else missing
 
     class Create(BaseModel, frozen=True):
-        sector: Body[CompanySector]
+        sector: Body[Sector]
         name: Body[str] = Field(min_length=1)
         website: Body[HttpUrl | None]
 
@@ -58,11 +58,11 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return validate_company_id(value)
+            return validate_resource_id(value)
 
     class Update(BaseModel, frozen=True):
         id: Path[str]
-        sector: Body[CompanySector | missing] = missing
+        sector: Body[Sector | missing] = missing
         name: Body[str | missing] = Field(missing, min_length=1)
         logo: Body[None | missing] = missing
         website: Body[HttpUrl | None | missing] = missing
@@ -70,7 +70,7 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return validate_company_id(value)
+            return validate_resource_id(value)
 
     class Delete(BaseModel, frozen=True):
         id: Path[str]
@@ -78,7 +78,7 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return validate_company_id(value)
+            return validate_resource_id(value)
 
     class Logo(BaseModel, frozen=True):
         id: Path[str]
@@ -87,7 +87,7 @@ class Request:
         @field_validator("id")
         @classmethod
         def validate_id(cls, value: str) -> str:
-            return validate_company_id(value)
+            return validate_resource_id(value)
 
 
 # ──── Response Payloads ───────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ class Request:
 class Response:
     class Company(BaseModel, frozen=True):
         id: str
-        sector: CompanySector
+        sector: Sector
         name: str
         logo: HttpUrl | None
         website: HttpUrl | None
@@ -121,7 +121,7 @@ class Response:
 
     class CompanySummary(BaseModel, frozen=True):
         id: str
-        sector: CompanySector
+        sector: Sector
         name: str
         logo: HttpUrl | None
         website: HttpUrl | None
@@ -152,7 +152,7 @@ class Response:
             )
 
     class UploadURL(BaseModel, frozen=True):
-        url: str
+        url: HttpUrl
         fields: dict[str, str]
 
         @classmethod

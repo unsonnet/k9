@@ -4,46 +4,17 @@ from shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from shared.helpers import require_admin
+from shared.helpers import generate_subresource_id, require_admin
 from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Created, NoContent
-from shared.providers.company import generate_sub_id
 
 from .models import Request, Response
-from .provider import AWSContactProvider, ContactProvider
+from .provider import ContactProvider
 
 app = HttpResolver(enable_validation=True)
-provider: ContactProvider = AWSContactProvider()
+provider = ContactProvider()
 app.grant(*provider.permissions)
-
-
-@app.get(
-    "/companies/<id>/contacts",
-    summary="List company contacts",
-    description="List contacts of a company.",
-    tags=["company", "contact"],
-    responses={
-        200: "Contacts found",
-        401: "Authentication required",
-        429: "Too many requests",
-    },
-)
-def list(
-    caller: Caller,
-    request: Request.List,
-) -> OK[Response.Page] | Unauthorized | TooManyRequests:
-    try:
-        page = provider.list_contacts(
-            id=request.id,
-            limit=request.limit,
-            cursor=request.cursor,
-        )
-        return OK(Response.Page.pack(page))
-    except DomainUnauthorized as exc:
-        return Unauthorized(cause=exc)
-    except DomainRateLimited as exc:
-        return TooManyRequests(cause=exc)
 
 
 @app.post(
@@ -66,7 +37,7 @@ def create(
         require_admin(caller)
         contact = provider.create_contact(
             id=request.id,
-            sid=generate_sub_id(),
+            sid=generate_subresource_id(),
             name=request.name,
             title=request.title,
             email=request.email,
@@ -135,6 +106,7 @@ def update(
             sid=request.sid,
             name=request.name,
             title=request.title,
+            profile=request.profile,
             email=request.email,
             phone=request.phone,
         )
@@ -178,6 +150,43 @@ def delete(
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
         return Forbidden(cause=exc)
+    except DomainRateLimited as exc:
+        return TooManyRequests(cause=exc)
+
+
+@app.post(
+    "/companies/<id>/contacts/<sid>/profile",
+    summary="Upload company contact profile",
+    description="Create a company contact profile upload form. Requires admin role.",
+    tags=["company", "contact"],
+    responses={
+        200: "Company contact profile upload form created",
+        401: "Authentication required",
+        403: "Access denied",
+        404: "Company not found",
+        429: "Too many requests",
+    },
+)
+def profile(
+    caller: Caller,
+    request: Request.Profile,
+) -> OK[Response.UploadURL] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+    try:
+        require_admin(caller)
+        form = provider.upload_profile(
+            id=request.id,
+            sid=request.sid,
+            content_type=request.contentType,
+            max_bytes=5 * 1024 * 1024,
+            max_seconds=5 * 60,
+        )
+        return OK(Response.UploadURL.pack(form))
+    except DomainUnauthorized as exc:
+        return Unauthorized(cause=exc)
+    except DomainForbidden as exc:
+        return Forbidden(cause=exc)
+    except DomainNotFound as exc:
+        return NotFound(cause=exc)
     except DomainRateLimited as exc:
         return TooManyRequests(cause=exc)
 
