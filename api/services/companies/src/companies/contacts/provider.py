@@ -20,7 +20,7 @@ class Contact(BaseModel, frozen=True):
     id: str
     name: str
     title: str | None
-    profile: HttpUrl | None
+    picture: HttpUrl | None
     email: EmailStr | None
     phone: PhoneNumber | None
 
@@ -72,7 +72,7 @@ class CompanyContactProvider(BaseProvider):
                 id=f"{id}.{sid}",
                 name=name,
                 title=title,
-                profile=None,
+                picture=None,
                 email=email,
                 phone=phone,
             )
@@ -100,7 +100,7 @@ class CompanyContactProvider(BaseProvider):
         sid: str,
         name: str | missing,
         title: str | None | missing,
-        profile: None | missing,
+        picture: None | missing,
         email: EmailStr | None | missing,
         phone: PhoneNumber | None | missing,
     ) -> Contact:
@@ -109,8 +109,8 @@ class CompanyContactProvider(BaseProvider):
             attrs["name"] = name
         if is_set(title):
             attrs["title"] = title
-        if is_set(profile):
-            attrs["profile"] = profile
+        if is_set(picture):
+            attrs["picture"] = picture
         if is_set(email):
             attrs["email"] = email
         if is_set(phone):
@@ -137,7 +137,7 @@ class CompanyContactProvider(BaseProvider):
         return None
 
     @apimethod
-    def upload_profile(
+    def upload_picture(
         self,
         *,
         id: str,
@@ -147,7 +147,7 @@ class CompanyContactProvider(BaseProvider):
         max_seconds: int,
     ) -> UploadURL:
         return self._mem.presign_post(
-            f"companies/{id}/contacts/{sid}/profile.jxl",
+            f"companies/{id}/contacts/{sid}/picture.jxl",
             content_type=content_type.value,
             max_bytes=max_bytes,
             max_seconds=max_seconds,

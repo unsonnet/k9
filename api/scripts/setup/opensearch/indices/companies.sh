@@ -222,7 +222,7 @@ main() {
                 type: { type: "keyword" },
                 name: { type: "keyword" },
                 title: { type: "keyword" },
-                profile: { type: "keyword", index: false },
+                picture: { type: "keyword", index: false },
                 email: { type: "keyword" },
                 phone: { type: "keyword" }
               }

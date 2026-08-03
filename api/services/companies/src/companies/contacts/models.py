@@ -49,7 +49,7 @@ class Request:
         sid: Path[str]
         name: Body[str | missing] = Field(missing, min_length=1)
         title: Body[str | None | missing] = Field(missing, min_length=1)
-        profile: Body[None | missing] = missing
+        picture: Body[None | missing] = missing
         email: Body[EmailStr | None | missing] = missing
         phone: Body[PhoneNumber | None | missing] = missing
 
@@ -77,7 +77,7 @@ class Request:
         def validate_sub_id(cls, value: str) -> str:
             return validate_subresource_id(value)
 
-    class Profile(BaseModel, frozen=True):
+    class Picture(BaseModel, frozen=True):
         id: Path[str]
         sid: Path[str]
         contentType: Body[ImageMIMEType]
@@ -101,7 +101,7 @@ class Response:
         id: str
         name: str
         title: str | None
-        profile: HttpUrl | None
+        picture: HttpUrl | None
         email: EmailStr | None
         phone: PhoneNumber | None
 
@@ -111,7 +111,7 @@ class Response:
                 id=contact.id,
                 name=contact.name,
                 title=contact.title,
-                profile=contact.profile,
+                picture=contact.picture,
                 email=contact.email,
                 phone=contact.phone,
             )

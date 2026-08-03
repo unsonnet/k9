@@ -106,7 +106,7 @@ def update(
             sid=request.sid,
             name=request.name,
             title=request.title,
-            profile=request.profile,
+            picture=request.picture,
             email=request.email,
             phone=request.phone,
         )
@@ -155,25 +155,25 @@ def delete(
 
 
 @app.post(
-    "/companies/<id>/contacts/<sid>/profile",
-    summary="Upload company contact profile",
-    description="Create a company contact profile upload form. Requires admin role.",
+    "/companies/<id>/contacts/<sid>/picture",
+    summary="Upload company contact picture",
+    description="Create a company contact picture upload form. Requires admin role.",
     tags=["company", "contact"],
     responses={
-        200: "Company contact profile upload form created",
+        200: "Company contact picture upload form created",
         401: "Authentication required",
         403: "Access denied",
         404: "Company not found",
         429: "Too many requests",
     },
 )
-def profile(
+def picture(
     caller: Caller,
-    request: Request.Profile,
+    request: Request.Picture,
 ) -> OK[Response.UploadURL] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
         require_admin(caller)
-        form = provider.upload_profile(
+        form = provider.upload_picture(
             id=request.id,
             sid=request.sid,
             content_type=request.contentType,

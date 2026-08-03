@@ -39,7 +39,7 @@ class ContactItem(BaseModel, frozen=True):
     id: str
     name: str
     title: str | None
-    profile: str | None
+    picture: str | None
     email: str | None
     phone: str | None
 
@@ -102,7 +102,7 @@ class CompanyIndexProvider(BaseProvider):
             id=item.id,
             name=item.name,
             title=item.title,
-            profile=item.profile,
+            picture=item.picture,
             email=item.email,
             phone=item.phone,
         )
