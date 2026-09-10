@@ -1,23 +1,50 @@
-from typing import Annotated
+from decimal import Decimal
+from enum import StrEnum
 
-from pydantic import BaseModel, Field
-from shared.stream import NewImage, OldImage
-
-from .provider import CompanyItem, ContactItem, LocationItem
+from shared.event import EventModel, NewImage, OldImage
 
 __all__ = [
-    "Request",
+    "Sync",
+    "Remove",
 ]
 
 
-StreamItem = Annotated[
-    CompanyItem | ContactItem | LocationItem, Field(discriminator="type")
-]
+class Sector(StrEnum):
+    INSURANCE = "INSURANCE"
+    MANUFACTURER = "MANUFACTURER"
+    RETAILER = "RETAILER"
 
 
-class Request:
-    class Upsert(BaseModel, frozen=True):
-        item: NewImage[StreamItem]
+class Sync:
+    class Company(EventModel, frozen=True):
+        type: NewImage[str]
+        id: NewImage[str]
+        sector: NewImage[Sector]
+        name: NewImage[str]
+        logo: NewImage[str | None]
+        website: NewImage[str | None]
 
-    class Remove(BaseModel, frozen=True):
-        item: OldImage[StreamItem]
+    class Contact(EventModel, frozen=True):
+        type: NewImage[str]
+        id: NewImage[str]
+        name: NewImage[str]
+        title: NewImage[str | None]
+        picture: NewImage[str | None]
+        email: NewImage[str | None]
+        phone: NewImage[str | None]
+
+    class Location(EventModel, frozen=True):
+        type: NewImage[str]
+        id: NewImage[str]
+        street: NewImage[str]
+        city: NewImage[str]
+        state: NewImage[str]
+        zip: NewImage[str]
+        lat: NewImage[Decimal]
+        lon: NewImage[Decimal]
+
+
+class Remove:
+    class Item(EventModel, frozen=True):
+        type: OldImage[str]
+        id: OldImage[str]

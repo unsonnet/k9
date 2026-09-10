@@ -36,6 +36,12 @@ from ..errors import DomainInvariantViolation
 from .errors import InternalServerError, ServerError, UnprocessableEntity
 from .responses import Response
 
+__all__ = [
+    "Role",
+    "Caller",
+    "HttpResolver",
+]
+
 
 class Role(StrEnum):
     USER = "USER"
@@ -101,8 +107,8 @@ class HttpResolver(APIGatewayHttpResolver):
         kwargs.setdefault("enable_validation", True)
         super().__init__(*args, **kwargs)
         self._idp = boto3.client("cognito-idp", region_name=settings.aws_region)
-        self._routes: list[RouteSpec] = []
-        self._grants: list[GrantSpec] = []
+        self._routes = []
+        self._grants = []
         self.grant("cognito-idp:GetUser", resources=("cognito-user-pool",))
         super().exception_handler([RequestValidationError, PydanticValidationError])(
             lambda e: UnprocessableEntity(cause=e)
@@ -145,7 +151,7 @@ class HttpResolver(APIGatewayHttpResolver):
     # ─── Grants ───────────────────────────────────────────────────────────────────────
 
     @staticmethod
-    def _all[T](items: tuple[Any, ...], type: type[T]) -> TypeGuard[tuple[T]]:
+    def _all[T](items: tuple[Any, ...], type: type[T]) -> TypeGuard[tuple[T, ...]]:
         return all(isinstance(item, type) for item in items)
 
     @overload
@@ -155,14 +161,14 @@ class HttpResolver(APIGatewayHttpResolver):
     def grant(
         self,
         *actions: str,
-        resources: tuple[str] = ("*",),
+        resources: tuple[str, ...] = ("*",),
         effect: str = "allow",
     ) -> None: ...
 
     def grant(
         self,
         *raw: str | GrantSpec,
-        resources: tuple[str] = ("*",),
+        resources: tuple[str, ...] = ("*",),
         effect: str = "allow",
     ) -> None:
         match raw:
@@ -190,7 +196,7 @@ class HttpResolver(APIGatewayHttpResolver):
             for item in (method,) if isinstance(method, str) else tuple(method):
                 self._routes.append(
                     RouteSpec(
-                        method=item.upper(),
+                        method=item,
                         rule=rule,
                         auth_required=auth,
                         operation_id=opid,
@@ -265,7 +271,7 @@ class HttpResolver(APIGatewayHttpResolver):
                 param.replace(
                     default=missing
                     if param.default is not Parameter.empty
-                    else param.default,
+                    else Parameter.empty,
                     annotation=annotations[param.name],
                 )
                 for param in parameters
@@ -296,15 +302,6 @@ class HttpResolver(APIGatewayHttpResolver):
                 def wrapper() -> T:
                     return func(caller=self.caller())
 
-            case Parameter(), Parameter() as reqP:
-                reqT: type[BaseModel] = reqP.annotation
-
-                @self._wraps(reqT, respT)
-                def wrapper(**kwargs) -> T:
-                    kwargs = {k: v for k, v in kwargs.items() if is_set(v)}
-                    request = reqT.model_validate(kwargs)
-                    return func(caller=self.caller(), request=request)
-
             case None, Parameter() as reqP:
                 reqT: type[BaseModel] = reqP.annotation
 
@@ -313,5 +310,14 @@ class HttpResolver(APIGatewayHttpResolver):
                     kwargs = {k: v for k, v in kwargs.items() if is_set(v)}
                     request = reqT.model_validate(kwargs)
                     return func(request=request)
+
+            case Parameter(), Parameter() as reqP:
+                reqT: type[BaseModel] = reqP.annotation
+
+                @self._wraps(reqT, respT)
+                def wrapper(**kwargs) -> T:
+                    kwargs = {k: v for k, v in kwargs.items() if is_set(v)}
+                    request = reqT.model_validate(kwargs)
+                    return func(caller=self.caller(), request=request)
 
         return wrapper

@@ -9,6 +9,8 @@ from requests_aws4auth import AWS4Auth
 from types_boto3_ssm import SSMClient
 from typing_extensions import Sentinel as MISSING
 
+from .errors import MissingSettingError
+
 if TYPE_CHECKING:
     type missing = TypeAliasType
     __all__ = ["MISSING"]
@@ -16,6 +18,13 @@ if TYPE_CHECKING:
 
 def is_set[T](value: T | missing) -> TypeGuard[T]:
     return value is not missing
+
+
+@dataclass(frozen=True)
+class GrantSpec:
+    effect: str = "allow"
+    actions: tuple[str, ...] = ()
+    resources: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -29,18 +38,9 @@ class RouteSpec:
 
 
 @dataclass(frozen=True)
-class GrantSpec:
-    effect: str = "allow"
-    actions: tuple[str, ...] = ()
-    resources: tuple[str, ...] = ()
-
-
-class MissingSettingError(RuntimeError):
-    def __init__(self, *keys: str):
-        super().__init__(
-            f"Missing required environment setting. Checked: {', '.join(keys)}"
-        )
-        self.keys = keys
+class EventSpec:
+    event: str
+    type: str
 
 
 class Settings:

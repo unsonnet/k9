@@ -2,7 +2,7 @@ import base64
 import json
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 import boto3
@@ -127,6 +127,45 @@ class Page[T]:
         )
 
 
+class _Item(TypedDict):
+    id: str
+    type: str
+
+
+_UPSERT_SCRIPT = """
+    def node = ctx._source;
+    for (key in params.path) {
+        List resource = node.getOrDefault('$' + key.type, []);
+        node = resource.find(item -> item.id == key.id);
+        if (node == null) {
+            return;
+        }
+    }
+    node.putIfAbsent('$' + params.item.type, []);
+    List resource = node['$' + params.item.type];
+    node = resource.find(item -> item.id == params.item.id);
+    if (node == null) {
+        resource.add(params.item);
+    } else {
+        node.clear();
+        node.putAll(params.item);
+    }
+"""
+
+_DELETE_SCRIPT = """
+    def node = ctx._source;
+    for (key in params.path) {
+        List resource = node.getOrDefault('$' + key.type, []);
+        node = resource.find(item -> item.id == key.id);
+        if (node == null) {
+            return;
+        }
+    }
+    List resource = node.getOrDefault('$' + params.item.type, []);
+    resource.removeIf(item -> item.id == params.item.id);
+"""
+
+
 class SearchProvider(BaseProvider):
     _os: OpenSearch
     _idx: str
@@ -194,7 +233,7 @@ class SearchProvider(BaseProvider):
     ) -> Page[dict[str, Any]]:
         return self._page(
             self._os.search(
-                body=self._search_body(
+                body=self._query(
                     queries=queries,
                     limit=limit,
                     cursor=cursor,
@@ -205,191 +244,81 @@ class SearchProvider(BaseProvider):
         )
 
     @apimethod
-    def create_document(
+    def upsert(
         self,
         *,
         type: str,
         id: str,
         **attrs: Any,
     ) -> None:
-        root_type, root_id = self._root(type=type, id=id)
-        if (type, id) == (root_type, root_id):
-            self._os.index(
-                index=self._idx,
-                id=root_id,
-                body={"type": type, "id": id, **attrs},
-                params={"refresh": "wait_for"},
-            )
-            return None
-
-        (*parent_types, field), (*parent_ids, item_id) = self._path(type=type, id=id)
-        self._os.update(
-            index=self._idx,
-            id=root_id,
-            body={
-                "script": {
-                    "lang": "painless",
-                    "source": self._upsert_script(),
-                    "params": {
-                        "parent_types": parent_types,
-                        "parent_ids": parent_ids,
-                        "field": f"${field}",
-                        "item": {"type": type, "id": item_id, **attrs},
+        *path, item = self._keys(type=type, id=id)
+        match path:
+            case []:
+                self._os.index(
+                    index=self._idx,
+                    id=item["id"],
+                    body=item | attrs,
+                    params={"refresh": "wait_for"},
+                )
+            case [root, *path]:
+                self._os.update(
+                    index=self._idx,
+                    id=root["id"],
+                    body={
+                        "script": {
+                            "lang": "painless",
+                            "source": _UPSERT_SCRIPT,
+                            "params": {
+                                "path": path,
+                                "item": item | attrs,
+                            },
+                        }
                     },
-                }
-            },
-            params={"refresh": "wait_for"},
-        )
-        return None
+                    params={"refresh": "wait_for"},
+                )
 
     @apimethod
-    def update_document(
-        self,
-        *,
-        type: str,
-        id: str,
-        **attrs: Any,
-    ) -> None:
-        root_type, root_id = self._root(type=type, id=id)
-        if (type, id) == (root_type, root_id):
-            self._os.update(
-                index=self._idx,
-                id=root_id,
-                body={"doc": attrs},
-                params={"refresh": "wait_for"},
-            )
-            return None
-
-        (*parent_types, field), (*parent_ids, item_id) = self._path(type=type, id=id)
-        self._os.update(
-            index=self._idx,
-            id=root_id,
-            body={
-                "script": {
-                    "lang": "painless",
-                    "source": self._upsert_script(),
-                    "params": {
-                        "parent_types": parent_types,
-                        "parent_ids": parent_ids,
-                        "field": f"${field}",
-                        "item": {"id": item_id, "type": type, **attrs},
-                    },
-                }
-            },
-            params={"refresh": "wait_for"},
-        )
-        return None
-
-    @apimethod
-    def delete_document(
+    def delete(
         self,
         *,
         type: str,
         id: str,
     ) -> None:
-        root_type, root_id = self._root(type=type, id=id)
-        if (type, id) == (root_type, root_id):
-            self._os.delete(
-                index=self._idx,
-                id=id,
-                params={"refresh": "wait_for"},
-            )
-            return None
-
-        (*parent_types, field), (*parent_ids, item_id) = self._path(type=type, id=id)
-        self._os.update(
-            index=self._idx,
-            id=root_id,
-            body={
-                "script": {
-                    "lang": "painless",
-                    "source": self._delete_script(),
-                    "params": {
-                        "parent_types": parent_types,
-                        "parent_ids": parent_ids,
-                        "field": f"${field}",
-                        "id": item_id,
+        *path, item = self._keys(type=type, id=id)
+        match path:
+            case []:
+                self._os.delete(
+                    index=self._idx,
+                    id=item["id"],
+                    params={"refresh": "wait_for"},
+                )
+            case [root, *path]:
+                self._os.update(
+                    index=self._idx,
+                    id=root["id"],
+                    body={
+                        "script": {
+                            "lang": "painless",
+                            "source": _DELETE_SCRIPT,
+                            "params": {
+                                "path": path,
+                                "item": item,
+                            },
+                        }
                     },
-                }
-            },
-            params={"refresh": "wait_for"},
-        )
-        return None
+                    params={"refresh": "wait_for"},
+                )
 
     # ──── Private Methods ────
 
     @staticmethod
-    def _root(*, type: str, id: str) -> tuple[str, str]:
-        return type.split(".", 1)[0], id.split(".", 1)[0]
+    def _keys(*, type: str, id: str) -> tuple[_Item, ...]:
+        return tuple(
+            {"type": t, "id": i}
+            for t, i in zip(type.split("."), id.split("."), strict=True)
+        )
 
-    @staticmethod
-    def _path(*, type: str, id: str) -> tuple[list[str], list[str]]:
-        return type.split(".")[1:], id.split(".")[1:]
-
-    @staticmethod
-    def _upsert_script() -> str:
-        return """
-            def node = ctx._source;
-            for (int depth = 0; depth < params.parent_types.size(); depth++) {
-                def field = '$' + params.parent_types[depth];
-                def items = node[field];
-                if (items == null) {
-                    throw new IllegalArgumentException('Missing parent collection: ' + field);
-                }
-                boolean found = false;
-                for (item in items) {
-                    if (item.id == params.parent_ids[depth]) {
-                        node = item;
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    throw new IllegalArgumentException('Missing parent item: ' + params.parent_ids[depth]);
-                }
-            }
-            if (node[params.field] == null) {
-                node[params.field] = [];
-            }
-            for (item in node[params.field]) {
-                if (item.id == params.item.id) {
-                    for (entry in params.item.entrySet()) {
-                        item[entry.getKey()] = entry.getValue();
-                    }
-                    return;
-                }
-            }
-            node[params.field].add(params.item);
-        """
-
-    @staticmethod
-    def _delete_script() -> str:
-        return """
-            def node = ctx._source;
-            for (int depth = 0; depth < params.parent_types.size(); depth++) {
-                def field = '$' + params.parent_types[depth];
-                def items = node[field];
-                if (items == null) {
-                    throw new IllegalArgumentException('Missing parent collection: ' + field);
-                }
-                boolean found = false;
-                for (item in items) {
-                    if (item.id == params.parent_ids[depth]) {
-                        node = item;
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
-                    throw new IllegalArgumentException('Missing parent item: ' + params.parent_ids[depth]);
-                }
-            }
-            if (node[params.field] != null) {
-                node[params.field].removeIf(item -> item.id == params.id);
-            }
-        """
-
-    def _search_body(
+    def _query(
         self,
         *,
         queries: tuple[Query, ...],

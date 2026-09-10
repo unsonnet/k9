@@ -36,3 +36,12 @@ class DomainInvalidCredentials(DomainUnauthorized): ...
 
 
 class DomainInvalidTokens(DomainUnauthorized): ...
+
+
+# ──── Config specific errors ──────────────────────────────────────────────────────────
+
+
+class MissingSettingError(RuntimeError):
+    def __init__(self, *keys: str):
+        variables = ", ".join(keys)
+        super().__init__(f"Missing required environment setting. Checked: {variables}")
