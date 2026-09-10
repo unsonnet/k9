@@ -1,8 +1,8 @@
 from .requests import EventModel, Keys, NewImage, OldImage
-from .resolver import DynamoDBEventResolver
+from .resolver import DynamoDBResolver
 
 __all__ = [
-    "DynamoDBEventResolver",
+    "DynamoDBResolver",
     "Keys",
     "NewImage",
     "OldImage",

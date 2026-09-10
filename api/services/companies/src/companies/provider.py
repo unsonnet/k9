@@ -4,11 +4,11 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field, HttpUrl
 from shared.config import GrantSpec, is_set, missing, settings
-from shared.http import ImageMIMEType
 from shared.providers import BaseProvider, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
 from shared.providers.search import Near, Page, SearchProvider, Term, Text
 from shared.providers.storage import StorageProvider, UploadURL
+from shared.resolvers.http import ImageMIMEType
 
 from .contacts.provider import Contact
 from .locations.provider import Location

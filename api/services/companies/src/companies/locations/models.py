@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field, field_validator
 from shared.helpers import validate_resource_id, validate_subresource_id
-from shared.http import Body, Path
+from shared.resolvers.http import Body, Path
 
 from .provider import Location
 

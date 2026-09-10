@@ -4,8 +4,8 @@ from typing import Self
 from pydantic import BaseModel, Field, HttpUrl, StrictBool, field_validator
 from shared.config import missing
 from shared.helpers import validate_name, validate_user_id
-from shared.http import ImageMIMEType, Role
-from shared.http.requests import Body, Path, Query
+from shared.resolvers.http import ImageMIMEType, Role
+from shared.resolvers.http.requests import Body, Path, Query
 
 from .provider import UploadURL, User, UserCredentials, UserPage
 
@@ -155,6 +155,6 @@ class Response:
         @classmethod
         def pack(cls, upload: UploadURL) -> Self:
             return cls(
-                url=upload.url,
+                url=str(upload.url),
                 fields=upload.fields,
             )

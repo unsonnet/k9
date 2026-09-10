@@ -3,10 +3,10 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from shared.config import GrantSpec, is_set, missing, settings
-from shared.http import Role
 from shared.providers import BaseProvider, apimethod
 from shared.providers.identity import IdentityProvider, User, UserPage
 from shared.providers.storage import StorageProvider, UploadURL
+from shared.resolvers.http import Role
 
 __all__ = [
     "User",

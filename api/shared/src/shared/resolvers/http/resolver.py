@@ -31,8 +31,8 @@ from pydantic import ValidationError as PydanticValidationError
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 from types_boto3_cognito_idp.type_defs import AttributeTypeTypeDef
 
-from ..config import GrantSpec, RouteSpec, is_set, missing, settings
-from ..errors import DomainInvariantViolation
+from ...config import GrantSpec, RouteSpec, is_set, missing, settings
+from ...errors import DomainInvariantViolation
 from .errors import InternalServerError, ServerError, UnprocessableEntity
 from .responses import Response
 

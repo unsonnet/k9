@@ -4,7 +4,7 @@ from typing import Self
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 from shared.config import missing
 from shared.helpers import sanitize_query, validate_resource_id
-from shared.http import Body, ImageMIMEType, Path, Query
+from shared.resolvers.http import Body, ImageMIMEType, Path, Query
 
 from .provider import (
     Company,

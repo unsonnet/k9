@@ -1,10 +1,10 @@
 from shared.errors import DomainNotFound
-from shared.event import DynamoDBEventResolver
+from shared.resolvers.dynamodb import DynamoDBResolver
 
 from .models import Remove, Sync
 from .provider import CompanyIndexProvider
 
-app = DynamoDBEventResolver()
+app = DynamoDBResolver()
 provider = CompanyIndexProvider()
 app.grant(*provider.permissions)
 

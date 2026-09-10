@@ -1,8 +1,8 @@
 from shared.errors import DomainForbidden, DomainRateLimited, DomainUnauthorized
 from shared.helpers import require_admin_or_self
-from shared.http import Caller, HttpResolver
-from shared.http.errors import Forbidden, TooManyRequests, Unauthorized
-from shared.http.responses import OK, Accepted, NoContent
+from shared.resolvers.http import Caller, HttpResolver
+from shared.resolvers.http.errors import Forbidden, TooManyRequests, Unauthorized
+from shared.resolvers.http.responses import OK, Accepted, NoContent
 
 from .models import Request, Response
 from .provider import AuthProvider, Challenge, Tokens

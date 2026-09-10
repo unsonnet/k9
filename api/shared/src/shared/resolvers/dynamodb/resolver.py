@@ -16,10 +16,10 @@ from aws_lambda_powertools.utilities.data_classes.dynamo_db_stream_event import 
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from pydantic import BaseModel
 
-from ..config import EventSpec, GrantSpec
+from ...config import EventSpec, GrantSpec
 
 __all__ = [
-    "DynamoDBEventResolver",
+    "DynamoDBResolver",
 ]
 
 
@@ -48,7 +48,7 @@ class EventWrapper(Mapping):
         return len(self._data)
 
 
-class DynamoDBEventResolver:
+class DynamoDBResolver:
     _processor: BatchProcessor
     _events: list[EventSpec]
     _grants: list[GrantSpec]

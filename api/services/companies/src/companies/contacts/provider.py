@@ -4,10 +4,10 @@ from pydantic import BaseModel, HttpUrl
 from pydantic.networks import EmailStr
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from shared.config import GrantSpec, is_set, missing, settings
-from shared.http import ImageMIMEType
 from shared.providers import BaseProvider, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
 from shared.providers.storage import StorageProvider, UploadURL
+from shared.resolvers.http import ImageMIMEType
 
 __all__ = [
     "Contact",
