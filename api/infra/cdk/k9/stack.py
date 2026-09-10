@@ -27,9 +27,8 @@ def create_stack(scope: Construct, config: StageConfig) -> Stack:
         create_default_stage=True,
     )
 
-    identity = config.shared.get("identity")
     authorizer: apigwv2_authorizers.HttpJwtAuthorizer | None = None
-    if identity is not None:
+    if identity := config.shared.get("identity"):
         user_pool_id = ssm.StringParameter.value_for_string_parameter(
             stack,
             identity["COGNITO_USER_POOL_ID_PARAMETER"],
