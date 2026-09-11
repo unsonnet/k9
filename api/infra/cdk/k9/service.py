@@ -153,7 +153,7 @@ def event_filters(events: list[Event]) -> list[Mapping[str, Any]]:
     return [
         lambda_.FilterCriteria.filter(
             {
-                "event_name": lambda_.FilterRule.is_equal(event),
+                "eventName": lambda_.FilterRule.is_equal(event),
                 "dynamodb": {image: {"type": {"S": sorted(types)}}},
             }
         )
