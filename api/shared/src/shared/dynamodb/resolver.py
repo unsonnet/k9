@@ -57,6 +57,8 @@ class DynamoDBResolver:
     def __init__(self) -> None:
         super().__init__()
         self._processor = BatchProcessor(event_type=EventType.DynamoDBStreams)
+        self._grants = []
+        self._events = []
         self._handlers = {}
 
     def manifest(self) -> dict[str, Any]:
