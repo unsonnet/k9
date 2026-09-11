@@ -4,9 +4,8 @@ from decimal import Decimal
 import boto3
 from types_boto3_geo_places import LocationServicePlacesV2Client
 
-from ..config import GrantSpec
 from ..errors import DomainForbidden, DomainNotFound, DomainRateLimited
-from . import BaseProvider, ExceptionMap, apimethod
+from . import BaseProvider, ExceptionMap, GrantSpec, apimethod
 
 __all__ = [
     "LocationProvider",

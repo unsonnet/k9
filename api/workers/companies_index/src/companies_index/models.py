@@ -1,7 +1,7 @@
 from decimal import Decimal
 from enum import StrEnum
 
-from shared.resolvers.dynamodb import EventModel, NewImage, OldImage
+from shared.dynamodb import EventModel, NewImage, OldImage
 
 __all__ = [
     "Sync",

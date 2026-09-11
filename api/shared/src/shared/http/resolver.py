@@ -31,15 +31,15 @@ from pydantic import ValidationError as PydanticValidationError
 from types_boto3_cognito_idp import CognitoIdentityProviderClient
 from types_boto3_cognito_idp.type_defs import AttributeTypeTypeDef
 
-from ...config import GrantSpec, RouteSpec, is_set, missing, settings
-from ...errors import DomainInvariantViolation
+from ..config import GrantSpec, RouteSpec, is_set, missing, settings
+from ..errors import DomainInvariantViolation
 from .errors import InternalServerError, ServerError, UnprocessableEntity
 from .responses import Response
 
 __all__ = [
-    "Role",
     "Caller",
     "HttpResolver",
+    "Role",
 ]
 
 
@@ -100,15 +100,15 @@ class RouteDecorator[R: BaseModel, T](Protocol):
 
 class HttpResolver(APIGatewayHttpResolver):
     _idp: CognitoIdentityProviderClient
-    _routes: list[RouteSpec]
     _grants: list[GrantSpec]
+    _routes: list[RouteSpec]
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault("enable_validation", True)
         super().__init__(*args, **kwargs)
         self._idp = boto3.client("cognito-idp", region_name=settings.aws_region)
-        self._routes = []
         self._grants = []
+        self._routes = []
         self.grant("cognito-idp:GetUser", resources=("cognito-user-pool",))
         super().exception_handler([RequestValidationError, PydanticValidationError])(
             lambda e: UnprocessableEntity(cause=e)
@@ -122,33 +122,7 @@ class HttpResolver(APIGatewayHttpResolver):
             "grants": [asdict(grant) for grant in self._grants],
         }
 
-    # ─── Authentication ───────────────────────────────────────────────────────────────
-
-    @staticmethod
-    def _unpack(attrs: Sequence[AttributeTypeTypeDef]) -> dict[str, str | None]:
-        a = {kv["Name"].removeprefix("custom:"): kv.get("Value") for kv in attrs}
-        a.setdefault("last_login_at", None)
-        return a
-
-    def caller(self) -> Caller:
-        token = self.current_event.headers["authorization"].removeprefix("Bearer ")
-        match self._idp.get_user(AccessToken=token):
-            case {"UserAttributes": list(attrs)}:
-                match self._unpack(attrs):
-                    case {
-                        "id": str(id),
-                        "name": str(name),
-                        "role": Role.USER | Role.ADMIN as role,
-                    }:
-                        return Caller(
-                            id=id,
-                            name=name,
-                            role=Role(role),
-                            token=token,
-                        )
-        raise DomainInvariantViolation("Unexpected cognito caller")
-
-    # ─── Grants ───────────────────────────────────────────────────────────────────────
+    # ──── Grants ────
 
     @staticmethod
     def _all[T](items: tuple[Any, ...], type: type[T]) -> TypeGuard[tuple[T, ...]]:
@@ -177,7 +151,7 @@ class HttpResolver(APIGatewayHttpResolver):
             case actions if self._all(actions, str):
                 self._grants.append(GrantSpec(effect, actions, resources))
 
-    # ─── Routes ───────────────────────────────────────────────────────────────────────
+    # ──── Routes ────
 
     def route(  # type: ignore[override]
         self,
@@ -231,7 +205,33 @@ class HttpResolver(APIGatewayHttpResolver):
     def delete(self, rule: str, **options: Unpack[RouteOptions]) -> RouteDecorator:  # type: ignore[override]
         return self.route(rule=rule, method="DELETE", **options)
 
-    # ─── Request Model Expansion ──────────────────────────────────────────────────────
+    # ──── Authentication ────
+
+    @staticmethod
+    def _unpack(attrs: Sequence[AttributeTypeTypeDef]) -> dict[str, str | None]:
+        a = {kv["Name"].removeprefix("custom:"): kv.get("Value") for kv in attrs}
+        a.setdefault("last_login_at", None)
+        return a
+
+    def caller(self) -> Caller:
+        token = self.current_event.headers["authorization"].removeprefix("Bearer ")
+        match self._idp.get_user(AccessToken=token):
+            case {"UserAttributes": list(attrs)}:
+                match self._unpack(attrs):
+                    case {
+                        "id": str(id),
+                        "name": str(name),
+                        "role": Role.USER | Role.ADMIN as role,
+                    }:
+                        return Caller(
+                            id=id,
+                            name=name,
+                            role=Role(role),
+                            token=token,
+                        )
+        raise DomainInvariantViolation("Unexpected cognito caller")
+
+    # ──── Model Expansion ────
 
     @staticmethod
     def _is_union(T: type) -> bool:

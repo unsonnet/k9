@@ -12,7 +12,7 @@ from types_boto3_cognito_idp import CognitoIdentityProviderClient
 from types_boto3_cognito_idp.literals import ChallengeNameTypeType
 from types_boto3_cognito_idp.type_defs import AttributeTypeTypeDef
 
-from ..config import GrantSpec, is_set, missing
+from ..config import is_set, missing
 from ..errors import (
     DomainExpiredToken,
     DomainForbidden,
@@ -23,7 +23,7 @@ from ..errors import (
     DomainRateLimited,
 )
 from ..helpers import dt, now
-from . import BaseProvider, ExceptionMap, apimethod
+from . import BaseProvider, ExceptionMap, GrantSpec, apimethod
 
 __all__ = [
     "ChallengeKey",
@@ -34,6 +34,7 @@ __all__ = [
     "UserPage",
     "IdentityProvider",
 ]
+
 
 _STANDARD_ATTRIBUTES: set[str] = {
     "address",

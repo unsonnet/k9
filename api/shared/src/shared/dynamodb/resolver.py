@@ -16,7 +16,7 @@ from aws_lambda_powertools.utilities.data_classes.dynamo_db_stream_event import 
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from pydantic import BaseModel
 
-from ...config import EventSpec, GrantSpec
+from ..config import EventSpec, GrantSpec
 
 __all__ = [
     "DynamoDBResolver",
@@ -35,7 +35,7 @@ class EventDecorator[R: BaseModel, T](Protocol):
 
 
 @dataclass(frozen=True, slots=True)
-class EventWrapper(Mapping):
+class DynamoDBWrapper(Mapping):
     _data: StreamRecord
 
     def __getitem__(self, key: str) -> dict:
@@ -50,23 +50,22 @@ class EventWrapper(Mapping):
 
 class DynamoDBResolver:
     _processor: BatchProcessor
-    _events: list[EventSpec]
     _grants: list[GrantSpec]
+    _events: list[EventSpec]
     _handlers: dict[tuple[str, str], Callable[[DynamoDBRecord], Any]]
 
     def __init__(self) -> None:
+        super().__init__()
         self._processor = BatchProcessor(event_type=EventType.DynamoDBStreams)
-        self._events = []
-        self._grants = []
         self._handlers = {}
 
     def manifest(self) -> dict[str, Any]:
         return {
-            "events": [asdict(event) for event in self._events],
             "grants": [asdict(grant) for grant in self._grants],
+            "events": [asdict(route) for route in self._events],
         }
 
-    # ─── Grants ───────────────────────────────────────────────────────────────────────
+    # ──── Grants ────
 
     @staticmethod
     def _all[T](items: tuple[Any, ...], type: type[T]) -> TypeGuard[tuple[T, ...]]:
@@ -95,7 +94,7 @@ class DynamoDBResolver:
             case actions if self._all(actions, str):
                 self._grants.append(GrantSpec(effect, actions, resources))
 
-    # ─── Events ───────────────────────────────────────────────────────────────────────
+    # ──── Events ────
 
     def event(self, rule: str, method: str) -> EventDecorator:
         def decorator[T](func: Callable[..., T]) -> Callable[..., T]:
@@ -114,7 +113,7 @@ class DynamoDBResolver:
     def remove(self, rule: str) -> EventDecorator:
         return self.event(rule, method="REMOVE")
 
-    # ─── Request Model Expansion ──────────────────────────────────────────────────────
+    # ──── Model Expansion ────
 
     @classmethod
     def _expand[T](cls, func: Callable[..., T]) -> Callable[[DynamoDBRecord], T]:
@@ -129,12 +128,12 @@ class DynamoDBResolver:
                 reqT: type[BaseModel] = reqP.annotation
 
                 def wrapper(record: DynamoDBRecord) -> T:
-                    request = reqT.model_validate(EventWrapper(record.dynamodb))  # type: ignore
+                    request = reqT.model_validate(DynamoDBWrapper(record.dynamodb))  # type: ignore
                     return func(request=request)
 
         return wrapper
 
-    # ─── Resolver ─────────────────────────────────────────────────────────────────────
+    # ──── Resolver ────
 
     def _handle(self, record: DynamoDBRecord) -> Any:
         try:

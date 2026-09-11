@@ -13,7 +13,13 @@ from .errors import MissingSettingError
 
 if TYPE_CHECKING:
     type missing = TypeAliasType
-    __all__ = ["MISSING"]
+
+__all__ = [
+    "is_set",
+    "missing",
+    "MISSING",
+    "settings",
+]
 
 
 def is_set[T](value: T | missing) -> TypeGuard[T]:

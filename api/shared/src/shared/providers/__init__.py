@@ -9,6 +9,7 @@ from ..errors import DomainError, DomainUnknown
 __all__ = [
     "ExceptionMap",
     "BaseProvider",
+    "GrantSpec",
     "apimethod",
 ]
 

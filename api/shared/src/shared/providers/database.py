@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Sequence, cast
@@ -10,10 +12,9 @@ from types_boto3_dynamodb.type_defs import (
     TransactWriteItemTypeDef,
 )
 
-from ..config import GrantSpec
 from ..errors import DomainNotFound, DomainRateLimited
 from ..helpers import now
-from . import BaseProvider, ExceptionMap, apimethod
+from . import BaseProvider, ExceptionMap, GrantSpec, apimethod
 
 __all__ = [
     "DatabaseTypes",
@@ -25,9 +26,9 @@ type DatabaseTypes = TableAttributeValueTypeDef
 
 
 @dataclass
-class _Node:
+class Node:
     item: dict[str, DatabaseTypes] = field(default_factory=dict)
-    subitems: dict[tuple[str, str], "_Node"] = field(default_factory=dict)
+    subitems: dict[tuple[str, str], Node] = field(default_factory=dict)
 
     def serialize(self) -> dict[str, DatabaseTypes]:
         subitems: dict[str, list[dict[str, DatabaseTypes]]] = {}
@@ -205,12 +206,12 @@ class DatabaseProvider(BaseProvider):
         /,
         type: str,
     ) -> dict[str, DatabaseTypes]:
-        root = _Node()
+        root = Node()
         skip = type.count(".") + 1
         for item in items:
             node = root
             types, ids = cast(tuple[str, str], (item["type"], item["id"]))
             for kv in zip(types.split(".")[skip:], ids.split(".")[skip:]):
-                node = node.subitems.setdefault(kv, _Node())
+                node = node.subitems.setdefault(kv, Node())
             node.item = item
         return root.serialize()

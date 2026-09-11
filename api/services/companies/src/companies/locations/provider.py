@@ -2,14 +2,14 @@ from decimal import Decimal
 from typing import Iterable
 
 from pydantic import AliasChoices, AliasPath, BaseModel, Field
-from shared.config import GrantSpec, settings
-from shared.providers import BaseProvider, apimethod
+from shared.config import settings
+from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider
 from shared.providers.location import LocationProvider
 
 __all__ = [
-    "Location",
     "CompanyLocationProvider",
+    "Location",
 ]
 
 

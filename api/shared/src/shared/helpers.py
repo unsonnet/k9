@@ -6,9 +6,10 @@ from string import ascii_lowercase, ascii_uppercase, digits
 from typing import Final, overload
 
 from .errors import DomainForbidden
-from .resolvers.http import Caller
+from .http import Caller
 
 _RANDOM: Final = SystemRandom()
+
 
 # ──── Datetime ────────────────────────────────────────────────────────────────────────
 

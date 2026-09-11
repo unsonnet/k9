@@ -6,9 +6,8 @@ import boto3
 from pydantic import HttpUrl
 from types_boto3_s3.service_resource import Bucket
 
-from ..config import GrantSpec
 from ..errors import DomainForbidden, DomainNotFound, DomainUnknown
-from . import BaseProvider, ExceptionMap, apimethod
+from . import BaseProvider, ExceptionMap, GrantSpec, apimethod
 
 __all__ = [
     "UploadURL",

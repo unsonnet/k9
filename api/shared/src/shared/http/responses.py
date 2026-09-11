@@ -9,6 +9,7 @@ from pydantic import BaseModel
 __all__ = [
     "Response",
     "OK",
+    "Created",
     "Accepted",
     "NoContent",
 ]
@@ -35,7 +36,7 @@ class Response[T: BaseModel | None](BaseResponse[T]):
         }
 
 
-# 2xx Success
+# ──── 2xx Success ─────────────────────────────────────────────────────────────────────
 
 
 class OK[T: BaseModel | None](Response[T]):
@@ -53,6 +54,3 @@ class Accepted[T: BaseModel | None](Response[T]):
 class NoContent(Response[None]):
     status_code = HTTPStatus.NO_CONTENT
     content_type = None
-
-
-# 3xx Redirection

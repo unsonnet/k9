@@ -32,7 +32,7 @@ class Problem(BaseModel):
     parameters: dict[str, Any] = {}
 
 
-# 4xx Client Errors
+# ──── 4xx Client Errors ───────────────────────────────────────────────────────────────
 
 
 class ClientError(Response[Problem]):
@@ -94,7 +94,7 @@ class TooManyRequests(ClientError):
     status_code = HTTPStatus.TOO_MANY_REQUESTS
 
 
-# 5xx Server Errors
+# ──── 5xx Server Errors ───────────────────────────────────────────────────────────────
 
 
 class ServerError(Response[Problem], Exception):

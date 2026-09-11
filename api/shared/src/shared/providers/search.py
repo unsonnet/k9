@@ -15,10 +15,10 @@ from opensearchpy.exceptions import (
 )
 from pydantic import BaseModel
 
-from ..config import GrantSpec, settings
+from ..config import settings
 from ..errors import DomainForbidden, DomainInvariantViolation, DomainNotFound
 from ..helpers import sanitize_query
-from . import BaseProvider, ExceptionMap, apimethod
+from . import BaseProvider, ExceptionMap, GrantSpec, apimethod
 
 __all__ = [
     "Term",

@@ -1,15 +1,28 @@
 from shared.errors import DomainForbidden, DomainRateLimited, DomainUnauthorized
 from shared.helpers import require_admin_or_self
-from shared.resolvers.http import Caller, HttpResolver
-from shared.resolvers.http.errors import Forbidden, TooManyRequests, Unauthorized
-from shared.resolvers.http.responses import OK, Accepted, NoContent
+from shared.http import Caller, HttpResolver
+from shared.http.errors import Forbidden, TooManyRequests, Unauthorized
+from shared.http.responses import OK, Accepted, NoContent
 
 from .models import Request, Response
 from .provider import AuthProvider, Challenge, Tokens
 
+__all__ = [
+    "app",
+    "lambda_handler",
+]
+
+
 app = HttpResolver(enable_validation=True)
 provider = AuthProvider()
 app.grant(*provider.permissions)
+
+
+def lambda_handler(event, context):
+    return app.resolve(event, context)
+
+
+# ──── API Endpoints ───────────────────────────────────────────────────────────────────
 
 
 @app.post(
@@ -209,7 +222,3 @@ def logout(
         return Forbidden(cause=exc)
     except DomainRateLimited as exc:
         return TooManyRequests(cause=exc)
-
-
-def lambda_handler(event, context):
-    return app.resolve(event, context)

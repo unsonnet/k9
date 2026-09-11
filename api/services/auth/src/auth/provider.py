@@ -1,8 +1,8 @@
 import base64
 from typing import Iterable
 
-from shared.config import GrantSpec, settings
-from shared.providers import BaseProvider, apimethod
+from shared.config import settings
+from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.identity import (
     MFA,
     Challenge,
@@ -12,11 +12,11 @@ from shared.providers.identity import (
 )
 
 __all__ = [
-    "ChallengeKey",
-    "Challenge",
-    "Tokens",
     "MFA",
     "AuthProvider",
+    "Challenge",
+    "ChallengeKey",
+    "Tokens",
 ]
 
 

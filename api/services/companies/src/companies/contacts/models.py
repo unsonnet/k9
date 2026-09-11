@@ -4,7 +4,8 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from shared.config import missing
 from shared.helpers import validate_resource_id, validate_subresource_id
-from shared.resolvers.http import Body, ImageMIMEType, Path
+from shared.http import ImageMIMEType
+from shared.http.requests import Body, Path
 
 from .provider import Contact, UploadURL
 

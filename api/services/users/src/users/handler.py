@@ -11,21 +11,29 @@ from shared.helpers import (
     require_admin,
     require_admin_or_self,
 )
-from shared.resolvers.http import Caller, HttpResolver
-from shared.resolvers.http.errors import (
-    Forbidden,
-    NotFound,
-    TooManyRequests,
-    Unauthorized,
-)
-from shared.resolvers.http.responses import OK, Created, NoContent
+from shared.http import Caller, HttpResolver
+from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
+from shared.http.responses import OK, Created, NoContent
 
 from .models import Request, Response
 from .provider import UserProvider
 
+__all__ = [
+    "app",
+    "lambda_handler",
+]
+
+
 app = HttpResolver(enable_validation=True)
 provider = UserProvider()
 app.grant(*provider.permissions)
+
+
+def lambda_handler(event, context):
+    return app.resolve(event, context)
+
+
+# ──── API Endpoints ───────────────────────────────────────────────────────────────────
 
 
 @app.get(
@@ -280,7 +288,3 @@ def reset(
         return NotFound(cause=exc)
     except DomainRateLimited as exc:
         return TooManyRequests(cause=exc)
-
-
-def lambda_handler(event, context):
-    return app.resolve(event, context)

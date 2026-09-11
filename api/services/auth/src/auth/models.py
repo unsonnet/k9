@@ -2,7 +2,7 @@ from typing import Self
 
 from pydantic import BaseModel, field_validator
 from shared.helpers import validate_name, validate_password, validate_user_id
-from shared.resolvers.http.requests import Body, Path
+from shared.http.requests import Body, Path
 
 from .provider import MFA, Challenge, ChallengeKey, Tokens
 

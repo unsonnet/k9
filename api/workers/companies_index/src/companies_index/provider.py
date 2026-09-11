@@ -1,7 +1,7 @@
 from collections.abc import Iterable
 
-from shared.config import GrantSpec, settings
-from shared.providers import BaseProvider, apimethod
+from shared.config import settings
+from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.search import SearchProvider
 
 __all__ = [

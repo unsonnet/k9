@@ -1,5 +1,5 @@
+from shared.dynamodb import DynamoDBResolver
 from shared.errors import DomainNotFound
-from shared.resolvers.dynamodb import DynamoDBResolver
 
 from .models import Remove, Sync
 from .provider import CompanyIndexProvider
@@ -7,6 +7,13 @@ from .provider import CompanyIndexProvider
 app = DynamoDBResolver()
 provider = CompanyIndexProvider()
 app.grant(*provider.permissions)
+
+
+def lambda_handler(event, context):
+    return app.resolve(event, context)
+
+
+# ──── Event Endpoints ─────────────────────────────────────────────────────────────────
 
 
 @app.insert("company")
@@ -61,7 +68,3 @@ def remove(request: Remove.Item) -> None:
         )
     except DomainNotFound:
         pass
-
-
-def lambda_handler(event, context):
-    return app.resolve(event, context)

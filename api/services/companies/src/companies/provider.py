@@ -1,27 +1,27 @@
-from collections.abc import Iterable
 from datetime import datetime
 from enum import StrEnum
+from typing import Iterable
 
 from pydantic import BaseModel, Field, HttpUrl
-from shared.config import GrantSpec, is_set, missing, settings
-from shared.providers import BaseProvider, apimethod
+from shared.config import is_set, missing, settings
+from shared.http import ImageMIMEType
+from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
 from shared.providers.search import Near, Page, SearchProvider, Term, Text
 from shared.providers.storage import StorageProvider, UploadURL
-from shared.resolvers.http import ImageMIMEType
 
 from .contacts.provider import Contact
 from .locations.provider import Location
 
 __all__ = [
-    "Location",
-    "Contact",
-    "Sector",
     "Company",
-    "CompanySummary",
-    "Page",
-    "UploadURL",
     "CompanyProvider",
+    "CompanySummary",
+    "Contact",
+    "Location",
+    "Page",
+    "Sector",
+    "UploadURL",
 ]
 
 
