@@ -24,7 +24,8 @@
         }
       },
       "workers": {
-        "<worker-name>": {
+        "<dynamodb-worker-name>": {
+          "source": "dynamodb",
           "dockerfile": "workers/<worker-name>/Dockerfile",
           "timeout": 20,
           "memory": 512,
@@ -36,6 +37,7 @@
           },
           "tableName": "<dynamodb-table-name>",
           "streamArnParameter": "<ssm-parameter-for-stream-arn>",
+          "bucketName": "<s3-bucket-name>",
           "batchSize": 50,
           "retryAttempts": 10,
           "reportBatchItemFailures": true,
@@ -43,6 +45,20 @@
           "maxRecordAgeSeconds": null,
           "maxBatchingWindowSeconds": null,
           "parallelizationFactor": null,
+          "opensearchCollectionArnParameter": null
+        },
+        "<s3-worker-name>": {
+          "source": "s3",
+          "dockerfile": "workers/<worker-name>/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "<param-group>"
+          ],
+          "environment": {
+            "<ENV_VAR_NAME>": "<env-var-value>"
+          },
+          "bucketName": "<s3-bucket-name>",
           "opensearchCollectionArnParameter": null
         }
       }

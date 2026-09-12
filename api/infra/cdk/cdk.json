@@ -71,6 +71,7 @@
       },
       "workers": {
         "companies_index": {
+          "source": "dynamodb",
           "dockerfile": "workers/companies_index/Dockerfile",
           "timeout": 60,
           "memory": 512,
@@ -154,6 +155,7 @@
       },
       "workers": {
         "companies_index": {
+          "source": "dynamodb",
           "dockerfile": "workers/companies_index/Dockerfile",
           "timeout": 60,
           "memory": 512,
@@ -237,6 +239,7 @@
       },
       "workers": {
         "companies_index": {
+          "source": "dynamodb",
           "dockerfile": "workers/companies_index/Dockerfile",
           "timeout": 60,
           "memory": 512,

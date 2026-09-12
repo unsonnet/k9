@@ -1,6 +1,6 @@
 from enum import StrEnum
 from itertools import chain
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from aws_cdk import aws_lambda as lambda_
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -34,18 +34,30 @@ class ServiceConfig(BaseModel):
     environment: dict[str, str] = Field(default_factory=dict)
 
 
-class WorkerConfig(ServiceConfig):
+class DynamoDBWorkerConfig(ServiceConfig):
+    source: Literal["dynamodb"]
     table_name: str
     stream_arn_parameter: str
-    batch_size: int = 50
-    retry_attempts: int = 10
+    batch_size: int = Field(50, ge=1, le=1000)
+    retry_attempts: int = Field(10, ge=0, le=10000)
     report_batch_item_failures: bool = True
     bisect_batch_on_error: bool = True
-    max_record_age_seconds: int | None = None
-    max_batching_window_seconds: int | None = None
-    parallelization_factor: int | None = None
+    max_record_age_seconds: int | None = Field(None, ge=60, le=604800)
+    max_batching_window_seconds: int | None = Field(None, ge=0, le=300)
+    parallelization_factor: int | None = Field(None, ge=1, le=10)
     opensearch_collection_arn_parameter: str | None = None
 
+
+class S3WorkerConfig(ServiceConfig):
+    source: Literal["s3"]
+    bucket_name: str
+    opensearch_collection_arn_parameter: str | None = None
+
+
+type WorkerConfig = Annotated[
+    DynamoDBWorkerConfig | S3WorkerConfig,
+    Field(discriminator="source"),
+]
 
 type StageName = Literal["dev", "stage", "prod"]
 type Environment = dict[str, str]

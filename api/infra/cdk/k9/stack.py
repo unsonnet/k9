@@ -7,7 +7,7 @@ from aws_cdk import aws_ssm as ssm
 from constructs import Construct
 
 from .config import StageConfig
-from .service import ServiceRegistration, WorkerRegistration, pascal_case
+from .service import ServiceRegistration, WorkerRegistration
 
 
 def create_stack(scope: Construct, config: StageConfig) -> Stack:
@@ -56,7 +56,7 @@ def create_stack(scope: Construct, config: StageConfig) -> Stack:
         )
         CfnOutput(
             stack,
-            f"{pascal_case(name)}ServiceFunctionName",
+            f"{service.node.id}FunctionName",
             value=service.function.function_name,
         )
 
@@ -71,7 +71,7 @@ def create_stack(scope: Construct, config: StageConfig) -> Stack:
         )
         CfnOutput(
             stack,
-            f"{pascal_case(name)}WorkerFunctionName",
+            f"{worker.node.id}FunctionName",
             value=worker.function.function_name,
         )
 

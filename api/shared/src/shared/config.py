@@ -45,8 +45,9 @@ class RouteSpec:
 
 @dataclass(frozen=True)
 class EventSpec:
+    source: str
     event: str
-    type: str
+    rule: str
 
 
 class Settings:

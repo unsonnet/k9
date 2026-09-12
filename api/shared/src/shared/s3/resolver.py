@@ -2,24 +2,17 @@ from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from inspect import Parameter, signature
 from typing import Any, Protocol, TypeGuard, overload
+from urllib.parse import unquote_plus
 
 from aws_lambda_powertools import Logger
-from aws_lambda_powertools.utilities.batch import (
-    BatchProcessor,
-    EventType,
-    process_partial_response,
-)
-from aws_lambda_powertools.utilities.data_classes.dynamo_db_stream_event import (
-    DynamoDBRecord,
-    StreamRecord,
-)
+from aws_lambda_powertools.utilities.data_classes.s3_event import S3Event, S3EventRecord
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from pydantic import BaseModel
 
 from ..config import EventSpec, GrantSpec
 
 __all__ = [
-    "DynamoDBResolver",
+    "S3Resolver",
 ]
 
 
@@ -35,11 +28,11 @@ class EventDecorator[R: BaseModel, T](Protocol):
 
 
 @dataclass(frozen=True, slots=True)
-class DynamoDBWrapper(Mapping):
-    _data: StreamRecord
+class S3Wrapper(Mapping):
+    _data: Mapping[str, Any]
 
-    def __getitem__(self, key: str) -> dict:
-        return getattr(self._data, key)
+    def __getitem__(self, key: str) -> Any:
+        return self._data[key]
 
     def __iter__(self):
         return iter(self._data)
@@ -48,15 +41,13 @@ class DynamoDBWrapper(Mapping):
         return len(self._data)
 
 
-class DynamoDBResolver:
-    _processor: BatchProcessor
+class S3Resolver:
     _grants: list[GrantSpec]
     _events: list[EventSpec]
-    _handlers: dict[tuple[str, str], Callable[[DynamoDBRecord], Any]]
+    _handlers: dict[tuple[str, str], Callable[[S3EventRecord], Any]]
 
     def __init__(self) -> None:
         super().__init__()
-        self._processor = BatchProcessor(event_type=EventType.DynamoDBStreams)
         self._grants = []
         self._events = []
         self._handlers = {}
@@ -64,7 +55,7 @@ class DynamoDBResolver:
     def manifest(self) -> dict[str, Any]:
         return {
             "grants": [asdict(grant) for grant in self._grants],
-            "events": [asdict(route) for route in self._events],
+            "events": [asdict(event) for event in self._events],
         }
 
     # ──── Grants ────
@@ -99,50 +90,58 @@ class DynamoDBResolver:
     # ──── Events ────
 
     def event(self, rule: str, method: str) -> EventDecorator:
+        if rule.count("*") > 1:
+            raise ValueError("S3 event rules can contain at most one '*'")
+
         def decorator[T](func: Callable[..., T]) -> Callable[..., T]:
-            self._events.append(EventSpec("dynamodb", method, rule))
+            self._events.append(EventSpec("s3", method, rule))
             self._handlers[method, rule] = self._expand(func)
             return func
 
         return decorator
 
-    def insert(self, rule: str) -> EventDecorator:
-        return self.event(rule, method="INSERT")
+    def created(self, rule: str) -> EventDecorator:
+        return self.event(rule, method="Object_Created")
 
-    def modify(self, rule: str) -> EventDecorator:
-        return self.event(rule, method="MODIFY")
-
-    def remove(self, rule: str) -> EventDecorator:
-        return self.event(rule, method="REMOVE")
+    def removed(self, rule: str) -> EventDecorator:
+        return self.event(rule, method="Object_Removed")
 
     # ──── Model Expansion ────
 
     @classmethod
-    def _expand[T](cls, func: Callable[..., T]) -> Callable[[DynamoDBRecord], T]:
+    def _expand[T](cls, func: Callable[..., T]) -> Callable[[S3EventRecord], T]:
         params = signature(func).parameters
         match params.get("request", None):
             case None:
 
-                def wrapper(record: DynamoDBRecord) -> T:
+                def wrapper(record: S3EventRecord) -> T:
                     return func()
 
             case Parameter() as reqP:
                 reqT: type[BaseModel] = reqP.annotation
 
-                def wrapper(record: DynamoDBRecord) -> T:
-                    request = reqT.model_validate(DynamoDBWrapper(record.dynamodb))  # type: ignore
+                def wrapper(record: S3EventRecord) -> T:
+                    request = reqT.model_validate(S3Wrapper(record.s3.get_object))
                     return func(request=request)
 
         return wrapper
 
     # ──── Resolver ────
 
-    def _handle(self, record: DynamoDBRecord) -> Any:
+    @staticmethod
+    def _matches(key: str, rule: str) -> bool:
+        prefix, _, suffix = rule.partition("*")
+        return key.startswith(prefix) and key.endswith(suffix)
+
+    def _handle(self, record: S3EventRecord) -> Any:
         try:
-            method: str = record.event_name.name  # type: ignore
-            payload = record.dynamodb
-            rule: str = (payload.new_image or payload.old_image).get("type")  # type: ignore
-            handler = self._handlers[method, rule]
+            method = record.event_name.partition(":")[0]
+            key = unquote_plus(record.s3.get_object.key)
+            handler = next(
+                handler
+                for (event, rule), handler in self._handlers.items()
+                if event == method and self._matches(key, rule)
+            )
         except Exception as exc:
             LOG.error(
                 "Failed to resolve handler for event record",
@@ -163,10 +162,6 @@ class DynamoDBResolver:
         self,
         event: dict[str, Any],
         context: LambdaContext,
-    ) -> Mapping[str, Any]:
-        return process_partial_response(
-            event=event,
-            record_handler=self._handle,
-            processor=self._processor,
-            context=context,
-        )
+    ) -> None:
+        for record in S3Event(event).records:
+            self._handle(record)
