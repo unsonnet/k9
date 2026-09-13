@@ -31,6 +31,8 @@ class Node:
     subitems: dict[tuple[str, str], Node] = field(default_factory=dict)
 
     def serialize(self) -> dict[str, DatabaseTypes]:
+        if not self.item:
+            raise DomainNotFound
         subitems: dict[str, list[dict[str, DatabaseTypes]]] = {}
         for (k, _), node in self.subitems.items():
             subitems.setdefault(f"${k}", []).append(node.serialize())
