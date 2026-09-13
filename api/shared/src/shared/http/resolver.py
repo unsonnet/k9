@@ -6,9 +6,9 @@ from types import NoneType, UnionType
 from typing import (
     Any,
     Callable,
+    Iterable,
     NotRequired,
     Protocol,
-    Sequence,
     TypedDict,
     TypeGuard,
     Union,
@@ -86,7 +86,7 @@ class RouteOptions(TypedDict):
     middlewares: NotRequired[list[Callable[..., Any]]]
 
 
-class RouteDecorator[R: BaseModel, T](Protocol):
+class RouteDecorator[R: BaseModel, T: Response](Protocol):
     @overload
     def __call__(self, func: Callable[[], T]) -> Callable[[], T]: ...
     @overload
@@ -159,7 +159,7 @@ class HttpResolver(APIGatewayHttpResolver):
         method: str | list[str] | tuple[str],
         **options: Unpack[RouteOptions],
     ) -> RouteDecorator:
-        def decorator[T](func: Callable[..., T]) -> Callable[..., T]:
+        def decorator[T: Response](func: Callable[..., T]) -> Callable[..., T]:
             bound = signature(super(HttpResolver, self).route).bind_partial(**options)
             bound.apply_defaults()
 
@@ -180,13 +180,14 @@ class HttpResolver(APIGatewayHttpResolver):
                 )
 
             responses = self._openapi(func, bound.arguments.pop("responses") or {})
-            return super(HttpResolver, self).route(
+            super(HttpResolver, self).route(
                 rule=rule,
                 method=method,
                 responses=responses,
                 *bound.args,
                 **bound.kwargs,
             )(self._expand(func))
+            return func
 
         return decorator
 
@@ -208,7 +209,7 @@ class HttpResolver(APIGatewayHttpResolver):
     # ──── Authentication ────
 
     @staticmethod
-    def _unpack(attrs: Sequence[AttributeTypeTypeDef]) -> dict[str, str | None]:
+    def _parse(attrs: Iterable[AttributeTypeTypeDef]) -> dict[str, str | None]:
         a = {kv["Name"].removeprefix("custom:"): kv.get("Value") for kv in attrs}
         a.setdefault("last_login_at", None)
         return a
@@ -217,7 +218,7 @@ class HttpResolver(APIGatewayHttpResolver):
         token = self.current_event.headers["authorization"].removeprefix("Bearer ")
         match self._idp.get_user(AccessToken=token):
             case {"UserAttributes": list(attrs)}:
-                match self._unpack(attrs):
+                match self._parse(attrs):
                     case {
                         "id": str(id),
                         "name": str(name),
@@ -234,23 +235,31 @@ class HttpResolver(APIGatewayHttpResolver):
     # ──── Model Expansion ────
 
     @staticmethod
-    def _is_union(T: type) -> bool:
-        o = get_origin(T)
-        return o is Union or (isinstance(o, type) and issubclass(o, UnionType))
+    def _unpack(respT: type[Response]) -> Iterable[type[Response]]:
+        o = get_origin(respT)
+        if o is Union or (isinstance(o, type) and issubclass(o, UnionType)):
+            yield from get_args(respT)
+        else:
+            yield respT
+
+    @staticmethod
+    def _body(rT: type[Response]) -> type[BaseModel] | type[None]:
+        r: type[Response] = get_origin(rT) or rT
+        T = r.__model__
+        if T in r.__type_params__:
+            return get_args(rT)[r.__type_params__.index(T)]
+        return T  # type: ignore
 
     @classmethod
-    def _openapi[T](
+    def _openapi(
         cls,
-        func: Callable[..., T],
+        func: Callable,
         responses: dict[int, str | OpenAPIResponse],
     ) -> dict[int, OpenAPIResponse]:
         doc: dict[int, OpenAPIResponse] = {}
         models = signature(func).return_annotation
-        for model in get_args(models) if cls._is_union(models) else (models,):
-            respT = get_origin(model) or model
-            if isinstance(respT, type) and issubclass(respT, Response):
-                bodyT = (*get_args(model), NoneType)[0]
-                doc[respT.status_code.value] = respT._openapi(bodyT)
+        for rT in cls._unpack(models):
+            doc[rT.status_code.value] = rT._openapi(cls._body(rT))
         for code, desc in responses.items():
             if isinstance(desc, str):
                 desc = doc.get(code, {}) | {"description": desc}
@@ -258,14 +267,10 @@ class HttpResolver(APIGatewayHttpResolver):
         return doc
 
     @classmethod
-    def _wraps[T](cls, reqT: type, respT: type[T]):
+    def _annotate(cls, reqT: type[BaseModel] | type[None], respT: type[Response]):
         parameters = signature(reqT).parameters.values() if reqT is not NoneType else []
         annotations = get_type_hints(reqT, include_extras=True)
-        bodies = set(
-            bodyT
-            for model in (get_args(respT) if cls._is_union(respT) else (respT,))
-            for bodyT in (get_args(model) or (NoneType,))
-        )
+        bodies = set(cls._body(rT) for rT in cls._unpack(respT))
         sig = Signature(
             parameters=[
                 param.replace(
@@ -279,34 +284,34 @@ class HttpResolver(APIGatewayHttpResolver):
             return_annotation=BaseResponse[Union[*bodies]],
         )
 
-        def decorator(wrapper: Callable[..., T]) -> Callable[..., T]:
+        def decorator(wrapper: Callable) -> Callable:
             wrapper.__signature__ = sig  # type: ignore[attr-defined]
             wrapper.__annotations__ = annotations | {"return": sig.return_annotation}
             return wrapper
 
         return decorator
 
-    def _expand[T](self, func: Callable[..., T]) -> Callable[..., T]:
+    def _expand(self, func: Callable) -> Callable:
         params = signature(func).parameters
-        respT: type[T] = signature(func).return_annotation
+        respT: type[Response] = signature(func).return_annotation
         match params.get("caller", None), params.get("request", None):
             case None, None:
 
-                @self._wraps(NoneType, respT)
-                def wrapper() -> T:
+                @self._annotate(NoneType, respT)
+                def wrapper():
                     return func()
 
             case Parameter(), None:
 
-                @self._wraps(NoneType, respT)
-                def wrapper() -> T:
+                @self._annotate(NoneType, respT)
+                def wrapper():
                     return func(caller=self.caller())
 
             case None, Parameter() as reqP:
                 reqT: type[BaseModel] = reqP.annotation
 
-                @self._wraps(reqT, respT)
-                def wrapper(**kwargs) -> T:
+                @self._annotate(reqT, respT)
+                def wrapper(**kwargs):
                     kwargs = {k: v for k, v in kwargs.items() if is_set(v)}
                     request = reqT.model_validate(kwargs)
                     return func(request=request)
@@ -314,8 +319,8 @@ class HttpResolver(APIGatewayHttpResolver):
             case Parameter(), Parameter() as reqP:
                 reqT: type[BaseModel] = reqP.annotation
 
-                @self._wraps(reqT, respT)
-                def wrapper(**kwargs) -> T:
+                @self._annotate(reqT, respT)
+                def wrapper(**kwargs):
                     kwargs = {k: v for k, v in kwargs.items() if is_set(v)}
                     request = reqT.model_validate(kwargs)
                     return func(caller=self.caller(), request=request)

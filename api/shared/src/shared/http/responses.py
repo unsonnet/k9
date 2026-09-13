@@ -1,6 +1,6 @@
 from http import HTTPStatus
-from types import NoneType
-from typing import ClassVar
+from types import NoneType, get_original_bases
+from typing import ClassVar, TypeVar, get_args, get_origin
 
 from aws_lambda_powertools.event_handler import Response as BaseResponse
 from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
@@ -18,6 +18,18 @@ __all__ = [
 class Response[T: BaseModel | None](BaseResponse[T]):
     status_code: ClassVar[HTTPStatus]
     content_type: ClassVar[str | None] = "application/json"
+    __model__: ClassVar[TypeVar] = T
+
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        for bT in get_original_bases(cls):
+            b: type = get_origin(bT) or bT
+            if issubclass(b, Response):
+                T = b.__model__
+                if T in b.__type_params__:
+                    T = get_args(bT)[b.__type_params__.index(T)]
+                cls.__model__ = T
+                return
 
     def __init__(self, body: T = None):
         super().__init__(
