@@ -1,5 +1,6 @@
 from enum import StrEnum
 
+from . import patch  # required
 from .errors import ClientError, ServerError
 from .requests import Body, Path, Query
 from .resolver import Caller, HttpResolver, Role
