@@ -1,10 +1,10 @@
+from functools import cached_property
 from typing import Iterable
 
 from pydantic import BaseModel, HttpUrl
 from pydantic.networks import EmailStr
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from shared.config import is_set, missing, settings
-from shared.http import ImageMIMEType
 from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
 from shared.providers.storage import StorageProvider, UploadURL
@@ -20,7 +20,7 @@ class Contact(BaseModel, frozen=True):
     id: str
     name: str
     title: str | None
-    picture: HttpUrl | None
+    picture: HttpUrl
     email: EmailStr | None
     phone: PhoneNumber | None
 
@@ -72,7 +72,7 @@ class CompanyContactProvider(BaseProvider):
                 id=f"{id}.{sid}",
                 name=name,
                 title=title,
-                picture=None,
+                picture=str(self.default_picture),
                 email=email,
                 phone=phone,
             )
@@ -110,7 +110,7 @@ class CompanyContactProvider(BaseProvider):
         if is_set(title):
             attrs["title"] = title
         if is_set(picture):
-            attrs["picture"] = picture
+            attrs["picture"] = str(self.default_picture)
         if is_set(email):
             attrs["email"] = email
         if is_set(phone):
@@ -142,13 +142,16 @@ class CompanyContactProvider(BaseProvider):
         *,
         id: str,
         sid: str,
-        content_type: ImageMIMEType,
-        max_bytes: int,
-        max_seconds: int,
     ) -> UploadURL:
         return self._mem.presign_post(
             f"companies/{id}/contacts/{sid}/picture.jxl",
-            content_type=content_type.value,
-            max_bytes=max_bytes,
-            max_seconds=max_seconds,
+            content_type="image/jxl",
+            max_bytes=5 * 1024 * 1024,
+            max_seconds=5 * 60,
         )
+
+    # ──── Private Methods ────
+
+    @cached_property
+    def default_picture(self) -> HttpUrl:
+        return self._mem.get_url("companies/default/contacts/default/picture.jxl")

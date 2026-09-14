@@ -21,7 +21,7 @@ class Sync:
         id: NewImage[str]
         sector: NewImage[Sector]
         name: NewImage[str]
-        logo: NewImage[str | None]
+        logo: NewImage[str]
         website: NewImage[str | None]
 
     class Contact(EventModel, frozen=True):
@@ -29,7 +29,7 @@ class Sync:
         id: NewImage[str]
         name: NewImage[str]
         title: NewImage[str | None]
-        picture: NewImage[str | None]
+        picture: NewImage[str]
         email: NewImage[str | None]
         phone: NewImage[str | None]
 

@@ -212,9 +212,6 @@ def logo(
         require_admin(caller)
         form = provider.upload_logo(
             id=request.id,
-            content_type=request.contentType,
-            max_bytes=5 * 1024 * 1024,
-            max_seconds=5 * 60,
         )
         return OK(Response.UploadURL.pack(form))
     except DomainUnauthorized as exc:

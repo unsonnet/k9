@@ -4,7 +4,6 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from shared.config import missing
 from shared.helpers import validate_resource_id, validate_subresource_id
-from shared.http import ImageMIMEType
 from shared.http.requests import Body, Path
 
 from .provider import Contact, UploadURL
@@ -81,7 +80,6 @@ class Request:
     class Picture(BaseModel, frozen=True):
         id: Path[str]
         sid: Path[str]
-        contentType: Body[ImageMIMEType]
 
         @field_validator("id")
         @classmethod
@@ -102,7 +100,7 @@ class Response:
         id: str
         name: str
         title: str | None
-        picture: HttpUrl | None
+        picture: HttpUrl
         email: EmailStr | None
         phone: PhoneNumber | None
 

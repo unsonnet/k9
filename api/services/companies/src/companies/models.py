@@ -4,7 +4,6 @@ from typing import Self
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 from shared.config import missing
 from shared.helpers import sanitize_query, validate_resource_id
-from shared.http import ImageMIMEType
 from shared.http.requests import Body, Path, Query
 
 from .provider import (
@@ -83,7 +82,6 @@ class Request:
 
     class Logo(BaseModel, frozen=True):
         id: Path[str]
-        contentType: Body[ImageMIMEType]
 
         @field_validator("id")
         @classmethod
@@ -99,7 +97,7 @@ class Response:
         id: str
         sector: Sector
         name: str
-        logo: HttpUrl | None
+        logo: HttpUrl
         website: HttpUrl | None
         locations: list[Location]
         contacts: list[Contact]
@@ -124,7 +122,7 @@ class Response:
         id: str
         sector: Sector
         name: str
-        logo: HttpUrl | None
+        logo: HttpUrl
         website: HttpUrl | None
         locations: list[Location]
 

@@ -237,9 +237,6 @@ def picture(
         user_id = require_admin_or_self(caller, request.id)
         form = provider.upload_picture(
             id=user_id,
-            content_type=request.contentType,
-            max_bytes=5 * 1024 * 1024,
-            max_seconds=5 * 60,
         )
         return OK(Response.UploadURL.pack(form))
     except DomainUnauthorized as exc:

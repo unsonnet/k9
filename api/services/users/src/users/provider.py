@@ -1,7 +1,9 @@
 import base64
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Iterable
 
+from pydantic import HttpUrl
 from shared.config import is_set, missing, settings
 from shared.http import Role
 from shared.providers import BaseProvider, GrantSpec, apimethod
@@ -83,7 +85,7 @@ class UserProvider(BaseProvider):
             id=id,
             preferred_username=f"name:{self._encode(name)}",
             name=name,
-            picture=None,
+            picture=str(self.default_picture),
             role=role.value,
         )
         return UserCredentials(
@@ -117,7 +119,7 @@ class UserProvider(BaseProvider):
             attrs["preferred_username"] = f"name:{self._encode(name)}"
             attrs["name"] = name
         if is_set(picture):
-            attrs["picture"] = picture
+            attrs["picture"] = str(self.default_picture)
         if is_set(role):
             attrs["role"] = role.value
         return self._idp.update_user(
@@ -141,15 +143,12 @@ class UserProvider(BaseProvider):
         self,
         *,
         id: str,
-        content_type: str,
-        max_bytes: int,
-        max_seconds: int,
     ) -> UploadURL:
         return self._mem.presign_post(
             f"users/{id}/picture.jxl",
-            content_type=content_type,
-            max_bytes=max_bytes,
-            max_seconds=max_seconds,
+            content_type="image/jxl",
+            max_bytes=5 * 1024 * 1024,
+            max_seconds=5 * 60,
         )
 
     @apimethod
@@ -174,3 +173,7 @@ class UserProvider(BaseProvider):
     @staticmethod
     def _encode(name: str) -> str:
         return base64.b64encode(name.encode()).decode("ascii")
+
+    @cached_property
+    def default_picture(self) -> HttpUrl:
+        return self._mem.get_url("users/default/picture.jxl")

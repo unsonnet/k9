@@ -4,7 +4,7 @@ from typing import Self
 from pydantic import BaseModel, Field, HttpUrl, StrictBool, field_validator
 from shared.config import missing
 from shared.helpers import validate_name, validate_user_id
-from shared.http import ImageMIMEType, Role
+from shared.http import Role
 from shared.http.requests import Body, Path, Query
 
 from .provider import UploadURL, User, UserCredentials, UserPage
@@ -68,7 +68,6 @@ class Request:
 
     class Picture(BaseModel, frozen=True):
         id: Path[str]
-        contentType: Body[ImageMIMEType]
 
         @field_validator("id")
         @classmethod
@@ -91,7 +90,7 @@ class Response:
     class User(BaseModel, frozen=True):
         id: str
         name: str
-        picture: HttpUrl | None
+        picture: HttpUrl
         role: Role
         enabled: StrictBool
         createdAt: datetime
@@ -114,7 +113,7 @@ class Response:
     class UserSummary(BaseModel, frozen=True):
         id: str
         name: str
-        picture: HttpUrl | None
+        picture: HttpUrl
 
         @classmethod
         def pack(cls, user: User) -> Self:

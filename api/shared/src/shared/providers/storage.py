@@ -79,6 +79,14 @@ class StorageProvider(BaseProvider):
             )
         )
 
+    @apimethod
+    def get_url(
+        self,
+        key: str,
+    ) -> HttpUrl:
+        bucket, region = self._s3.name, self._s3.meta.client.meta.region_name
+        return HttpUrl(f"https://{bucket}.s3.{region}.amazonaws.com/{key}")
+
     # ──── Private Methods ────
 
     @staticmethod

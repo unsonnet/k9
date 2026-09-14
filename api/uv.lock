@@ -369,15 +369,11 @@ name = "companies-index"
 version = "0.3.0"
 source = { editable = "workers/companies_index" }
 dependencies = [
-    { name = "pydantic" },
     { name = "shared" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "shared", editable = "shared" },
-]
+requires-dist = [{ name = "shared", editable = "shared" }]
 
 [[package]]
 name = "constructs"

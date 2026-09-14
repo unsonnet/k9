@@ -1,10 +1,10 @@
 from datetime import datetime
 from enum import StrEnum
+from functools import cached_property
 from typing import Iterable
 
 from pydantic import BaseModel, Field, HttpUrl
 from shared.config import is_set, missing, settings
-from shared.http import ImageMIMEType
 from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
 from shared.providers.search import Near, Page, SearchProvider, Term, Text
@@ -35,7 +35,7 @@ class Company(BaseModel):
     id: str
     sector: Sector
     name: str
-    logo: HttpUrl | None
+    logo: HttpUrl
     website: HttpUrl | None
     locations: list[Location] = Field(default_factory=list, alias="$location")
     contacts: list[Contact] = Field(default_factory=list, alias="$contact")
@@ -47,7 +47,7 @@ class CompanySummary(BaseModel):
     id: str
     sector: Sector
     name: str
-    logo: HttpUrl | None
+    logo: HttpUrl
     website: HttpUrl | None
     locations: list[Location] = Field(default_factory=list, alias="$location")
 
@@ -125,7 +125,7 @@ class CompanyProvider(BaseProvider):
                 id=id,
                 sector=sector.value,
                 name=name,
-                logo=None,
+                logo=str(self.default_logo),
                 website=str(website) if website is not None else None,
             )
         )
@@ -155,11 +155,11 @@ class CompanyProvider(BaseProvider):
     ) -> Company:
         attrs: dict[str, DatabaseTypes] = {}
         if is_set(sector):
-            attrs["sectory"] = sector.value
+            attrs["sector"] = sector.value
         if is_set(name):
             attrs["name"] = name
         if is_set(logo):
-            attrs["logo"] = logo
+            attrs["logo"] = str(self.default_logo)
         if is_set(website):
             attrs["website"] = str(website) if website is not None else None
         return Company.model_validate(
@@ -187,13 +187,16 @@ class CompanyProvider(BaseProvider):
         self,
         *,
         id: str,
-        content_type: ImageMIMEType,
-        max_bytes: int,
-        max_seconds: int,
     ) -> UploadURL:
         return self._mem.presign_post(
             f"companies/{id}/logo.jxl",
-            content_type=content_type.value,
-            max_bytes=max_bytes,
-            max_seconds=max_seconds,
+            content_type="image/jxl",
+            max_bytes=5 * 1024 * 1024,
+            max_seconds=5 * 60,
         )
+
+    # ──── Private Methods ────
+
+    @cached_property
+    def default_logo(self) -> HttpUrl:
+        return self._mem.get_url("companies/default/logo.jxl")

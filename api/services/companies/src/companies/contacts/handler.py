@@ -189,9 +189,6 @@ def picture(
         form = provider.upload_picture(
             id=request.id,
             sid=request.sid,
-            content_type=request.contentType,
-            max_bytes=5 * 1024 * 1024,
-            max_seconds=5 * 60,
         )
         return OK(Response.UploadURL.pack(form))
     except DomainUnauthorized as exc:
