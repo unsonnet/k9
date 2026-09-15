@@ -1,0 +1,15 @@
+[project]
+name = "profiles_index"
+version = "0.1.0"
+description = "Profiles Index Workers"
+requires-python = ">=3.12"
+dependencies = [
+	"shared",
+]
+
+[tool.uv.sources]
+shared = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"

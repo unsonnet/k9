@@ -28,7 +28,7 @@ from .config import (
 
 def pascal_case(s: str) -> str:
     return "".join(
-        part.capitalize() for part in s.replace("-", "_").replace(".", "_").split("_")
+        p.capitalize() for p in s.replace("-", "_").replace(".", "_").split("_")
     )
 
 
@@ -52,7 +52,7 @@ class DynamoDBEvent(BaseModel):
 
 class S3Event(BaseModel):
     source: Literal["s3"]
-    event: Literal["Object_Created", "Object_Removed"]
+    event: Literal["OBJECT_CREATED", "OBJECT_REMOVED"]
     rule: str
 
 

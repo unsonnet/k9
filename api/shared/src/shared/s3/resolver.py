@@ -5,6 +5,7 @@ from typing import Any, Protocol, TypeGuard, overload
 from urllib.parse import unquote_plus
 
 from aws_lambda_powertools import Logger
+from aws_lambda_powertools.utilities.data_classes.common import DictWrapper
 from aws_lambda_powertools.utilities.data_classes.s3_event import S3Event, S3EventRecord
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from pydantic import BaseModel
@@ -28,17 +29,21 @@ class EventDecorator[R: BaseModel, T](Protocol):
 
 
 @dataclass(frozen=True, slots=True)
-class S3Wrapper(Mapping):
-    _data: Mapping[str, Any]
+class S3Wrapper(Mapping[str, Any]):
+    _data: DictWrapper
 
     def __getitem__(self, key: str) -> Any:
-        return self._data[key]
+        return getattr(self._data, key)
 
     def __iter__(self):
-        return iter(self._data)
+        return iter(("key", "size", "etag", "version_id", "sequencer"))
 
     def __len__(self):
-        return len(self._data)
+        return 5
+
+
+def pascal_case(s: str) -> str:
+    return "".join(p.title() for p in s.split("_"))
 
 
 class S3Resolver:
@@ -95,16 +100,16 @@ class S3Resolver:
 
         def decorator[T](func: Callable[..., T]) -> Callable[..., T]:
             self._events.append(EventSpec("s3", method, rule))
-            self._handlers[method, rule] = self._expand(func)
+            self._handlers[pascal_case(method), rule] = self._expand(func)
             return func
 
         return decorator
 
     def created(self, rule: str) -> EventDecorator:
-        return self.event(rule, method="Object_Created")
+        return self.event(rule, method="OBJECT_CREATED")
 
     def removed(self, rule: str) -> EventDecorator:
-        return self.event(rule, method="Object_Removed")
+        return self.event(rule, method="OBJECT_REMOVED")
 
     # ──── Model Expansion ────
 
@@ -135,11 +140,11 @@ class S3Resolver:
 
     def _handle(self, record: S3EventRecord) -> Any:
         try:
-            method = record.event_name.partition(":")[0]
+            event = record.event_name.partition(":")[0]
             key = unquote_plus(record.s3.get_object.key)
             handler = next(
                 handler
-                for (event, rule), handler in self._handlers.items()
+                for (method, rule), handler in self._handlers.items()
                 if event == method and self._matches(key, rule)
             )
         except Exception as exc:

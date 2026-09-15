@@ -82,6 +82,18 @@
           "streamArnParameter": "/k9/dev/data/dynamodb/stream",
           "batchSize": 10,
           "retryAttempts": 10
+        },
+        "profiles_index": {
+          "source": "s3",
+          "dockerfile": "workers/profiles_index/Dockerfile",
+          "timeout": 60,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ],
+          "bucketName": "k9-dev-425688663965-us-east-2-an"
         }
       }
     },
@@ -166,6 +178,18 @@
           "streamArnParameter": "/k9/stage/data/dynamodb/stream",
           "batchSize": 10,
           "retryAttempts": 10
+        },
+        "profiles_index": {
+          "source": "s3",
+          "dockerfile": "workers/profiles_index/Dockerfile",
+          "timeout": 60,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ],
+          "bucketName": "k9-stage-425688663965-us-east-2-an"
         }
       }
     },
@@ -250,6 +274,18 @@
           "streamArnParameter": "/k9/prod/data/dynamodb/stream",
           "batchSize": 10,
           "retryAttempts": 10
+        },
+        "profiles_index": {
+          "source": "s3",
+          "dockerfile": "workers/profiles_index/Dockerfile",
+          "timeout": 60,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ],
+          "bucketName": "k9-prod-425688663965-us-east-2-an"
         }
       }
     },

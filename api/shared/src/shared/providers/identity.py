@@ -340,7 +340,7 @@ class IdentityProvider(BaseProvider):
         self,
         *,
         username: str,
-        enabled: bool | missing,
+        enabled: bool | missing = missing,
         **attrs: str | None,
     ) -> User:
         if attrs:

@@ -8,6 +8,7 @@ dependencies = [
     "users",
     "shared",
     "companies_index",
+    "profiles_index",
 ]
 
 [tool.uv]
@@ -27,6 +28,7 @@ companies = { workspace = true }
 users = { workspace = true }
 shared = { workspace = true }
 companies_index = { workspace = true }
+profiles_index = { workspace = true }
 
 [dependency-groups]
 dev = [
