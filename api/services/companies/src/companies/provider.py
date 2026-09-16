@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from enum import StrEnum
 from functools import cached_property
 from typing import Iterable
@@ -31,7 +32,7 @@ class Sector(StrEnum):
     RETAILER = "RETAILER"
 
 
-class Company(BaseModel):
+class Company(BaseModel, frozen=True):
     id: str
     sector: Sector
     name: str
@@ -43,7 +44,7 @@ class Company(BaseModel):
     updated_at: datetime | None
 
 
-class CompanySummary(BaseModel):
+class CompanySummary(BaseModel, frozen=True):
     id: str
     sector: Sector
     name: str
@@ -98,7 +99,7 @@ class CompanyProvider(BaseProvider):
         *,
         sector: list[Sector] | missing,
         name: str | missing,
-        geo: tuple[float, float, int] | missing,
+        geo: tuple[Decimal, Decimal, int] | missing,
         limit: int,
         cursor: str | missing,
     ) -> Page[CompanySummary]:

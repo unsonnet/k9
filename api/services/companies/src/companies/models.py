@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import Self
 
 from pydantic import BaseModel, Field, HttpUrl, field_validator
@@ -29,16 +30,16 @@ class Request:
     class List(BaseModel, frozen=True):
         sector: Query[list[Sector] | missing] = missing
         name: Query[str | missing] = missing
-        lat: Query[float | missing] = Field(missing, ge=-90, le=90)
-        lon: Query[float | missing] = Field(missing, ge=-180, le=180)
+        lat: Query[Decimal | missing] = Field(missing, ge=-90, le=90)
+        lon: Query[Decimal | missing] = Field(missing, ge=-180, le=180)
         radius: Query[int | missing] = Field(missing, ge=1, le=500)
         limit: Query[int] = Field(25, ge=1, le=60)
         cursor: Query[str | missing] = missing
 
         @property
-        def geo(self) -> tuple[float, float, int] | missing:
+        def geo(self) -> tuple[Decimal, Decimal, int] | missing:
             match self.lat, self.lon, self.radius:
-                case (float(), float(), int()):
+                case (Decimal(), Decimal(), int()):
                     return (self.lat, self.lon, self.radius)
             return missing
 

@@ -2,6 +2,7 @@ import base64
 import json
 from collections.abc import Iterable
 from dataclasses import dataclass
+from decimal import Decimal
 from typing import Any, TypedDict
 from urllib.parse import urlparse
 
@@ -97,7 +98,7 @@ class Text:
 @dataclass(frozen=True, slots=True)
 class Near:
     field: str
-    coord: tuple[float, float, int] | None
+    coord: tuple[Decimal, Decimal, int] | None
 
     def apply(
         self,
