@@ -56,7 +56,7 @@ def create(
             email=request.email,
             phone=request.phone,
         )
-        return Created(Response.Contact.pack(contact))
+        return Created(Response.Contact.model_validate(contact))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -86,7 +86,7 @@ def read(
             id=request.id,
             sid=request.sid,
         )
-        return OK(Response.Contact.pack(contact))
+        return OK(Response.Contact.model_validate(contact))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainNotFound as exc:
@@ -123,7 +123,7 @@ def update(
             email=request.email,
             phone=request.phone,
         )
-        return OK(Response.Contact.pack(contact))
+        return OK(Response.Contact.model_validate(contact))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -190,7 +190,7 @@ def upload(
             id=request.id,
             sid=request.sid,
         )
-        return OK(Response.UploadURL.pack(form))
+        return OK(Response.UploadURL.model_validate(form))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:

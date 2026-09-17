@@ -53,9 +53,9 @@ def login(
             password=request.password,
         ):
             case Tokens() as tokens:
-                return OK(Response.Tokens.pack(tokens))
+                return OK(Response.Tokens.model_validate(tokens))
             case Challenge() as challenge:
-                return Accepted(Response.Challenge.pack(challenge))
+                return Accepted(Response.Challenge.model_validate(challenge))
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid credentials", cause=exc)
     except DomainForbidden as exc:
@@ -93,9 +93,9 @@ def challenge(
             response=request.response,
         ):
             case Tokens() as tokens:
-                return OK(Response.Tokens.pack(tokens))
+                return OK(Response.Tokens.model_validate(tokens))
             case Challenge() as challenge:
-                return Accepted(Response.Challenge.pack(challenge))
+                return Accepted(Response.Challenge.model_validate(challenge))
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid challenge response", cause=exc)
     except DomainForbidden as exc:
@@ -124,7 +124,7 @@ def setup(
             access_token=caller.token,
             name=caller.name,
         )
-        return OK(Response.MFA.pack(mfa))
+        return OK(Response.MFA.model_validate(mfa))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -182,7 +182,7 @@ def refresh(
         tokens = provider.refresh_tokens(
             refresh_token=request.refreshToken,
         )
-        return OK(Response.Tokens.pack(tokens))
+        return OK(Response.Tokens.model_validate(tokens))
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid refresh token", cause=exc)
     except DomainForbidden as exc:

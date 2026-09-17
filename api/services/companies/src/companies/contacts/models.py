@@ -1,12 +1,8 @@
-from typing import Self
-
 from pydantic import BaseModel, EmailStr, Field, HttpUrl, field_validator
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from shared.config import missing
 from shared.helpers import validate_resource_id, validate_subresource_id
 from shared.http.requests import Body, Path
-
-from .provider import Contact, UploadURL
 
 __all__ = [
     "Request",
@@ -96,7 +92,7 @@ class Request:
 
 
 class Response:
-    class Contact(BaseModel, frozen=True):
+    class Contact(BaseModel, frozen=True, from_attributes=True):
         id: str
         name: str
         title: str | None
@@ -104,24 +100,6 @@ class Response:
         email: EmailStr | None
         phone: PhoneNumber | None
 
-        @classmethod
-        def pack(cls, contact: Contact):
-            return cls(
-                id=contact.id,
-                name=contact.name,
-                title=contact.title,
-                picture=contact.picture,
-                email=contact.email,
-                phone=contact.phone,
-            )
-
-    class UploadURL(BaseModel, frozen=True):
+    class UploadURL(BaseModel, frozen=True, from_attributes=True):
         url: HttpUrl
         fields: dict[str, str]
-
-        @classmethod
-        def pack(cls, upload: UploadURL) -> Self:
-            return cls(
-                url=upload.url,
-                fields=upload.fields,
-            )

@@ -56,7 +56,7 @@ def create(
             state=request.state,
             zip=request.zip,
         )
-        return Created(Response.Location.pack(location))
+        return Created(Response.Location.model_validate(location))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -86,7 +86,7 @@ def read(
             id=request.id,
             sid=request.sid,
         )
-        return OK(Response.Location.pack(location))
+        return OK(Response.Location.model_validate(location))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainNotFound as exc:

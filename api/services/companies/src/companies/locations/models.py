@@ -4,8 +4,6 @@ from pydantic import BaseModel, Field, field_validator
 from shared.helpers import validate_resource_id, validate_subresource_id
 from shared.http.requests import Body, Path
 
-from .provider import Location
-
 __all__ = [
     "Request",
     "Response",
@@ -61,7 +59,7 @@ class Request:
 
 
 class Response:
-    class Location(BaseModel, frozen=True):
+    class Location(BaseModel, frozen=True, from_attributes=True):
         id: str
         street: str
         city: str
@@ -70,14 +68,4 @@ class Response:
         lat: Decimal
         lon: Decimal
 
-        @classmethod
-        def pack(cls, location: Location):
-            return cls(
-                id=location.id,
-                street=location.street,
-                city=location.city,
-                state=location.state,
-                zip=location.zip,
-                lat=location.lat,
-                lon=location.lon,
-            )
+    type LocationIndex = Location

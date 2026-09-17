@@ -1,21 +1,15 @@
-from datetime import datetime
+from __future__ import annotations
+
 from decimal import Decimal
-from typing import Self
 
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 from shared.config import missing
 from shared.helpers import sanitize_query, validate_resource_id
 from shared.http.requests import Body, Path, Query
 
-from .provider import (
-    Company,
-    CompanySummary,
-    Contact,
-    Location,
-    Page,
-    Sector,
-    UploadURL,
-)
+from .contacts.models import Response as contact
+from .locations.models import Response as location
+from .provider import Sector
 
 __all__ = [
     "Request",
@@ -94,70 +88,27 @@ class Request:
 
 
 class Response:
-    class Company(BaseModel, frozen=True):
+    class Company(BaseModel, frozen=True, from_attributes=True):
         id: str
         sector: Sector
         name: str
         logo: HttpUrl
         website: HttpUrl | None
-        locations: list[Location]
-        contacts: list[Contact]
-        createdAt: datetime
-        updatedAt: datetime | None
+        locations: list[location.Location]
+        contacts: list[contact.Contact]
 
-        @classmethod
-        def pack(cls, company: Company):
-            return cls(
-                id=company.id,
-                sector=company.sector,
-                name=company.name,
-                logo=company.logo,
-                website=company.website,
-                locations=company.locations,
-                contacts=company.contacts,
-                createdAt=company.created_at,
-                updatedAt=company.updated_at,
-            )
-
-    class CompanySummary(BaseModel, frozen=True):
+    class CompanyIndex(BaseModel, frozen=True, from_attributes=True):
         id: str
         sector: Sector
         name: str
         logo: HttpUrl
         website: HttpUrl | None
-        locations: list[Location]
+        locations: list[location.LocationIndex]
 
-        @classmethod
-        def pack(cls, company: CompanySummary):
-            return cls(
-                id=company.id,
-                sector=company.sector,
-                name=company.name,
-                logo=company.logo,
-                website=company.website,
-                locations=company.locations,
-            )
-
-    class Page(BaseModel, frozen=True):
-        companies: list["Response.CompanySummary"]
+    class Page(BaseModel, frozen=True, from_attributes=True):
+        companies: list[Response.CompanyIndex] = Field(validation_alias="items")
         cursor: str | None
 
-        @classmethod
-        def pack(cls, page: Page[CompanySummary]):
-            return cls(
-                companies=[
-                    Response.CompanySummary.pack(company) for company in page.items
-                ],
-                cursor=page.cursor,
-            )
-
-    class UploadURL(BaseModel, frozen=True):
+    class UploadURL(BaseModel, frozen=True, from_attributes=True):
         url: HttpUrl
         fields: dict[str, str]
-
-        @classmethod
-        def pack(cls, upload: UploadURL) -> Self:
-            return cls(
-                url=upload.url,
-                fields=upload.fields,
-            )

@@ -1,10 +1,8 @@
-from typing import Self
-
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 from shared.helpers import validate_name, validate_password, validate_user_id
 from shared.http.requests import Body, Path
 
-from .provider import MFA, Challenge, ChallengeKey, Tokens
+from .provider import ChallengeKey
 
 __all__ = [
     "Request",
@@ -63,39 +61,16 @@ class Request:
 
 
 class Response:
-    class Tokens(BaseModel, frozen=True):
-        accessToken: str
-        expiresIn: int
-        refreshToken: str | None
-        idToken: str | None
+    class Tokens(BaseModel, frozen=True, from_attributes=True):
+        accessToken: str = Field(validation_alias="access_token")
+        expiresIn: int = Field(validation_alias="expires_in")
+        refreshToken: str | None = Field(validation_alias="refresh_token")
+        idToken: str | None = Field(validation_alias="id_token")
 
-        @classmethod
-        def pack(cls, tokens: Tokens) -> Self:
-            return cls(
-                accessToken=tokens.access_token,
-                expiresIn=tokens.expires_in,
-                refreshToken=tokens.refresh_token,
-                idToken=tokens.id_token,
-            )
-
-    class Challenge(BaseModel, frozen=True):
+    class Challenge(BaseModel, frozen=True, from_attributes=True):
         session: str
         challenge: ChallengeKey
 
-        @classmethod
-        def pack(cls, challenge: Challenge) -> Self:
-            return cls(
-                session=challenge.session,
-                challenge=challenge.challenge,
-            )
-
-    class MFA(BaseModel, frozen=True):
+    class MFA(BaseModel, frozen=True, from_attributes=True):
         secret: str
         url: str
-
-        @classmethod
-        def pack(cls, mfa: MFA) -> Self:
-            return cls(
-                secret=mfa.secret,
-                url=mfa.url,
-            )

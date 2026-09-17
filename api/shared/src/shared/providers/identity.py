@@ -89,7 +89,7 @@ class User:
     updated_at: datetime | None
     last_login_at: datetime | None
 
-    def __getitem__(self, key: str) -> str | None:
+    def __getattr__(self, key: str) -> str | None:
         return self.attributes.get(key)
 
 
@@ -213,7 +213,7 @@ class IdentityProvider(BaseProvider):
                 UserPoolId=self._idp_pool,
                 Session=session,
                 ChallengeName=challenge,
-                ChallengeResponses={key.upper(): val for key, val in responses.items()},
+                ChallengeResponses={k.upper(): v for k, v in responses.items()},
             ),
             username=username,
         )

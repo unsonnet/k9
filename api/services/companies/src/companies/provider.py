@@ -12,14 +12,15 @@ from shared.providers.search import Near, Page, SearchProvider, Term, Text
 from shared.providers.storage import StorageProvider, UploadURL
 
 from .contacts.provider import Contact
-from .locations.provider import Location
+from .locations.provider import Location, LocationIndex
 
 __all__ = [
     "Company",
     "CompanyProvider",
-    "CompanySummary",
+    "CompanyIndex",
     "Contact",
     "Location",
+    "LocationIndex",
     "Page",
     "Sector",
     "UploadURL",
@@ -44,13 +45,13 @@ class Company(BaseModel, frozen=True):
     updated_at: datetime | None
 
 
-class CompanySummary(BaseModel, frozen=True):
+class CompanyIndex(BaseModel, frozen=True):
     id: str
     sector: Sector
     name: str
     logo: HttpUrl
     website: HttpUrl | None
-    locations: list[Location] = Field(default_factory=list, alias="$location")
+    locations: list[LocationIndex] = Field(default_factory=list, alias="$location")
 
 
 class CompanyProvider(BaseProvider):
@@ -102,14 +103,14 @@ class CompanyProvider(BaseProvider):
         geo: tuple[Decimal, Decimal, int] | missing,
         limit: int,
         cursor: str | missing,
-    ) -> Page[CompanySummary]:
+    ) -> Page[CompanyIndex]:
         return self._os.search(
             Term("sector", [i.value for i in sector] if is_set(sector) else None),
             Text("name", name if is_set(name) else None),
             Near("$location", geo if is_set(geo) else None),
             limit=limit,
             cursor=cursor if is_set(cursor) else None,
-        ).hydrate(CompanySummary)
+        ).hydrate(CompanyIndex)
 
     @apimethod
     def create_company(

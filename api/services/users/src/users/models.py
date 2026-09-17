@@ -1,13 +1,10 @@
-from datetime import datetime
-from typing import Self
+from __future__ import annotations
 
 from pydantic import BaseModel, Field, HttpUrl, StrictBool, field_validator
 from shared.config import missing
 from shared.helpers import validate_name, validate_user_id
 from shared.http import Role
 from shared.http.requests import Body, Path, Query
-
-from .provider import UploadURL, User, UserCredentials, UserPage
 
 __all__ = [
     "Request",
@@ -87,73 +84,27 @@ class Request:
 
 
 class Response:
-    class User(BaseModel, frozen=True):
+    class User(BaseModel, frozen=True, from_attributes=True):
         id: str
         name: str
         picture: HttpUrl
         role: Role
         enabled: StrictBool
-        createdAt: datetime
-        updatedAt: datetime | None
-        lastLoginAt: datetime | None
 
-        @classmethod
-        def pack(cls, user: User) -> Self:
-            return cls(
-                id=user["id"],  # type: ignore
-                name=user["name"],  # type: ignore
-                picture=user["picture"],  # type: ignore
-                role=user["role"],  # type: ignore
-                enabled=user.enabled,
-                createdAt=user.created_at,
-                updatedAt=user.updated_at,
-                lastLoginAt=user.last_login_at,
-            )
-
-    class UserSummary(BaseModel, frozen=True):
+    class UserIndex(BaseModel, frozen=True, from_attributes=True):
         id: str
         name: str
         picture: HttpUrl
 
-        @classmethod
-        def pack(cls, user: User) -> Self:
-            return cls(
-                id=user["id"],  # type: ignore
-                name=user["name"],  # type: ignore
-                picture=user["picture"],  # type: ignore
-            )
-
-    class Page(BaseModel, frozen=True):
-        users: list["Response.UserSummary"]
+    class Page(BaseModel, frozen=True, from_attributes=True):
+        users: list[Response.UserIndex]
         cursor: str | None
 
-        @classmethod
-        def pack(cls, page: UserPage) -> Self:
-            return cls(
-                users=[Response.UserSummary.pack(user) for user in page.users],
-                cursor=page.cursor,
-            )
-
-    class Credentials(BaseModel, frozen=True):
+    class Credentials(BaseModel, frozen=True, from_attributes=True):
         id: str
         name: str
         password: str
 
-        @classmethod
-        def pack(cls, creds: UserCredentials) -> Self:
-            return cls(
-                id=creds.id,
-                name=creds.name,
-                password=creds.password,
-            )
-
-    class UploadURL(BaseModel, frozen=True):
-        url: str
+    class UploadURL(BaseModel, frozen=True, from_attributes=True):
+        url: HttpUrl
         fields: dict[str, str]
-
-        @classmethod
-        def pack(cls, upload: UploadURL) -> Self:
-            return cls(
-                url=str(upload.url),
-                fields=upload.fields,
-            )

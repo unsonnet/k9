@@ -56,7 +56,7 @@ def list(
             limit=request.limit,
             cursor=request.cursor,
         )
-        return OK(Response.Page.pack(page))
+        return OK(Response.Page.model_validate(page))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainRateLimited as exc:
@@ -88,7 +88,7 @@ def create(
             role=request.role,
             enabled=request.enabled,
         )
-        return Created(Response.Credentials.pack(creds))
+        return Created(Response.Credentials.model_validate(creds))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -123,7 +123,7 @@ def read(
         user = provider.read_user(
             id=user_id,
         )
-        return OK(Response.User.pack(user))
+        return OK(Response.User.model_validate(user))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -167,7 +167,7 @@ def update(
             role=request.role,
             enabled=request.enabled,
         )
-        return OK(Response.User.pack(user))
+        return OK(Response.User.model_validate(user))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -238,7 +238,7 @@ def upload(
         form = provider.upload_picture(
             id=user_id,
         )
-        return OK(Response.UploadURL.pack(form))
+        return OK(Response.UploadURL.model_validate(form))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -276,7 +276,7 @@ def reset(
             id=user_id,
             password=generate_password(),
         )
-        return OK(Response.Credentials.pack(creds))
+        return OK(Response.Credentials.model_validate(creds))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:

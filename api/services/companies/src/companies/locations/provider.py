@@ -1,7 +1,8 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import Iterable
 
-from pydantic import AliasChoices, AliasPath, BaseModel, Field
+from pydantic import AliasPath, BaseModel, Field
 from shared.config import settings
 from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider
@@ -10,6 +11,7 @@ from shared.providers.location import LocationProvider
 __all__ = [
     "CompanyLocationProvider",
     "Location",
+    "LocationIndex",
 ]
 
 
@@ -19,8 +21,20 @@ class Location(BaseModel, frozen=True):
     city: str
     state: str
     zip: str
-    lat: Decimal = Field(validation_alias=AliasChoices("lat", AliasPath("geo", "lat")))
-    lon: Decimal = Field(validation_alias=AliasChoices("lon", AliasPath("geo", "lon")))
+    lat: Decimal
+    lon: Decimal
+    created_at: datetime
+    updated_at: datetime | None
+
+
+class LocationIndex(BaseModel, frozen=True):
+    id: str
+    street: str
+    city: str
+    state: str
+    zip: str
+    lat: Decimal = Field(validation_alias=AliasPath("geo", "lat"))
+    lon: Decimal = Field(validation_alias=AliasPath("geo", "lon"))
 
 
 class CompanyLocationProvider(BaseProvider):

@@ -53,7 +53,7 @@ def search(
             limit=request.limit,
             cursor=request.cursor,
         )
-        return OK(Response.Page.pack(page))
+        return OK(Response.Page.model_validate(page))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainRateLimited as exc:
@@ -84,7 +84,7 @@ def create(
             name=request.name,
             website=request.website,
         )
-        return Created(Response.Company.pack(company))
+        return Created(Response.Company.model_validate(company))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -113,7 +113,7 @@ def read(
         company = provider.read_company(
             id=request.id,
         )
-        return OK(Response.Company.pack(company))
+        return OK(Response.Company.model_validate(company))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainNotFound as exc:
@@ -148,7 +148,7 @@ def update(
             logo=request.logo,
             website=request.website,
         )
-        return OK(Response.Company.pack(company))
+        return OK(Response.Company.model_validate(company))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -213,7 +213,7 @@ def upload(
         form = provider.upload_logo(
             id=request.id,
         )
-        return OK(Response.UploadURL.pack(form))
+        return OK(Response.UploadURL.model_validate(form))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:

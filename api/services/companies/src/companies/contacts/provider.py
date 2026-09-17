@@ -1,3 +1,4 @@
+from datetime import datetime
 from functools import cached_property
 from typing import Iterable
 
@@ -23,6 +24,8 @@ class Contact(BaseModel, frozen=True):
     picture: HttpUrl
     email: EmailStr | None
     phone: PhoneNumber | None
+    created_at: datetime
+    updated_at: datetime | None
 
 
 class CompanyContactProvider(BaseProvider):
