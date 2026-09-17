@@ -27,7 +27,7 @@ __all__ = [
 
 
 class Request:
-    class List(BaseModel, frozen=True):
+    class Search(BaseModel, frozen=True):
         sector: Query[list[Sector] | missing] = missing
         name: Query[str | missing] = missing
         lat: Query[Decimal | missing] = Field(missing, ge=-90, le=90)

@@ -180,7 +180,7 @@ def delete(
         429: "Too many requests",
     },
 )
-def picture(
+def upload(
     caller: Caller,
     request: Request.Picture,
 ) -> OK[Response.UploadURL] | Unauthorized | Forbidden | NotFound | TooManyRequests:

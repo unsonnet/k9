@@ -32,8 +32,8 @@ def lambda_handler(event, context):
 
 @app.get(
     "/companies",
-    summary="List companies",
-    description="List companies filtered by sector, name, and coordinates.",
+    summary="Search companies",
+    description="Search companies by sector, name, and coordinates.",
     tags=["company"],
     responses={
         200: "Companies found",
@@ -41,12 +41,12 @@ def lambda_handler(event, context):
         429: "Too many requests",
     },
 )
-def list(
+def search(
     caller: Caller,
-    request: Request.List,
+    request: Request.Search,
 ) -> OK[Response.Page] | Unauthorized | TooManyRequests:
     try:
-        page = provider.list_companies(
+        page = provider.search_companies(
             sector=request.sector,
             name=request.name,
             geo=request.geo,
@@ -204,7 +204,7 @@ def delete(
         429: "Too many requests",
     },
 )
-def logo(
+def upload(
     caller: Caller,
     request: Request.Logo,
 ) -> OK[Response.UploadURL] | Unauthorized | Forbidden | NotFound | TooManyRequests:

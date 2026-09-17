@@ -94,7 +94,7 @@ class CompanyProvider(BaseProvider):
     # ──── Public Methods ────
 
     @apimethod
-    def list_companies(
+    def search_companies(
         self,
         *,
         sector: list[Sector] | missing,

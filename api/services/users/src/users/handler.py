@@ -39,7 +39,7 @@ def lambda_handler(event, context):
 @app.get(
     "/users",
     summary="List users",
-    description="List or search users.",
+    description="List users.",
     tags=["user"],
     responses={
         200: "Users found",
@@ -214,7 +214,7 @@ def delete(
 
 @app.post(
     "/users/<id>/picture",
-    summary="Create user picture upload form",
+    summary="Upload user picture",
     description=(
         "Create a user picture upload form. "
         "Uploading another user's picture requires admin role. "
@@ -229,7 +229,7 @@ def delete(
         429: "Too many requests",
     },
 )
-def picture(
+def upload(
     caller: Caller,
     request: Request.Picture,
 ) -> OK[Response.UploadURL] | Unauthorized | Forbidden | NotFound | TooManyRequests:
