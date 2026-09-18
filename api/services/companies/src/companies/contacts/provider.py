@@ -82,20 +82,6 @@ class CompanyContactProvider(BaseProvider):
         )
 
     @apimethod
-    def read_contact(
-        self,
-        *,
-        id: str,
-        sid: str,
-    ) -> Contact:
-        return Contact.model_validate(
-            self._db.read_item(
-                type="company.contact",
-                id=f"{id}.{sid}",
-            )
-        )
-
-    @apimethod
     def update_contact(
         self,
         *,

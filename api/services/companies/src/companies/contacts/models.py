@@ -26,20 +26,6 @@ class Request:
         def validate_id(cls, value: str) -> str:
             return validate_resource_id(value)
 
-    class Read(BaseModel, frozen=True):
-        id: Path[str]
-        sid: Path[str]
-
-        @field_validator("id")
-        @classmethod
-        def validate_id(cls, value: str) -> str:
-            return validate_resource_id(value)
-
-        @field_validator("sid")
-        @classmethod
-        def validate_sub_id(cls, value: str) -> str:
-            return validate_subresource_id(value)
-
     class Update(BaseModel, frozen=True):
         id: Path[str]
         sid: Path[str]

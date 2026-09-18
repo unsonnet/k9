@@ -91,20 +91,6 @@ class CompanyLocationProvider(BaseProvider):
         )
 
     @apimethod
-    def read_location(
-        self,
-        *,
-        id: str,
-        sid: str,
-    ) -> Location:
-        return Location.model_validate(
-            self._db.read_item(
-                type="company.location",
-                id=f"{id}.{sid}",
-            )
-        )
-
-    @apimethod
     def delete_location(
         self,
         *,

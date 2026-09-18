@@ -65,36 +65,6 @@ def create(
         return TooManyRequests(cause=exc)
 
 
-@app.get(
-    "/companies/<id>/contacts/<sid>",
-    summary="Read company contact",
-    description="Read a contact of a company.",
-    tags=["company", "contact"],
-    responses={
-        200: "Company contact found",
-        401: "Authentication required",
-        404: "Company contact not found",
-        429: "Too many requests",
-    },
-)
-def read(
-    caller: Caller,
-    request: Request.Read,
-) -> OK[Response.Contact] | Unauthorized | NotFound | TooManyRequests:
-    try:
-        contact = provider.read_contact(
-            id=request.id,
-            sid=request.sid,
-        )
-        return OK(Response.Contact.model_validate(contact))
-    except DomainUnauthorized as exc:
-        return Unauthorized(cause=exc)
-    except DomainNotFound as exc:
-        return NotFound(cause=exc)
-    except DomainRateLimited as exc:
-        return TooManyRequests(cause=exc)
-
-
 @app.patch(
     "/companies/<id>/contacts/<sid>",
     summary="Update company contact",

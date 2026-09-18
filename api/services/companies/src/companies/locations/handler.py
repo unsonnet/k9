@@ -6,8 +6,8 @@ from shared.errors import (
 )
 from shared.helpers import generate_subresource_id, require_admin
 from shared.http import Caller, HttpResolver
-from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
-from shared.http.responses import OK, Created, NoContent
+from shared.http.errors import Forbidden, TooManyRequests, Unauthorized
+from shared.http.responses import Created, NoContent
 
 from .models import Request, Response
 from .provider import CompanyLocationProvider
@@ -61,36 +61,6 @@ def create(
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
         return Forbidden(cause=exc)
-    except DomainRateLimited as exc:
-        return TooManyRequests(cause=exc)
-
-
-@app.get(
-    "/companies/<id>/locations/<sid>",
-    summary="Read company location",
-    description="Read a location of a company.",
-    tags=["company", "location"],
-    responses={
-        200: "Company location found",
-        401: "Authentication required",
-        404: "Company location not found",
-        429: "Too many requests",
-    },
-)
-def read(
-    caller: Caller,
-    request: Request.Read,
-) -> OK[Response.Location] | Unauthorized | NotFound | TooManyRequests:
-    try:
-        location = provider.read_location(
-            id=request.id,
-            sid=request.sid,
-        )
-        return OK(Response.Location.model_validate(location))
-    except DomainUnauthorized as exc:
-        return Unauthorized(cause=exc)
-    except DomainNotFound as exc:
-        return NotFound(cause=exc)
     except DomainRateLimited as exc:
         return TooManyRequests(cause=exc)
 
