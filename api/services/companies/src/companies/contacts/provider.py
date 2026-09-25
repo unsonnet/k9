@@ -69,16 +69,20 @@ class CompanyContactProvider(BaseProvider):
         email: EmailStr | None,
         phone: PhoneNumber | None,
     ) -> Contact:
+        self._db.create_item(
+            type="company.contact",
+            id=f"{id}.{sid}",
+            name=name,
+            title=title,
+            picture=str(self.default_picture),
+            email=email,
+            phone=phone,
+        )
         return Contact.model_validate(
-            self._db.create_item(
+            self._db.read_item(
                 type="company.contact",
                 id=f"{id}.{sid}",
-                name=name,
-                title=title,
-                picture=str(self.default_picture),
-                email=email,
-                phone=phone,
-            )
+            ),
         )
 
     @apimethod
@@ -104,12 +108,16 @@ class CompanyContactProvider(BaseProvider):
             attrs["email"] = email
         if is_set(phone):
             attrs["phone"] = phone
+        self._db.update_item(
+            type="company.contact",
+            id=f"{id}.{sid}",
+            **attrs,
+        )
         return Contact.model_validate(
-            self._db.update_item(
+            self._db.read_item(
                 type="company.contact",
                 id=f"{id}.{sid}",
-                **attrs,
-            )
+            ),
         )
 
     @apimethod

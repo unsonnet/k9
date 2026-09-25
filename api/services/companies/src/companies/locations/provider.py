@@ -77,17 +77,21 @@ class CompanyLocationProvider(BaseProvider):
         zip: str,
     ) -> Location:
         lat, lon = self._loc.geocode(street, city, state, zip)
+        self._db.create_item(
+            type="company.location",
+            id=f"{id}.{sid}",
+            street=street,
+            city=city,
+            state=state,
+            zip=zip,
+            lat=lat,
+            lon=lon,
+        )
         return Location.model_validate(
-            self._db.create_item(
+            self._db.read_item(
                 type="company.location",
                 id=f"{id}.{sid}",
-                street=street,
-                city=city,
-                state=state,
-                zip=zip,
-                lat=lat,
-                lon=lon,
-            )
+            ),
         )
 
     @apimethod

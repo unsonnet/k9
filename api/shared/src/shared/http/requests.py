@@ -5,6 +5,7 @@ from aws_lambda_powertools.event_handler.openapi.params import Path as HTTPPath
 from aws_lambda_powertools.event_handler.openapi.params import Query as HTTPQuery
 
 __all__ = [
+    "Payload",
     "Body",
     "Path",
     "Query",
@@ -13,6 +14,7 @@ __all__ = [
 
 T = TypeVar("T")
 
+Payload = Annotated[T, HTTPBody(embed=False)]
 Body = Annotated[T, HTTPBody(embed=True)]
 Path = Annotated[T, HTTPPath()]
 Query = Annotated[T, HTTPQuery()]

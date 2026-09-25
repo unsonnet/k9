@@ -121,16 +121,15 @@ class CompanyProvider(BaseProvider):
         name: str,
         website: HttpUrl | None,
     ) -> Company:
-        return Company.model_validate(
-            self._db.create_item(
-                type="company",
-                id=id,
-                sector=sector.value,
-                name=name,
-                logo=str(self.default_logo),
-                website=str(website) if website is not None else None,
-            )
+        self._db.create_item(
+            type="company",
+            id=id,
+            sector=sector.value,
+            name=name,
+            logo=str(self.default_logo),
+            website=str(website) if website is not None else None,
         )
+        return self.read_company(id=id)
 
     @apimethod
     def read_company(
@@ -164,13 +163,12 @@ class CompanyProvider(BaseProvider):
             attrs["logo"] = str(self.default_logo)
         if is_set(website):
             attrs["website"] = str(website) if website is not None else None
-        return Company.model_validate(
-            self._db.update_item(
-                type="company",
-                id=id,
-                **attrs,
-            )
+        self._db.update_item(
+            type="company",
+            id=id,
+            **attrs,
         )
+        return self.read_company(id=id)
 
     @apimethod
     def delete_company(
