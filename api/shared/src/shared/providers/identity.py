@@ -26,7 +26,6 @@ from ..helpers import dt, now
 from . import BaseProvider, ExceptionMap, GrantSpec, apimethod
 
 __all__ = [
-    "ChallengeKey",
     "Challenge",
     "Tokens",
     "MFA",
@@ -57,13 +56,17 @@ _STANDARD_ATTRIBUTES: set[str] = {
 }
 
 
-type ChallengeKey = ChallengeNameTypeType
+@dataclass(frozen=True, slots=True)
+class Challenge:
+    type Key = ChallengeNameTypeType
+    session: str
+    challenge: Key
 
 
 @dataclass(frozen=True, slots=True)
-class Challenge:
-    session: str
-    challenge: ChallengeKey
+class MFA:
+    secret: str
+    url: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -72,12 +75,6 @@ class Tokens:
     expires_in: int
     refresh_token: str | None
     id_token: str | None
-
-
-@dataclass(frozen=True, slots=True)
-class MFA:
-    secret: str
-    url: str
 
 
 @dataclass(frozen=True, slots=True)
@@ -201,7 +198,7 @@ class IdentityProvider(BaseProvider):
         self,
         *,
         session: str,
-        challenge: ChallengeKey,
+        challenge: Challenge.Key,
         username: str,
         **responses: str,
     ) -> Tokens | Challenge:
@@ -249,7 +246,6 @@ class IdentityProvider(BaseProvider):
                 "PreferredMfa": True,
             },
         )
-        return None
 
     @apimethod
     def refresh_tokens(
@@ -275,7 +271,6 @@ class IdentityProvider(BaseProvider):
             UserPoolId=self._idp_pool,
             Username=username,
         )
-        return None
 
     # ──── Public User Methods ────
 
@@ -372,7 +367,6 @@ class IdentityProvider(BaseProvider):
             UserPoolId=self._idp_pool,
             Username=username,
         )
-        return None
 
     @apimethod
     def reset_user(
@@ -399,7 +393,6 @@ class IdentityProvider(BaseProvider):
             UserPoolId=self._idp_pool,
             Username=username,
         )
-        return None
 
     # ──── Private Auth Methods ────
 

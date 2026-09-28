@@ -3,20 +3,13 @@ from typing import Iterable
 
 from shared.config import settings
 from shared.providers import BaseProvider, GrantSpec, apimethod
-from shared.providers.identity import (
-    MFA,
-    Challenge,
-    ChallengeKey,
-    IdentityProvider,
-    Tokens,
-)
+from shared.providers.identity import MFA, Challenge, IdentityProvider, Tokens
 
 __all__ = [
-    "MFA",
-    "AuthProvider",
     "Challenge",
-    "ChallengeKey",
+    "MFA",
     "Tokens",
+    "AuthProvider",
 ]
 
 
@@ -63,7 +56,7 @@ class AuthProvider(BaseProvider):
         self,
         *,
         session: str,
-        challenge: ChallengeKey,
+        challenge: Challenge.Key,
         response: dict[str, str],
     ) -> Tokens | Challenge:
         match challenge:

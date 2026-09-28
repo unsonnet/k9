@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, field_validator
 from shared.helpers import validate_name, validate_password, validate_user_id
 from shared.http.requests import Body, Path
 
-from .provider import ChallengeKey
+from .provider import Challenge
 
 __all__ = [
     "Request",
@@ -30,7 +30,7 @@ class Request:
 
     class Challenge(BaseModel, frozen=True):
         session: Body[str]
-        challenge: Body[ChallengeKey]
+        challenge: Body[Challenge.Key]
         response: Body[dict[str, str]]
 
         @field_validator("response")
@@ -69,7 +69,7 @@ class Response:
 
     class Challenge(BaseModel, frozen=True, from_attributes=True):
         session: str
-        challenge: ChallengeKey
+        challenge: Challenge.Key
 
     class MFA(BaseModel, frozen=True, from_attributes=True):
         secret: str
