@@ -9,6 +9,7 @@ members = [
     "companies-index",
     "infra",
     "k9",
+    "products",
     "profiles-index",
     "shared",
     "users",
@@ -731,6 +732,7 @@ dependencies = [
     { name = "auth" },
     { name = "companies" },
     { name = "companies-index" },
+    { name = "products" },
     { name = "profiles-index" },
     { name = "shared" },
     { name = "users" },
@@ -752,6 +754,7 @@ requires-dist = [
     { name = "auth", editable = "services/auth" },
     { name = "companies", editable = "services/companies" },
     { name = "companies-index", editable = "workers/companies_index" },
+    { name = "products", editable = "services/products" },
     { name = "profiles-index", editable = "workers/profiles_index" },
     { name = "shared", editable = "shared" },
     { name = "users", editable = "services/users" },
@@ -1023,6 +1026,21 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3", size = 69412, upload-time = "2025-05-15T12:30:07.975Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
+]
+
+[[package]]
+name = "products"
+version = "0.1.0"
+source = { editable = "services/products" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "shared" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "shared", editable = "shared" },
 ]
 
 [[package]]

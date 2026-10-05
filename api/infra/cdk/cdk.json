@@ -15,7 +15,9 @@
           "S3_BUCKET_PARAMETER": "/k9/dev/storage/s3/bucket"
         },
         "data": {
-          "DYNAMODB_TABLE_PARAMETER": "/k9/dev/data/dynamodb/table",
+          "DYNAMODB_TABLE_PARAMETER": "/k9/dev/data/dynamodb/table"
+        },
+        "search": {
           "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/dev/data/opensearch/endpoint",
           "OPENSEARCH_INDEX_COMPANIES_PARAMETER": "/k9/dev/data/opensearch/index/companies"
         }
@@ -45,7 +47,8 @@
           "shared": [
             "identity",
             "storage",
-            "data"
+            "data",
+            "search"
           ]
         },
         "companies.contacts": {
@@ -67,6 +70,35 @@
             "storage",
             "data"
           ]
+        },
+        "products": {
+          "dockerfile": "services/products/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        },
+        "products.images": {
+          "dockerfile": "services/products/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        },
+        "products.listings": {
+          "dockerfile": "services/products/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "data"
+          ]
         }
       },
       "workers": {
@@ -76,7 +108,7 @@
           "timeout": 60,
           "memory": 512,
           "shared": [
-            "data"
+            "search"
           ],
           "tableName": "k9-dev",
           "streamArnParameter": "/k9/dev/data/dynamodb/stream",
@@ -111,7 +143,9 @@
           "S3_BUCKET_PARAMETER": "/k9/stage/storage/s3/bucket"
         },
         "data": {
-          "DYNAMODB_TABLE_PARAMETER": "/k9/stage/data/dynamodb/table",
+          "DYNAMODB_TABLE_PARAMETER": "/k9/stage/data/dynamodb/table"
+        },
+        "search": {
           "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/stage/data/opensearch/endpoint",
           "OPENSEARCH_INDEX_COMPANIES_PARAMETER": "/k9/stage/data/opensearch/index/companies"
         }
@@ -141,7 +175,8 @@
           "shared": [
             "identity",
             "storage",
-            "data"
+            "data",
+            "search"
           ]
         },
         "companies.contacts": {
@@ -163,6 +198,35 @@
             "storage",
             "data"
           ]
+        },
+        "products": {
+          "dockerfile": "services/products/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        },
+        "products.images": {
+          "dockerfile": "services/products/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        },
+        "products.listings": {
+          "dockerfile": "services/products/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "data"
+          ]
         }
       },
       "workers": {
@@ -172,7 +236,7 @@
           "timeout": 60,
           "memory": 512,
           "shared": [
-            "data"
+            "search"
           ],
           "tableName": "k9-stage",
           "streamArnParameter": "/k9/stage/data/dynamodb/stream",
@@ -207,7 +271,9 @@
           "S3_BUCKET_PARAMETER": "/k9/prod/storage/s3/bucket"
         },
         "data": {
-          "DYNAMODB_TABLE_PARAMETER": "/k9/prod/data/dynamodb/table",
+          "DYNAMODB_TABLE_PARAMETER": "/k9/prod/data/dynamodb/table"
+        },
+        "search": {
           "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/prod/data/opensearch/endpoint",
           "OPENSEARCH_INDEX_COMPANIES_PARAMETER": "/k9/prod/data/opensearch/index/companies"
         }
@@ -237,7 +303,8 @@
           "shared": [
             "identity",
             "storage",
-            "data"
+            "data",
+            "search"
           ]
         },
         "companies.contacts": {
@@ -259,6 +326,35 @@
             "storage",
             "data"
           ]
+        },
+        "products": {
+          "dockerfile": "services/products/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        },
+        "products.images": {
+          "dockerfile": "services/products/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "storage",
+            "data"
+          ]
+        },
+        "products.listings": {
+          "dockerfile": "services/products/Dockerfile",
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
+            "data"
+          ]
         }
       },
       "workers": {
@@ -268,7 +364,7 @@
           "timeout": 60,
           "memory": 512,
           "shared": [
-            "data"
+            "search"
           ],
           "tableName": "k9-prod",
           "streamArnParameter": "/k9/prod/data/dynamodb/stream",

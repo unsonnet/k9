@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "auth",
     "companies",
+    "products",
     "users",
     "shared",
     "companies_index",
@@ -26,6 +27,7 @@ members = [
 auth = { workspace = true }
 companies = { workspace = true }
 users = { workspace = true }
+products = { workspace = true }
 shared = { workspace = true }
 companies_index = { workspace = true }
 profiles_index = { workspace = true }
