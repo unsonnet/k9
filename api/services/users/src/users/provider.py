@@ -1,5 +1,4 @@
 import base64
-from dataclasses import dataclass
 from functools import cached_property
 from typing import Iterable
 
@@ -10,20 +9,11 @@ from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.identity import IdentityProvider, User, UserPage
 from shared.providers.storage import StorageProvider, UploadURL
 
+from .models import UserCredentials
+
 __all__ = [
-    "UploadURL",
-    "User",
-    "UserCredentials",
-    "UserPage",
     "UserProvider",
 ]
-
-
-@dataclass(frozen=True, slots=True)
-class UserCredentials:
-    id: str
-    name: str
-    password: str
 
 
 class UserProvider(BaseProvider):

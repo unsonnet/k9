@@ -1,8 +1,7 @@
-from datetime import datetime
 from functools import cached_property
 from typing import Iterable
 
-from pydantic import BaseModel, HttpUrl
+from pydantic import HttpUrl
 from pydantic.networks import EmailStr
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from shared.config import is_set, missing, settings
@@ -10,22 +9,11 @@ from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
 from shared.providers.storage import StorageProvider, UploadURL
 
+from .models import Contact
+
 __all__ = [
     "CompanyContactProvider",
-    "Contact",
-    "UploadURL",
 ]
-
-
-class Contact(BaseModel, frozen=True):
-    id: str
-    name: str
-    title: str | None
-    picture: HttpUrl
-    email: EmailStr | None
-    phone: PhoneNumber | None
-    created_at: datetime
-    updated_at: datetime | None
 
 
 class CompanyContactProvider(BaseProvider):

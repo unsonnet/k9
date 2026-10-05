@@ -1,57 +1,19 @@
-from datetime import datetime
 from decimal import Decimal
-from enum import StrEnum
 from functools import cached_property
 from typing import Iterable
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import HttpUrl
 from shared.config import is_set, missing, settings
 from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
 from shared.providers.search import Near, Page, SearchProvider, Term, Text
 from shared.providers.storage import StorageProvider, UploadURL
 
-from .contacts.provider import Contact
-from .locations.provider import Location, LocationIndex
+from .models import Company, CompanyIndex, Sector
 
 __all__ = [
-    "Company",
     "CompanyProvider",
-    "CompanyIndex",
-    "Contact",
-    "Location",
-    "LocationIndex",
-    "Page",
-    "Sector",
-    "UploadURL",
 ]
-
-
-class Sector(StrEnum):
-    INSURANCE = "INSURANCE"
-    MANUFACTURER = "MANUFACTURER"
-    RETAILER = "RETAILER"
-
-
-class Company(BaseModel, frozen=True):
-    id: str
-    sector: Sector
-    name: str
-    logo: HttpUrl
-    website: HttpUrl | None
-    locations: list[Location] = Field(default_factory=list, alias="$location")
-    contacts: list[Contact] = Field(default_factory=list, alias="$contact")
-    created_at: datetime
-    updated_at: datetime | None
-
-
-class CompanyIndex(BaseModel, frozen=True):
-    id: str
-    sector: Sector
-    name: str
-    logo: HttpUrl
-    website: HttpUrl | None
-    locations: list[LocationIndex] = Field(default_factory=list, alias="$location")
 
 
 class CompanyProvider(BaseProvider):

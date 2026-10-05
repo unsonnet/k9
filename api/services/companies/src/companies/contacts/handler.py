@@ -9,7 +9,7 @@ from shared.http import Caller, HttpResolver
 from shared.http.errors import Forbidden, NotFound, TooManyRequests, Unauthorized
 from shared.http.responses import OK, Created, NoContent
 
-from .models import Request, Response
+from .http import Request, Response
 from .provider import CompanyContactProvider
 
 __all__ = [
