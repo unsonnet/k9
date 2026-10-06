@@ -73,9 +73,8 @@ def load_manifest(
     kind: Literal["services", "workers"],
     name: str,
 ) -> Manifest:
-    return Manifest.model_validate_json(
-        (root / "cdk.out" / kind / f"{name}.json").read_text()
-    )
+    root = root / "infra" / "cdk" / "cdk.out" / "manifests"
+    return Manifest.model_validate_json((root / kind / f"{name}.json").read_text())
 
 
 def grant_resources(

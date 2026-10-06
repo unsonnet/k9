@@ -77,7 +77,7 @@ run_cdk() {
   if [[ "$action" == "deploy" ]]; then
     cmd+=(
       --require-approval never
-      --outputs-file "$repo_root/cdk.out/outputs-${stage}.json"
+      --outputs-file "$repo_root/infra/cdk/cdk.out/stack-${stage}.json"
     )
   fi
 

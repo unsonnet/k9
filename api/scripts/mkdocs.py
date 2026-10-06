@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+MANIFESTS_DIR = REPO_ROOT / "infra" / "cdk" / "cdk.out" / "manifests"
 
 
 class ManifestApp(Protocol):
@@ -58,7 +59,7 @@ def import_app(kind: str, name: str) -> ManifestApp:
 
 
 def write_manifest(kind: str, name: str, manifest: dict[str, Any]) -> Path:
-    output_dir = REPO_ROOT / "cdk.out" / kind
+    output_dir = MANIFESTS_DIR / kind
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / f"{name}.json"
     output_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
@@ -66,7 +67,7 @@ def write_manifest(kind: str, name: str, manifest: dict[str, Any]) -> Path:
 
 
 def clear_manifests(kind: str) -> None:
-    output_dir = REPO_ROOT / "cdk.out" / kind
+    output_dir = MANIFESTS_DIR / kind
     if output_dir.exists():
         for path in output_dir.glob("*.json"):
             path.unlink()
