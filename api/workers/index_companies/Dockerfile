@@ -4,14 +4,14 @@ WORKDIR /workspace
 
 COPY pyproject.toml uv.lock ./
 COPY shared/pyproject.toml shared/pyproject.toml
-COPY workers/companies_index/pyproject.toml workers/companies_index/pyproject.toml
+COPY workers/index_companies/pyproject.toml workers/index_companies/pyproject.toml
 COPY shared/src shared/src
-COPY workers/companies_index/src workers/companies_index/src
+COPY workers/index_companies/src workers/index_companies/src
 
 RUN uv export \
-    --project companies_index \
+    --project index_companies \
     --frozen \
-    --package companies_index \
+    --package index_companies \
     --no-dev \
     --no-emit-workspace \
     --format requirements.txt \
@@ -22,5 +22,5 @@ FROM public.ecr.aws/lambda/python:3.12
 COPY --from=builder /tmp/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 
-COPY workers/companies_index/src/ ${LAMBDA_TASK_ROOT}/
+COPY workers/index_companies/src/ ${LAMBDA_TASK_ROOT}/
 COPY shared/src/ ${LAMBDA_TASK_ROOT}/

@@ -102,9 +102,9 @@
         }
       },
       "workers": {
-        "companies_index": {
+        "index_companies": {
           "source": "dynamodb",
-          "dockerfile": "workers/companies_index/Dockerfile",
+          "dockerfile": "workers/index_companies/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -115,15 +115,25 @@
           "batchSize": 10,
           "retryAttempts": 10
         },
-        "profiles_index": {
+        "sync_companies": {
           "source": "s3",
-          "dockerfile": "workers/profiles_index/Dockerfile",
+          "dockerfile": "workers/sync_companies/Dockerfile",
+          "timeout": 60,
+          "memory": 512,
+          "shared": [
+            "storage",
+            "data"
+          ],
+          "bucketName": "k9-dev-425688663965-us-east-2-an"
+        },
+        "sync_users": {
+          "source": "s3",
+          "dockerfile": "workers/sync_users/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
             "identity",
-            "storage",
-            "data"
+            "storage"
           ],
           "bucketName": "k9-dev-425688663965-us-east-2-an"
         }
@@ -230,9 +240,9 @@
         }
       },
       "workers": {
-        "companies_index": {
+        "index_companies": {
           "source": "dynamodb",
-          "dockerfile": "workers/companies_index/Dockerfile",
+          "dockerfile": "workers/index_companies/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -243,17 +253,27 @@
           "batchSize": 10,
           "retryAttempts": 10
         },
-        "profiles_index": {
+        "sync_companies": {
           "source": "s3",
-          "dockerfile": "workers/profiles_index/Dockerfile",
+          "dockerfile": "workers/sync_companies/Dockerfile",
+          "timeout": 60,
+          "memory": 512,
+          "shared": [
+            "storage",
+            "data"
+          ],
+          "bucketName": "k9-dev-425688663965-us-east-2-an"
+        },
+        "sync_users": {
+          "source": "s3",
+          "dockerfile": "workers/sync_users/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
             "identity",
-            "storage",
-            "data"
+            "storage"
           ],
-          "bucketName": "k9-stage-425688663965-us-east-2-an"
+          "bucketName": "k9-dev-425688663965-us-east-2-an"
         }
       }
     },
@@ -358,9 +378,9 @@
         }
       },
       "workers": {
-        "companies_index": {
+        "index_companies": {
           "source": "dynamodb",
-          "dockerfile": "workers/companies_index/Dockerfile",
+          "dockerfile": "workers/index_companies/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -371,17 +391,27 @@
           "batchSize": 10,
           "retryAttempts": 10
         },
-        "profiles_index": {
+        "sync_companies": {
           "source": "s3",
-          "dockerfile": "workers/profiles_index/Dockerfile",
+          "dockerfile": "workers/sync_companies/Dockerfile",
+          "timeout": 60,
+          "memory": 512,
+          "shared": [
+            "storage",
+            "data"
+          ],
+          "bucketName": "k9-dev-425688663965-us-east-2-an"
+        },
+        "sync_users": {
+          "source": "s3",
+          "dockerfile": "workers/sync_users/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
             "identity",
-            "storage",
-            "data"
+            "storage"
           ],
-          "bucketName": "k9-prod-425688663965-us-east-2-an"
+          "bucketName": "k9-dev-425688663965-us-east-2-an"
         }
       }
     },

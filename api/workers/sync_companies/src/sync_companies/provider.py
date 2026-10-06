@@ -3,16 +3,14 @@ from typing import Iterable
 from shared.config import settings
 from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider
-from shared.providers.identity import IdentityProvider
 from shared.providers.storage import StorageProvider
 
 __all__ = [
-    "ProfileIndexProvider",
+    "SyncCompanyProvider",
 ]
 
 
-class ProfileIndexProvider(BaseProvider):
-    _idp: IdentityProvider
+class SyncCompanyProvider(BaseProvider):
     _mem: StorageProvider
     _db: DatabaseProvider
 
@@ -22,14 +20,8 @@ class ProfileIndexProvider(BaseProvider):
         region: str | None = None,
         table: str | None = None,
         bucket: str | None = None,
-        user_pool_id: str | None = None,
     ) -> None:
         region = region or settings.aws_region
-        # cognito idp
-        self._idp = IdentityProvider(
-            region=region,
-            pool=user_pool_id or settings.cognito_user_pool_id,
-        )
         # s3
         self._mem = StorageProvider(
             region=region,
@@ -43,17 +35,10 @@ class ProfileIndexProvider(BaseProvider):
 
     @property
     def permissions(self) -> Iterable[GrantSpec]:
-        yield from self._idp.permissions
+        yield from self._mem.permissions
         yield from self._db.permissions
 
     # ──── Public Methods ────
-
-    @apimethod
-    def sync_user(self, key: str, *, id: str) -> None:
-        self._idp.update_user(
-            username=f"id:{id}",
-            picture=str(self._mem.get_url(key)),
-        )
 
     @apimethod
     def sync_company(self, key: str, *, id: str) -> None:

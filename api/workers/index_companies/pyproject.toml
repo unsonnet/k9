@@ -1,7 +1,7 @@
 [project]
-name = "companies_index"
+name = "index_companies"
 version = "0.3.0"
-description = "Companies Index Workers"
+description = "Index Companies Worker"
 requires-python = ">=3.12"
 dependencies = [
 	"shared",

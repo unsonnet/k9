@@ -8,8 +8,9 @@ dependencies = [
     "products",
     "users",
     "shared",
-    "companies_index",
-    "profiles_index",
+    "index_companies",
+    "sync_companies",
+    "sync_users",
 ]
 
 [tool.uv]
@@ -29,8 +30,9 @@ companies = { workspace = true }
 users = { workspace = true }
 products = { workspace = true }
 shared = { workspace = true }
-companies_index = { workspace = true }
-profiles_index = { workspace = true }
+index_companies = { workspace = true }
+sync_companies = { workspace = true }
+sync_users = { workspace = true }
 
 [dependency-groups]
 dev = [

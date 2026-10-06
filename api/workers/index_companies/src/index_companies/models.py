@@ -4,8 +4,8 @@ from enum import StrEnum
 from shared.dynamodb import EventModel, NewImage, OldImage
 
 __all__ = [
-    "Sync",
-    "Remove",
+    "Index",
+    "Drop",
 ]
 
 
@@ -15,7 +15,7 @@ class Sector(StrEnum):
     RETAILER = "RETAILER"
 
 
-class Sync:
+class Index:
     class Company(EventModel, frozen=True):
         type: NewImage[str]
         id: NewImage[str]
@@ -44,7 +44,7 @@ class Sync:
         lon: NewImage[Decimal]
 
 
-class Remove:
+class Drop:
     class Item(EventModel, frozen=True):
         type: OldImage[str]
         id: OldImage[str]

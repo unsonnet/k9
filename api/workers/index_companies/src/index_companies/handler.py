@@ -1,11 +1,11 @@
 from shared.dynamodb import DynamoDBResolver
 from shared.errors import DomainNotFound
 
-from .models import Remove, Sync
-from .provider import CompanyIndexProvider
+from .models import Drop, Index
+from .provider import IndexCompanyProvider
 
 app = DynamoDBResolver()
-provider = CompanyIndexProvider()
+provider = IndexCompanyProvider()
 app.grant(*provider.permissions)
 
 
@@ -18,8 +18,8 @@ def lambda_handler(event, context):
 
 @app.insert("company")
 @app.modify("company")
-def sync_company(request: Sync.Company) -> None:
-    provider.sync(
+def index_company(request: Index.Company) -> None:
+    provider.index(
         type=request.type,
         id=request.id,
         sector=request.sector.value,
@@ -31,8 +31,8 @@ def sync_company(request: Sync.Company) -> None:
 
 @app.insert("company.contact")
 @app.modify("company.contact")
-def sync_contact(request: Sync.Contact) -> None:
-    provider.sync(
+def index_contact(request: Index.Contact) -> None:
+    provider.index(
         type=request.type,
         id=request.id,
         name=request.name,
@@ -45,8 +45,8 @@ def sync_contact(request: Sync.Contact) -> None:
 
 @app.insert("company.location")
 @app.modify("company.location")
-def sync_location(request: Sync.Location) -> None:
-    provider.sync(
+def index_location(request: Index.Location) -> None:
+    provider.index(
         type=request.type,
         id=request.id,
         street=request.street,
@@ -60,9 +60,9 @@ def sync_location(request: Sync.Location) -> None:
 @app.remove("company")
 @app.remove("company.contact")
 @app.remove("company.location")
-def remove(request: Remove.Item) -> None:
+def drop(request: Drop.Item) -> None:
     try:
-        provider.remove(
+        provider.drop(
             type=request.type,
             id=request.id,
         )

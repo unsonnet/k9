@@ -5,11 +5,11 @@ from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.search import SearchProvider
 
 __all__ = [
-    "CompanyIndexProvider",
+    "IndexCompanyProvider",
 ]
 
 
-class CompanyIndexProvider(BaseProvider):
+class IndexCompanyProvider(BaseProvider):
     _os: SearchProvider
 
     def __init__(
@@ -32,7 +32,7 @@ class CompanyIndexProvider(BaseProvider):
     # ──── Public Methods ────
 
     @apimethod
-    def sync(self, *, type: str, id: str, **attrs) -> None:
+    def index(self, *, type: str, id: str, **attrs) -> None:
         self._os.upsert(
             type=type,
             id=id,
@@ -40,7 +40,7 @@ class CompanyIndexProvider(BaseProvider):
         )
 
     @apimethod
-    def remove(self, *, type: str, id: str) -> None:
+    def drop(self, *, type: str, id: str) -> None:
         self._os.delete(
             type=type,
             id=id,

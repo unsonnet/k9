@@ -6,12 +6,13 @@ requires-python = ">=3.12"
 members = [
     "auth",
     "companies",
-    "companies-index",
+    "index-companies",
     "infra",
     "k9",
     "products",
-    "profiles-index",
     "shared",
+    "sync-companies",
+    "sync-users",
     "users",
 ]
 
@@ -367,17 +368,6 @@ requires-dist = [
 ]
 
 [[package]]
-name = "companies-index"
-version = "0.3.0"
-source = { editable = "workers/companies_index" }
-dependencies = [
-    { name = "shared" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "shared", editable = "shared" }]
-
-[[package]]
 name = "constructs"
 version = "10.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -573,6 +563,17 @@ wheels = [
 ]
 
 [[package]]
+name = "index-companies"
+version = "0.3.0"
+source = { editable = "workers/index_companies" }
+dependencies = [
+    { name = "shared" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "shared", editable = "shared" }]
+
+[[package]]
 name = "infra"
 version = "0.1.0"
 source = { virtual = "infra/cdk" }
@@ -731,10 +732,11 @@ source = { virtual = "." }
 dependencies = [
     { name = "auth" },
     { name = "companies" },
-    { name = "companies-index" },
+    { name = "index-companies" },
     { name = "products" },
-    { name = "profiles-index" },
     { name = "shared" },
+    { name = "sync-companies" },
+    { name = "sync-users" },
     { name = "users" },
 ]
 
@@ -753,10 +755,11 @@ dev = [
 requires-dist = [
     { name = "auth", editable = "services/auth" },
     { name = "companies", editable = "services/companies" },
-    { name = "companies-index", editable = "workers/companies_index" },
+    { name = "index-companies", editable = "workers/index_companies" },
     { name = "products", editable = "services/products" },
-    { name = "profiles-index", editable = "workers/profiles_index" },
     { name = "shared", editable = "shared" },
+    { name = "sync-companies", editable = "workers/sync_companies" },
+    { name = "sync-users", editable = "workers/sync_users" },
     { name = "users", editable = "services/users" },
 ]
 
@@ -1032,21 +1035,6 @@ wheels = [
 name = "products"
 version = "0.1.0"
 source = { editable = "services/products" }
-dependencies = [
-    { name = "pydantic" },
-    { name = "shared" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "shared", editable = "shared" },
-]
-
-[[package]]
-name = "profiles-index"
-version = "0.1.0"
-source = { editable = "workers/profiles_index" }
 dependencies = [
     { name = "pydantic" },
     { name = "shared" },
@@ -1535,6 +1523,36 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/28/e3/55dcc2cfbc3ca9c29519eb6884dd1415ecb53b0e934862d3559ddcb7e20b/stack_data-0.6.3.tar.gz", hash = "sha256:836a778de4fec4dcd1dcd89ed8abff8a221f58308462e1c4aa2a3cf30148f0b9", size = 44707, upload-time = "2023-09-30T13:58:05.479Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl", hash = "sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695", size = 24521, upload-time = "2023-09-30T13:58:03.53Z" },
+]
+
+[[package]]
+name = "sync-companies"
+version = "0.1.0"
+source = { editable = "workers/sync_companies" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "shared" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "shared", editable = "shared" },
+]
+
+[[package]]
+name = "sync-users"
+version = "0.1.0"
+source = { editable = "workers/sync_users" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "shared" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "shared", editable = "shared" },
 ]
 
 [[package]]
