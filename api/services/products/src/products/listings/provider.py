@@ -46,15 +46,20 @@ class ProductListingProvider(BaseProvider):
         prices: list[Price],
         url: HttpUrl | None,
     ) -> Listing:
-        self._db.create_item(
-            type="product.listing",
-            id=f"{id}.{sid}",
-            vendor=vendor,
-            sku=sku,
-            name=name,
-            prices=[i.model_dump() for i in prices],
-            url=str(url) if url is not None else None,
-        )
+        with self._db.batch() as batch:
+            batch.check_item(
+                type="company",
+                id=vendor,
+            )
+            batch.create_item(
+                type="product.listing",
+                id=f"{id}.{sid}",
+                vendor=vendor,
+                sku=sku,
+                name=name,
+                prices=[i.model_dump() for i in prices],
+                url=str(url) if url is not None else None,
+            )
         return self.read_listing(id=id, sid=sid)
 
     @apimethod
@@ -84,21 +89,26 @@ class ProductListingProvider(BaseProvider):
         url: HttpUrl | None | missing,
     ) -> Listing:
         attrs: dict[str, DatabaseTypes] = {}
-        if is_set(vendor):
-            attrs["vendor"] = vendor
-        if is_set(sku):
-            attrs["sku"] = sku
-        if is_set(name):
-            attrs["name"] = name
-        if is_set(prices):
-            attrs["prices"] = [i.model_dump() for i in prices]
-        if is_set(url):
-            attrs["url"] = str(url) if url is not None else None
-        self._db.update_item(
-            type="product.listing",
-            id=f"{id}.{sid}",
-            **attrs,
-        )
+        with self._db.batch() as batch:
+            if is_set(vendor):
+                attrs["vendor"] = vendor
+                batch.check_item(
+                    type="company",
+                    id=vendor,
+                )
+            if is_set(sku):
+                attrs["sku"] = sku
+            if is_set(name):
+                attrs["name"] = name
+            if is_set(prices):
+                attrs["prices"] = [i.model_dump() for i in prices]
+            if is_set(url):
+                attrs["url"] = str(url) if url is not None else None
+            batch.update_item(
+                type="product.listing",
+                id=f"{id}.{sid}",
+                **attrs,
+            )
         return self.read_listing(id=id, sid=sid)
 
     @apimethod

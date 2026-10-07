@@ -47,21 +47,26 @@ class ProductProvider(BaseProvider):
         self,
         *,
         id: str,
-        brand: str | None,
+        brand: str,
         material: Material,
         format: Format,
         subformats: set[Format],
         meta: bytes | None,
     ) -> Product:
-        self._db.create_item(
-            type="product",
-            id=id,
-            brand=brand,
-            material=material.model_dump(),
-            format=format.model_dump(),
-            subformats=[i.model_dump() for i in subformats],
-            meta=meta,
-        )
+        with self._db.batch() as batch:
+            batch.check_item(
+                type="company",
+                id=brand,
+            )
+            batch.create_item(
+                type="product",
+                id=id,
+                brand=brand,
+                material=material.model_dump(),
+                format=format.model_dump(),
+                subformats=[i.model_dump() for i in subformats],
+                meta=meta,
+            )
         return self.read_product(id=id)
 
     @apimethod
@@ -82,28 +87,33 @@ class ProductProvider(BaseProvider):
         self,
         *,
         id: str,
-        brand: str | None | missing,
+        brand: str | missing,
         material: Material | missing,
         format: Format | missing,
         subformats: set[Format] | missing,
         meta: bytes | None | missing,
     ) -> Product:
         attrs: dict[str, DatabaseTypes] = {}
-        if is_set(brand):
-            attrs["brand"] = brand
-        if is_set(material):
-            attrs["material"] = material.model_dump()
-        if is_set(format):
-            attrs["format"] = format.model_dump()
-        if is_set(subformats):
-            attrs["subformats"] = [i.model_dump() for i in subformats]
-        if is_set(meta):
-            attrs["meta"] = meta
-        self._db.update_item(
-            type="product",
-            id=id,
-            **attrs,
-        )
+        with self._db.batch() as batch:
+            if is_set(brand):
+                attrs["brand"] = brand
+                batch.check_item(
+                    type="company",
+                    id=brand,
+                )
+            if is_set(material):
+                attrs["material"] = material.model_dump()
+            if is_set(format):
+                attrs["format"] = format.model_dump()
+            if is_set(subformats):
+                attrs["subformats"] = [i.model_dump() for i in subformats]
+            if is_set(meta):
+                attrs["meta"] = meta
+            batch.update_item(
+                type="product",
+                id=id,
+                **attrs,
+            )
         return self.read_product(id=id)
 
     @apimethod

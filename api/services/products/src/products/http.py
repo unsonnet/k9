@@ -18,7 +18,7 @@ __all__ = [
 
 class Request:
     class Create(BaseModel, frozen=True):
-        brand: Body[str | None]
+        brand: Body[str]
         material: Body[Material]
         format: Body[Format]
         subformats: Body[set[Format]]
@@ -26,8 +26,8 @@ class Request:
 
         @field_validator("brand")
         @classmethod
-        def validate_id(cls, value: str | None) -> str | None:
-            return validate_resource_id(value) if value else None
+        def validate_id(cls, value: str) -> str:
+            return validate_resource_id(value)
 
     class Read(BaseModel, frozen=True):
         id: Path[str]
@@ -39,7 +39,7 @@ class Request:
 
     class Update(BaseModel, frozen=True):
         id: Path[str]
-        brand: Body[str | None | missing] = missing
+        brand: Body[str | missing] = missing
         material: Body[Material | missing] = missing
         format: Body[Format | missing] = missing
         subformats: Body[set[Format] | missing] = missing
@@ -47,8 +47,8 @@ class Request:
 
         @field_validator("id", "brand")
         @classmethod
-        def validate_ids(cls, value: str | None) -> str | None:
-            return validate_resource_id(value) if value else None
+        def validate_ids(cls, value: str) -> str:
+            return validate_resource_id(value)
 
     class Delete(BaseModel, frozen=True):
         id: Path[str]
@@ -65,7 +65,7 @@ class Request:
 class Response:
     class Product(BaseModel, frozen=True, from_attributes=True):
         id: str
-        brand: str | None
+        brand: str
         material: Material
         format: Format
         subformats: set[Format]

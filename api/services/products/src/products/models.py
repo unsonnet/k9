@@ -82,7 +82,7 @@ class Format(BaseModel, frozen=True):
 
 class Product(BaseModel, frozen=True):
     id: str
-    brand: str | None
+    brand: str
     material: Material
     format: Format
     subformats: set[Format]

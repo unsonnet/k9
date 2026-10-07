@@ -102,6 +102,18 @@ class DatabaseBatchProvider(AbstractContextManager, BaseProvider):
         return None
 
     @apimethod
+    def check_item(
+        self,
+        *,
+        type: str,
+        id: str,
+    ) -> None:
+        if self._txs.get((type, id)):
+            raise DomainInvariantViolation
+        self._txs[type, id] = self._exists(type, id)
+        return None
+
+    @apimethod
     def create_item(
         self,
         *,
