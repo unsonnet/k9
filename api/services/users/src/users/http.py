@@ -6,6 +6,8 @@ from shared.helpers import validate_name, validate_user_id
 from shared.http import Role
 from shared.http.requests import Body, Path, Query
 
+from .models import ImageFormat
+
 __all__ = [
     "Request",
     "Response",
@@ -65,6 +67,7 @@ class Request:
 
     class Picture(BaseModel, frozen=True):
         id: Path[str]
+        format: Body[ImageFormat]
 
         @field_validator("id")
         @classmethod

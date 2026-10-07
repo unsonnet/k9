@@ -3,9 +3,11 @@ from datetime import datetime
 from pydantic import BaseModel, HttpUrl
 from pydantic.networks import EmailStr
 from pydantic_extra_types.phone_numbers import PhoneNumber
+from shared.http.requests import ImageFormat
 
 __all__ = [
     "Contact",
+    "ImageFormat",
 ]
 
 

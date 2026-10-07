@@ -117,8 +117,8 @@ class DynamoDBResolver:
 
     # ──── Model Expansion ────
 
-    @classmethod
-    def _expand[T](cls, func: Callable[..., T]) -> Callable[[DynamoDBRecord], T]:
+    @staticmethod
+    def _expand[T](func: Callable[..., T]) -> Callable[[DynamoDBRecord], T]:
         params = signature(func).parameters
         match params.get("request", None):
             case None:

@@ -9,7 +9,7 @@ from shared.providers.database import DatabaseProvider, DatabaseTypes
 from shared.providers.search import Near, Page, SearchProvider, Term, Text
 from shared.providers.storage import StorageProvider, UploadURL
 
-from .models import Company, CompanyIndex, Sector
+from .models import Company, CompanyIndex, ImageFormat, Sector
 
 __all__ = [
     "CompanyProvider",
@@ -149,10 +149,11 @@ class CompanyProvider(BaseProvider):
         self,
         *,
         id: str,
+        format: ImageFormat,
     ) -> UploadURL:
         return self._mem.presign_post(
-            f"companies/{id}/logo.jxl",
-            content_type="image/jxl",
+            f"uploads/companies/{id}/logo.{format}",
+            content_type=format.content_type,
             max_bytes=5 * 1024 * 1024,
             max_seconds=5 * 60,
         )

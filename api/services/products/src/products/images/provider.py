@@ -6,7 +6,7 @@ from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider
 from shared.providers.storage import StorageProvider, UploadURL
 
-from .models import Image
+from .models import Image, ImageFormat
 
 __all__ = [
     "ProductImageProvider",
@@ -49,10 +49,11 @@ class ProductImageProvider(BaseProvider):
         *,
         id: str,
         sid: str,
+        format: ImageFormat,
     ) -> UploadURL:
         return self._mem.presign_post(
-            f"products/{id}/{sid}.jxl",
-            content_type="image/jxl",
+            f"uploads/products/{id}/images/{sid}/reference.{format}",
+            content_type=format.content_type,
             max_bytes=5 * 1024 * 1024,
             max_seconds=5 * 60,
         )

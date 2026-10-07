@@ -1,3 +1,4 @@
+import re
 from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from inspect import Parameter, signature
@@ -99,8 +100,9 @@ class S3Resolver:
             raise ValueError("S3 event rules can contain at most one '*'")
 
         def decorator[T](func: Callable[..., T]) -> Callable[..., T]:
-            self._events.append(EventSpec("s3", method, rule))
-            self._handlers[pascal_case(method), rule] = self._expand(func)
+            for r in self._unwrap(rule):
+                self._events.append(EventSpec("s3", method, r))
+                self._handlers[pascal_case(method), r] = self._expand(func)
             return func
 
         return decorator
@@ -110,6 +112,17 @@ class S3Resolver:
 
     def removed(self, rule: str) -> EventDecorator:
         return self.event(rule, method="OBJECT_REMOVED")
+
+    @staticmethod
+    def _unwrap(rule: str) -> list[str]:
+        if "{" not in rule and "}" not in rule:
+            return [rule]
+        if not (match := re.fullmatch(r"([^{}]*)\{([^{}]*)\}([^{}]*)", rule)):
+            raise ValueError("S3 event rules support exactly one '{a,b}' group")
+        head, body, tail = match.groups()
+        if "" in (options := body.split(",")):
+            raise ValueError("S3 event rule alternatives cannot be empty")
+        return [f"{head}{option}{tail}" for option in options]
 
     # ──── Model Expansion ────
 

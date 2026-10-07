@@ -237,6 +237,7 @@ def upload(
         user_id = require_admin_or_self(caller, request.id)
         form = provider.upload_picture(
             id=user_id,
+            format=request.format,
         )
         return OK(Response.UploadURL.model_validate(form))
     except DomainUnauthorized as exc:

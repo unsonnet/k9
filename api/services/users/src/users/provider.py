@@ -9,7 +9,7 @@ from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.identity import IdentityProvider, User, UserPage
 from shared.providers.storage import StorageProvider, UploadURL
 
-from .models import UserCredentials
+from .models import ImageFormat, UserCredentials
 
 __all__ = [
     "UserProvider",
@@ -133,10 +133,11 @@ class UserProvider(BaseProvider):
         self,
         *,
         id: str,
+        format: ImageFormat,
     ) -> UploadURL:
         return self._mem.presign_post(
-            f"users/{id}/picture.jxl",
-            content_type="image/jxl",
+            f"uploads/users/{id}/picture.{format}",
+            content_type=format.content_type,
             max_bytes=5 * 1024 * 1024,
             max_seconds=5 * 60,
         )

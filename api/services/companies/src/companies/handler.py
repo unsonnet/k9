@@ -212,6 +212,7 @@ def upload(
         require_admin(caller)
         form = provider.upload_logo(
             id=request.id,
+            format=request.format,
         )
         return OK(Response.UploadURL.model_validate(form))
     except DomainUnauthorized as exc:

@@ -2,6 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, Field, HttpUrl
+from shared.http.requests import ImageFormat
 from shared.providers.search import Page
 from shared.providers.storage import UploadURL
 
@@ -17,6 +18,7 @@ __all__ = [
     "Page",
     "Sector",
     "UploadURL",
+    "ImageFormat",
 ]
 
 

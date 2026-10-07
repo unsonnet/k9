@@ -51,6 +51,7 @@ def upload(
         form = provider.upload_image(
             id=request.id,
             sid=generate_subresource_id(),
+            format=request.format,
         )
         return Created(Response.UploadURL.model_validate(form))
     except DomainUnauthorized as exc:
@@ -83,6 +84,7 @@ def update(
         form = provider.upload_image(
             id=request.id,
             sid=request.sid,
+            format=request.format,
         )
         return OK(Response.UploadURL.model_validate(form))
     except DomainUnauthorized as exc:

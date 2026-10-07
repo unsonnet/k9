@@ -2,9 +2,11 @@ from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, HttpUrl
+from shared.http.requests import ImageFormat
 
 __all__ = [
     "Image",
+    "ImageFormat",
 ]
 
 

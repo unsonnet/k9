@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field, HttpUrl, field_validator
 from shared.helpers import validate_resource_id, validate_subresource_id
 from shared.http.requests import Body, Path
 
+from .models import ImageFormat
+
 __all__ = [
     "Request",
     "Response",
@@ -16,6 +18,7 @@ __all__ = [
 class Request:
     class Upload(BaseModel, frozen=True):
         id: Path[str]
+        format: Body[ImageFormat]
 
         @field_validator("id")
         @classmethod
@@ -25,6 +28,7 @@ class Request:
     class Update(BaseModel, frozen=True):
         id: Path[str]
         sid: Path[str]
+        format: Body[ImageFormat]
 
         @field_validator("id")
         @classmethod

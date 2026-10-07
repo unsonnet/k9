@@ -9,7 +9,7 @@ from shared.http.requests import Body, Path, Query
 
 from .contacts.http import Response as contact
 from .locations.http import Response as location
-from .models import Sector
+from .models import ImageFormat, Sector
 
 __all__ = [
     "Request",
@@ -77,6 +77,7 @@ class Request:
 
     class Logo(BaseModel, frozen=True):
         id: Path[str]
+        format: Body[ImageFormat]
 
         @field_validator("id")
         @classmethod

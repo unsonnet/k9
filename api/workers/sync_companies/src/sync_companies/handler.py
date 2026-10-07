@@ -15,11 +15,14 @@ def lambda_handler(event, context):
 # ──── Event Endpoints ─────────────────────────────────────────────────────────────────
 
 
-@app.created("companies/*/logo.jxl")
+FORMATS = "{png,jpeg,jxl,heic,webp}"
+
+
+@app.created(f"uploads/companies/*/logo.{FORMATS}")
 def sync_company(request: Sync.Resource) -> None:
     provider.sync_company(request.key, id=request.id)
 
 
-@app.created("companies/*/picture.jxl")
+@app.created(f"uploads/companies/*/picture.{FORMATS}")
 def sync_contact(request: Sync.Subresource) -> None:
     provider.sync_contact(request.key, id=request.id, sid=request.sid)

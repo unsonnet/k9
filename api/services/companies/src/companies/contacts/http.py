@@ -4,6 +4,8 @@ from shared.config import missing
 from shared.helpers import validate_resource_id, validate_subresource_id
 from shared.http.requests import Body, Path
 
+from .models import ImageFormat
+
 __all__ = [
     "Request",
     "Response",
@@ -62,6 +64,7 @@ class Request:
     class Picture(BaseModel, frozen=True):
         id: Path[str]
         sid: Path[str]
+        format: Body[ImageFormat]
 
         @field_validator("id")
         @classmethod

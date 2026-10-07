@@ -3,7 +3,9 @@ from shared.config import missing
 from shared.helpers import validate_resource_id
 from shared.http.requests import Body, Path
 
-from .models import Format, Image, Listing, Material
+from .images.http import Response as image
+from .listings.http import Response as listing
+from .models import Format, Material
 
 __all__ = [
     "Request",
@@ -67,6 +69,6 @@ class Response:
         material: Material
         format: Format
         subformats: set[Format]
-        images: list[Image]
-        listings: list[Listing]
+        images: list[image.Image]
+        listings: list[listing.Listing]
         meta: bytes | None

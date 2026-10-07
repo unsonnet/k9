@@ -9,7 +9,7 @@ from shared.providers import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
 from shared.providers.storage import StorageProvider, UploadURL
 
-from .models import Contact
+from .models import Contact, ImageFormat
 
 __all__ = [
     "CompanyContactProvider",
@@ -127,10 +127,11 @@ class CompanyContactProvider(BaseProvider):
         *,
         id: str,
         sid: str,
+        format: ImageFormat,
     ) -> UploadURL:
         return self._mem.presign_post(
-            f"companies/{id}/contacts/{sid}/picture.jxl",
-            content_type="image/jxl",
+            f"uploads/companies/{id}/contacts/{sid}/picture.{format}",
+            content_type=format.content_type,
             max_bytes=5 * 1024 * 1024,
             max_seconds=5 * 60,
         )

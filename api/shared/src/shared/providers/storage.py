@@ -38,6 +38,7 @@ class StorageProvider(BaseProvider):
             actions=(
                 "s3:GetObject",
                 "s3:PutObject",
+                "s3:DeleteObject",
             ),
             resources=("s3-bucket",),
         )
@@ -86,6 +87,18 @@ class StorageProvider(BaseProvider):
     ) -> HttpUrl:
         bucket, region = self._s3.name, self._s3.meta.client.meta.region_name
         return HttpUrl(f"https://{bucket}.s3.{region}.amazonaws.com/{key}")
+
+    @apimethod
+    def read(self, key: str) -> bytes:
+        return self._s3.Object(key).get()["Body"].read()
+
+    @apimethod
+    def write(self, key: str, data: bytes, *, content_type: str) -> None:
+        self._s3.put_object(Key=key, Body=data, ContentType=content_type)
+
+    @apimethod
+    def delete(self, key: str) -> None:
+        self._s3.Object(key).delete()
 
     # ──── Private Methods ────
 
