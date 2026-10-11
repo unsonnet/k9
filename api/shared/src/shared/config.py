@@ -52,8 +52,8 @@ class EventSpec:
 
 
 class Role(StrEnum):
-    USER = "USER"
-    ADMIN = "ADMIN"
+    USER = "user"
+    ADMIN = "admin"
 
 
 @dataclass(frozen=True)

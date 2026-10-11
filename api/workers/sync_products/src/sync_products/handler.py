@@ -18,6 +18,6 @@ def lambda_handler(event, context):
 FORMATS = "{png,jpeg,jxl,heic,webp}"
 
 
-@app.created(f"uploads/products/*/images/*/reference.{FORMATS}")
+@app.created(f"uploads/products/*/reference.{FORMATS}")
 def sync_image(request: Sync.Subresource) -> None:
     provider.sync_image(request.key, id=request.id, sid=request.sid)

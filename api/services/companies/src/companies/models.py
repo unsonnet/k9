@@ -23,9 +23,9 @@ __all__ = [
 
 
 class Sector(StrEnum):
-    INSURANCE = "INSURANCE"
-    MANUFACTURER = "MANUFACTURER"
-    RETAILER = "RETAILER"
+    INSURANCE = "insurance"
+    MANUFACTURER = "manufacturer"
+    RETAILER = "retailer"
 
 
 class Company(BaseModel, frozen=True):
