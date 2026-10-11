@@ -1,5 +1,5 @@
-from shared.dynamodb import DynamoDBResolver
 from shared.errors import DomainNotFound
+from shared.resolvers.dynamodb import DynamoDBResolver
 
 from .models import Drop, Index
 from .provider import IndexCompanyProvider

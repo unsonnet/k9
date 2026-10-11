@@ -3,8 +3,8 @@ from __future__ import annotations
 from pydantic import BaseModel, Field, HttpUrl, StrictBool, field_validator
 from shared.config import missing
 from shared.helpers import validate_name, validate_user_id
-from shared.http import Role
-from shared.http.requests import Body, Path, Query
+from shared.resolvers.http import Role
+from shared.resolvers.http.requests import Body, Path, Query
 
 from .models import ImageFormat
 

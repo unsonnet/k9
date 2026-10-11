@@ -5,8 +5,8 @@ from secrets import SystemRandom
 from string import ascii_lowercase, ascii_uppercase, digits
 from typing import Final, overload
 
+from .config import Caller
 from .errors import DomainForbidden
-from .http import Caller
 
 _RANDOM: Final = SystemRandom()
 

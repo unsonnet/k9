@@ -5,7 +5,7 @@ from decimal import Decimal
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 from shared.config import missing
 from shared.helpers import sanitize_query, validate_resource_id
-from shared.http.requests import Body, Path, Query
+from shared.resolvers.http.requests import Body, Path, Query
 
 from .contacts.http import Response as contact
 from .locations.http import Response as location

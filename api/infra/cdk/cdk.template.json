@@ -12,7 +12,6 @@
       },
       "services": {
         "<service-name>": {
-          "dockerfile": "services/<service-name>/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -26,7 +25,6 @@
       "workers": {
         "<dynamodb-worker-name>": {
           "source": "dynamodb",
-          "dockerfile": "workers/<worker-name>/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -49,7 +47,6 @@
         },
         "<s3-worker-name>": {
           "source": "s3",
-          "dockerfile": "workers/<worker-name>/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [

@@ -2,16 +2,7 @@
 name = "k9"
 version = "0.1.0"
 requires-python = ">=3.12"
-dependencies = [
-    "auth",
-    "companies",
-    "products",
-    "users",
-    "shared",
-    "index_companies",
-    "sync_companies",
-    "sync_users",
-]
+dependencies = []
 
 [tool.uv]
 package = false
@@ -19,20 +10,26 @@ package = false
 [tool.uv.workspace]
 members = [
     "shared",
+    "providers/*",
     "services/*",
-    "infra/cdk",
     "workers/*",
+    "infra/cdk",
 ]
 
 [tool.uv.sources]
-auth = { workspace = true }
-companies = { workspace = true }
-users = { workspace = true }
-products = { workspace = true }
 shared = { workspace = true }
-index_companies = { workspace = true }
-sync_companies = { workspace = true }
-sync_users = { workspace = true }
+shared-provider-database = { workspace = true }
+shared-provider-identity = { workspace = true }
+shared-provider-location = { workspace = true }
+shared-provider-search = { workspace = true }
+shared-provider-storage = { workspace = true }
+service-auth = { workspace = true }
+service-companies = { workspace = true }
+service-products = { workspace = true }
+service-users = { workspace = true }
+worker-index-companies = { workspace = true }
+worker-sync-companies = { workspace = true }
+worker-sync-users = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -43,18 +40,4 @@ dev = [
     "pyyaml>=6.0.3",
     "qrcode[pil]>=8.2",
     "ruff>=0.15.8",
-]
-
-[tool.pytest.ini_options]
-testpaths = []
-addopts = "-ra --strict-markers"
-markers = [
-    "unit: provider and service contract tests with isolated dependencies",
-    "integration: handler and service contract tests with dummy providers",
-]
-norecursedirs = [
-    ".ignore",
-    ".venv",
-    ".aws-sam",
-    "infra/cdk/cdk.out",
 ]

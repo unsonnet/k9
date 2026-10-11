@@ -5,7 +5,7 @@ import pillow_jxl  # noqa: F401
 from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 from shared.config import settings
-from shared.providers import BaseProvider, GrantSpec, apimethod
+from shared.providers.base import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider
 from shared.providers.storage import StorageProvider
 

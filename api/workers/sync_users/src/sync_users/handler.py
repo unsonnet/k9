@@ -1,4 +1,4 @@
-from shared.s3 import S3Resolver
+from shared.resolvers.s3 import S3Resolver
 
 from .models import Sync
 from .provider import SyncUserProvider

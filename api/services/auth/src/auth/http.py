@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, field_validator
 from shared.helpers import validate_name, validate_password, validate_user_id
-from shared.http.requests import Body, Path
+from shared.resolvers.http.requests import Body, Path
 
 from .provider import Challenge
 

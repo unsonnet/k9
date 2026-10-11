@@ -27,7 +27,6 @@ def camel_case(s: str) -> str:
 class ServiceConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True, alias_generator=camel_case)
 
-    dockerfile: str
     timeout: int = 20
     memory: int = 512
     shared: list[str] = Field(default_factory=list)

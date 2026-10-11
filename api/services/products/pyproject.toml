@@ -1,11 +1,11 @@
 [project]
-name = "products"
+name = "service-products"
 version = "0.1.0"
 description = "Products API Endpoints"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.12.5",
-    "shared",
+    "shared[database,storage]",
 ]
 
 [tool.uv.sources]
@@ -14,3 +14,6 @@ shared = { workspace = true }
 [build-system]
 requires = ["uv_build>=0.8.0,<0.9"]
 build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "products"

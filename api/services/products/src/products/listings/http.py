@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, HttpUrl, field_validator
 from shared.config import missing
 from shared.helpers import validate_resource_id, validate_subresource_id
-from shared.http.requests import Body, Path
+from shared.resolvers.http.requests import Body, Path
 
 from .models import Price
 

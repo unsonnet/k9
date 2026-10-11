@@ -4,16 +4,21 @@ requires-python = ">=3.12"
 
 [manifest]
 members = [
-    "auth",
-    "companies",
-    "index-companies",
     "infra",
     "k9",
-    "products",
+    "service-auth",
+    "service-companies",
+    "service-products",
+    "service-users",
     "shared",
-    "sync-companies",
-    "sync-users",
-    "users",
+    "shared-provider-database",
+    "shared-provider-identity",
+    "shared-provider-location",
+    "shared-provider-search",
+    "shared-provider-storage",
+    "worker-index-companies",
+    "worker-sync-companies",
+    "worker-sync-users",
 ]
 
 [[package]]
@@ -50,21 +55,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/6b/5c/685e6633917e101e5dcb62b9dd76946cbb57c26e133bae9e0cd36033c0a9/attrs-25.4.0.tar.gz", hash = "sha256:16d5969b87f0859ef33a48b35d55ac1be6e42ae49d5e853b597db70c35c57e11", size = 934251, upload-time = "2025-10-06T13:54:44.725Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/3a/2a/7cc015f5b9f5db42b7d48157e23356022889fc354a2813c15934b7cb5c0e/attrs-25.4.0-py3-none-any.whl", hash = "sha256:adcf7e2a1fb3b36ac48d97835bb6d8ade15b8dcce26aba8bf1d14847b57a3373", size = 67615, upload-time = "2025-10-06T13:54:43.17Z" },
-]
-
-[[package]]
-name = "auth"
-version = "0.3.0"
-source = { editable = "services/auth" }
-dependencies = [
-    { name = "pydantic" },
-    { name = "shared" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "shared", editable = "shared" },
 ]
 
 [[package]]
@@ -351,23 +341,6 @@ wheels = [
 ]
 
 [[package]]
-name = "companies"
-version = "0.3.0"
-source = { editable = "services/companies" }
-dependencies = [
-    { name = "pydantic", extra = ["email"] },
-    { name = "pydantic-extra-types", extra = ["phonenumbers"] },
-    { name = "shared" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pydantic", extras = ["email"], specifier = ">=2.12.5" },
-    { name = "pydantic-extra-types", extras = ["phonenumbers"], specifier = ">=2.11.1" },
-    { name = "shared", editable = "shared" },
-]
-
-[[package]]
 name = "constructs"
 version = "10.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -563,17 +536,6 @@ wheels = [
 ]
 
 [[package]]
-name = "index-companies"
-version = "0.3.0"
-source = { editable = "workers/index_companies" }
-dependencies = [
-    { name = "shared" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "shared", editable = "shared" }]
-
-[[package]]
 name = "infra"
 version = "0.1.0"
 source = { virtual = "infra/cdk" }
@@ -729,16 +691,6 @@ wheels = [
 name = "k9"
 version = "0.1.0"
 source = { virtual = "." }
-dependencies = [
-    { name = "auth" },
-    { name = "companies" },
-    { name = "index-companies" },
-    { name = "products" },
-    { name = "shared" },
-    { name = "sync-companies" },
-    { name = "sync-users" },
-    { name = "users" },
-]
 
 [package.dev-dependencies]
 dev = [
@@ -752,16 +704,6 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "auth", editable = "services/auth" },
-    { name = "companies", editable = "services/companies" },
-    { name = "index-companies", editable = "workers/index_companies" },
-    { name = "products", editable = "services/products" },
-    { name = "shared", editable = "shared" },
-    { name = "sync-companies", editable = "workers/sync_companies" },
-    { name = "sync-users", editable = "workers/sync_users" },
-    { name = "users", editable = "services/users" },
-]
 
 [package.metadata.requires-dev]
 dev = [
@@ -1136,21 +1078,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3", size = 69412, upload-time = "2025-05-15T12:30:07.975Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
-]
-
-[[package]]
-name = "products"
-version = "0.1.0"
-source = { editable = "services/products" }
-dependencies = [
-    { name = "pydantic" },
-    { name = "shared" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "shared", editable = "shared" },
 ]
 
 [[package]]
@@ -1587,26 +1514,198 @@ wheels = [
 ]
 
 [[package]]
+name = "service-auth"
+version = "0.3.0"
+source = { editable = "services/auth" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "shared", extra = ["identity"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "shared", extras = ["identity"], editable = "shared" },
+]
+
+[[package]]
+name = "service-companies"
+version = "0.3.0"
+source = { editable = "services/companies" }
+dependencies = [
+    { name = "pydantic", extra = ["email"] },
+    { name = "pydantic-extra-types", extra = ["phonenumbers"] },
+    { name = "shared", extra = ["database", "location", "search", "storage"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", extras = ["email"], specifier = ">=2.12.5" },
+    { name = "pydantic-extra-types", extras = ["phonenumbers"], specifier = ">=2.11.1" },
+    { name = "shared", extras = ["database", "location", "search", "storage"], editable = "shared" },
+]
+
+[[package]]
+name = "service-products"
+version = "0.1.0"
+source = { editable = "services/products" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "shared", extra = ["database", "storage"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "shared", extras = ["database", "storage"], editable = "shared" },
+]
+
+[[package]]
+name = "service-users"
+version = "0.3.0"
+source = { editable = "services/users" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "shared", extra = ["identity", "storage"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "shared", extras = ["identity", "storage"], editable = "shared" },
+]
+
+[[package]]
 name = "shared"
 version = "0.1.0"
 source = { editable = "shared" }
 dependencies = [
     { name = "aws-lambda-powertools" },
     { name = "boto3" },
-    { name = "opensearch-py" },
     { name = "pydantic" },
     { name = "requests-aws4auth" },
-    { name = "types-boto3", extra = ["cognito-idp", "dynamodb", "geo-places", "s3", "ssm"] },
+    { name = "types-boto3", extra = ["cognito-idp", "ssm"] },
+]
+
+[package.optional-dependencies]
+database = [
+    { name = "shared-provider-database" },
+]
+identity = [
+    { name = "shared-provider-identity" },
+]
+location = [
+    { name = "shared-provider-location" },
+]
+search = [
+    { name = "shared-provider-search" },
+]
+storage = [
+    { name = "shared-provider-storage" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aws-lambda-powertools", specifier = ">=3.26.0" },
     { name = "boto3", specifier = ">=1.42.85" },
-    { name = "opensearch-py", specifier = ">=3.2.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "requests-aws4auth", specifier = ">=1.3.2" },
-    { name = "types-boto3", extras = ["cognito-idp", "dynamodb", "geo-places", "s3", "ssm"], specifier = ">=1.42.85" },
+    { name = "shared-provider-database", marker = "extra == 'database'", editable = "providers/database" },
+    { name = "shared-provider-identity", marker = "extra == 'identity'", editable = "providers/identity" },
+    { name = "shared-provider-location", marker = "extra == 'location'", editable = "providers/location" },
+    { name = "shared-provider-search", marker = "extra == 'search'", editable = "providers/search" },
+    { name = "shared-provider-storage", marker = "extra == 'storage'", editable = "providers/storage" },
+    { name = "types-boto3", extras = ["cognito-idp", "ssm"], specifier = ">=1.42.85" },
+]
+provides-extras = ["database", "identity", "location", "search", "storage"]
+
+[[package]]
+name = "shared-provider-database"
+version = "0.1.0"
+source = { editable = "providers/database" }
+dependencies = [
+    { name = "boto3" },
+    { name = "shared" },
+    { name = "types-boto3", extra = ["dynamodb"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.42.85" },
+    { name = "shared", editable = "shared" },
+    { name = "types-boto3", extras = ["dynamodb"], specifier = ">=1.42.85" },
+]
+
+[[package]]
+name = "shared-provider-identity"
+version = "0.1.0"
+source = { editable = "providers/identity" }
+dependencies = [
+    { name = "boto3" },
+    { name = "shared" },
+    { name = "types-boto3", extra = ["cognito-idp"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.42.85" },
+    { name = "shared", editable = "shared" },
+    { name = "types-boto3", extras = ["cognito-idp"], specifier = ">=1.42.85" },
+]
+
+[[package]]
+name = "shared-provider-location"
+version = "0.1.0"
+source = { editable = "providers/location" }
+dependencies = [
+    { name = "boto3" },
+    { name = "shared" },
+    { name = "types-boto3", extra = ["geo-places"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.42.85" },
+    { name = "shared", editable = "shared" },
+    { name = "types-boto3", extras = ["geo-places"], specifier = ">=1.42.85" },
+]
+
+[[package]]
+name = "shared-provider-search"
+version = "0.1.0"
+source = { editable = "providers/search" }
+dependencies = [
+    { name = "boto3" },
+    { name = "opensearch-py" },
+    { name = "pydantic" },
+    { name = "shared" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.42.85" },
+    { name = "opensearch-py", specifier = ">=3.2.0" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "shared", editable = "shared" },
+]
+
+[[package]]
+name = "shared-provider-storage"
+version = "0.1.0"
+source = { editable = "providers/storage" }
+dependencies = [
+    { name = "boto3" },
+    { name = "pydantic" },
+    { name = "shared" },
+    { name = "types-boto3", extra = ["s3"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "boto3", specifier = ">=1.42.85" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "shared", editable = "shared" },
+    { name = "types-boto3", extras = ["s3"], specifier = ">=1.42.85" },
 ]
 
 [[package]]
@@ -1630,44 +1729,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/28/e3/55dcc2cfbc3ca9c29519eb6884dd1415ecb53b0e934862d3559ddcb7e20b/stack_data-0.6.3.tar.gz", hash = "sha256:836a778de4fec4dcd1dcd89ed8abff8a221f58308462e1c4aa2a3cf30148f0b9", size = 44707, upload-time = "2023-09-30T13:58:05.479Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f1/7b/ce1eafaf1a76852e2ec9b22edecf1daa58175c090266e9f6c64afcd81d91/stack_data-0.6.3-py3-none-any.whl", hash = "sha256:d5558e0c25a4cb0853cddad3d77da9891a08cb85dd9f9f91b9f8cd66e511e695", size = 24521, upload-time = "2023-09-30T13:58:03.53Z" },
-]
-
-[[package]]
-name = "sync-companies"
-version = "0.1.0"
-source = { editable = "workers/sync_companies" }
-dependencies = [
-    { name = "pillow-heif" },
-    { name = "pillow-jxl-plugin" },
-    { name = "pydantic" },
-    { name = "shared" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pillow-heif", specifier = ">=1.8.0" },
-    { name = "pillow-jxl-plugin", specifier = ">=1.3.8" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "shared", editable = "shared" },
-]
-
-[[package]]
-name = "sync-users"
-version = "0.1.0"
-source = { editable = "workers/sync_users" }
-dependencies = [
-    { name = "pillow-heif" },
-    { name = "pillow-jxl-plugin" },
-    { name = "pydantic" },
-    { name = "shared" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pillow-heif", specifier = ">=1.8.0" },
-    { name = "pillow-jxl-plugin", specifier = ">=1.3.8" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "shared", editable = "shared" },
 ]
 
 [[package]]
@@ -1829,21 +1890,6 @@ wheels = [
 ]
 
 [[package]]
-name = "users"
-version = "0.3.0"
-source = { editable = "services/users" }
-dependencies = [
-    { name = "pydantic" },
-    { name = "shared" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "shared", editable = "shared" },
-]
-
-[[package]]
 name = "wcwidth"
 version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1862,6 +1908,55 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/dd/b2/381be8cfdee792dd117872481b6e378f85c957dd7c5bca38897b08f765fd/werkzeug-3.1.8.tar.gz", hash = "sha256:9bad61a4268dac112f1c5cd4630a56ede601b6ed420300677a869083d70a4c44", size = 875852, upload-time = "2026-04-02T18:49:14.268Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/93/8c/2e650f2afeb7ee576912636c23ddb621c91ac6a98e66dc8d29c3c69446e1/werkzeug-3.1.8-py3-none-any.whl", hash = "sha256:63a77fb8892bf28ebc3178683445222aa500e48ebad5ec77b0ad80f8726b1f50", size = 226459, upload-time = "2026-04-02T18:49:12.72Z" },
+]
+
+[[package]]
+name = "worker-index-companies"
+version = "0.3.0"
+source = { editable = "workers/index_companies" }
+dependencies = [
+    { name = "shared", extra = ["search"] },
+]
+
+[package.metadata]
+requires-dist = [{ name = "shared", extras = ["search"], editable = "shared" }]
+
+[[package]]
+name = "worker-sync-companies"
+version = "0.1.0"
+source = { editable = "workers/sync_companies" }
+dependencies = [
+    { name = "pillow-heif" },
+    { name = "pillow-jxl-plugin" },
+    { name = "pydantic" },
+    { name = "shared", extra = ["database", "storage"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pillow-heif", specifier = ">=1.8.0" },
+    { name = "pillow-jxl-plugin", specifier = ">=1.3.8" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "shared", extras = ["database", "storage"], editable = "shared" },
+]
+
+[[package]]
+name = "worker-sync-users"
+version = "0.1.0"
+source = { editable = "workers/sync_users" }
+dependencies = [
+    { name = "pillow-heif" },
+    { name = "pillow-jxl-plugin" },
+    { name = "pydantic" },
+    { name = "shared", extra = ["identity", "storage"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pillow-heif", specifier = ">=1.8.0" },
+    { name = "pillow-jxl-plugin", specifier = ">=1.3.8" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "shared", extras = ["identity", "storage"], editable = "shared" },
 ]
 
 [[package]]

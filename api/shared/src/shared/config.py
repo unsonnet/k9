@@ -1,5 +1,6 @@
 import os
 from dataclasses import dataclass
+from enum import StrEnum
 from functools import cached_property
 from typing import TYPE_CHECKING, TypeAliasType, TypeGuard
 
@@ -48,6 +49,23 @@ class EventSpec:
     source: str
     event: str
     rule: str
+
+
+class Role(StrEnum):
+    USER = "USER"
+    ADMIN = "ADMIN"
+
+
+@dataclass(frozen=True)
+class Caller:
+    id: str
+    name: str
+    role: Role
+    token: str
+
+    @property
+    def is_admin(self) -> bool:
+        return self.role == Role.ADMIN
 
 
 class Settings:

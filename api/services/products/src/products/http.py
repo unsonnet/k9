@@ -1,7 +1,7 @@
 from pydantic import BaseModel, field_validator
 from shared.config import missing
 from shared.helpers import validate_resource_id
-from shared.http.requests import Body, Path
+from shared.resolvers.http.requests import Body, Path
 
 from .images.http import Response as image
 from .listings.http import Response as listing

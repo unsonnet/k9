@@ -92,6 +92,7 @@ cython_debug/
 # AWS stuff:
 cdk.out/
 .aws-sam/
+.build/
 
 # Extra stuff:
 .ignore/

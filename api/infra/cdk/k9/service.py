@@ -24,6 +24,7 @@ from .config import (
     StageName,
     WorkerConfig,
 )
+from .image import Kind, image_code
 
 
 def pascal_case(s: str) -> str:
@@ -132,6 +133,7 @@ def create_function(
     config: ServiceConfig,
     manifest: Manifest,
     *,
+    kind: Kind,
     stage: StageName,
     architecture: lambda_.Architecture,
     root: Path,
@@ -140,11 +142,7 @@ def create_function(
         scope,
         "Function",
         function_name=f"k9-api-{stage}-{name.replace('.', '-')}",
-        code=lambda_.DockerImageCode.from_image_asset(
-            directory=str(root),
-            file=config.dockerfile,
-            cmd=[f"{name.replace('-', '_')}.handler.lambda_handler"],
-        ),
+        code=image_code(root, kind, name, architecture),
         timeout=Duration.seconds(config.timeout),
         memory_size=config.memory,
         architecture=architecture,
@@ -218,6 +216,7 @@ class ServiceRegistration(Construct):
             name,
             config,
             manifest,
+            kind="services",
             stage=stage,
             architecture=architecture,
             root=root,
@@ -262,6 +261,7 @@ class WorkerRegistration(Construct):
             name,
             config,
             manifest,
+            kind="workers",
             stage=stage,
             architecture=architecture,
             root=root,

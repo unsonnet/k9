@@ -2,7 +2,7 @@ from typing import Iterable
 
 from pydantic import HttpUrl
 from shared.config import is_set, missing, settings
-from shared.providers import BaseProvider, GrantSpec, apimethod
+from shared.providers.base import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
 
 from .models import Listing, Price

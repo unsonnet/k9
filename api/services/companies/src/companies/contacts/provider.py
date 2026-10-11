@@ -5,7 +5,7 @@ from pydantic import HttpUrl
 from pydantic.networks import EmailStr
 from pydantic_extra_types.phone_numbers import PhoneNumber
 from shared.config import is_set, missing, settings
-from shared.providers import BaseProvider, GrantSpec, apimethod
+from shared.providers.base import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
 from shared.providers.storage import StorageProvider, UploadURL
 

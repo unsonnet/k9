@@ -24,7 +24,6 @@
       },
       "services": {
         "auth": {
-          "dockerfile": "services/auth/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -32,7 +31,6 @@
           ]
         },
         "users": {
-          "dockerfile": "services/users/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -41,7 +39,6 @@
           ]
         },
         "companies": {
-          "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -52,7 +49,6 @@
           ]
         },
         "companies.contacts": {
-          "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -62,7 +58,6 @@
           ]
         },
         "companies.locations": {
-          "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -72,7 +67,6 @@
           ]
         },
         "products": {
-          "dockerfile": "services/products/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -82,7 +76,6 @@
           ]
         },
         "products.images": {
-          "dockerfile": "services/products/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -92,7 +85,6 @@
           ]
         },
         "products.listings": {
-          "dockerfile": "services/products/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -104,7 +96,6 @@
       "workers": {
         "index_companies": {
           "source": "dynamodb",
-          "dockerfile": "workers/index_companies/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -117,7 +108,6 @@
         },
         "sync_companies": {
           "source": "s3",
-          "dockerfile": "workers/sync_companies/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -128,7 +118,6 @@
         },
         "sync_users": {
           "source": "s3",
-          "dockerfile": "workers/sync_users/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -162,7 +151,6 @@
       },
       "services": {
         "auth": {
-          "dockerfile": "services/auth/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -170,7 +158,6 @@
           ]
         },
         "users": {
-          "dockerfile": "services/users/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -179,7 +166,6 @@
           ]
         },
         "companies": {
-          "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -190,7 +176,6 @@
           ]
         },
         "companies.contacts": {
-          "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -200,7 +185,6 @@
           ]
         },
         "companies.locations": {
-          "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -210,7 +194,6 @@
           ]
         },
         "products": {
-          "dockerfile": "services/products/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -220,7 +203,6 @@
           ]
         },
         "products.images": {
-          "dockerfile": "services/products/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -230,7 +212,6 @@
           ]
         },
         "products.listings": {
-          "dockerfile": "services/products/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -242,7 +223,6 @@
       "workers": {
         "index_companies": {
           "source": "dynamodb",
-          "dockerfile": "workers/index_companies/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -255,7 +235,6 @@
         },
         "sync_companies": {
           "source": "s3",
-          "dockerfile": "workers/sync_companies/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -266,7 +245,6 @@
         },
         "sync_users": {
           "source": "s3",
-          "dockerfile": "workers/sync_users/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -300,7 +278,6 @@
       },
       "services": {
         "auth": {
-          "dockerfile": "services/auth/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -308,7 +285,6 @@
           ]
         },
         "users": {
-          "dockerfile": "services/users/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -317,7 +293,6 @@
           ]
         },
         "companies": {
-          "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -328,7 +303,6 @@
           ]
         },
         "companies.contacts": {
-          "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -338,7 +312,6 @@
           ]
         },
         "companies.locations": {
-          "dockerfile": "services/companies/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -348,7 +321,6 @@
           ]
         },
         "products": {
-          "dockerfile": "services/products/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -358,7 +330,6 @@
           ]
         },
         "products.images": {
-          "dockerfile": "services/products/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -368,7 +339,6 @@
           ]
         },
         "products.listings": {
-          "dockerfile": "services/products/Dockerfile",
           "timeout": 20,
           "memory": 512,
           "shared": [
@@ -380,7 +350,6 @@
       "workers": {
         "index_companies": {
           "source": "dynamodb",
-          "dockerfile": "workers/index_companies/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -393,7 +362,6 @@
         },
         "sync_companies": {
           "source": "s3",
-          "dockerfile": "workers/sync_companies/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [
@@ -404,7 +372,6 @@
         },
         "sync_users": {
           "source": "s3",
-          "dockerfile": "workers/sync_users/Dockerfile",
           "timeout": 60,
           "memory": 512,
           "shared": [

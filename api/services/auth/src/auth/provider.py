@@ -2,7 +2,7 @@ import base64
 from typing import Iterable
 
 from shared.config import settings
-from shared.providers import BaseProvider, GrantSpec, apimethod
+from shared.providers.base import BaseProvider, GrantSpec, apimethod
 from shared.providers.identity import MFA, Challenge, IdentityProvider, Tokens
 
 __all__ = [

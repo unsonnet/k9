@@ -4,10 +4,10 @@ from typing import Iterable
 
 from pydantic import HttpUrl
 from shared.config import is_set, missing, settings
-from shared.http import Role
-from shared.providers import BaseProvider, GrantSpec, apimethod
+from shared.providers.base import BaseProvider, GrantSpec, apimethod
 from shared.providers.identity import IdentityProvider, User, UserPage
 from shared.providers.storage import StorageProvider, UploadURL
+from shared.resolvers.http import Role
 
 from .models import ImageFormat, UserCredentials
 

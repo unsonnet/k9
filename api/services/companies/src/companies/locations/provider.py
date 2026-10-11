@@ -1,7 +1,7 @@
 from typing import Iterable
 
 from shared.config import settings
-from shared.providers import BaseProvider, GrantSpec, apimethod
+from shared.providers.base import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider
 from shared.providers.location import LocationProvider
 
