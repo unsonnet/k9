@@ -106,6 +106,16 @@
           "batchSize": 10,
           "retryAttempts": 10
         },
+        "sync_products": {
+          "source": "s3",
+          "timeout": 60,
+          "memory": 512,
+          "shared": [
+            "storage",
+            "data"
+          ],
+          "bucketName": "k9-dev-425688663965-us-east-2-an"
+        },
         "sync_companies": {
           "source": "s3",
           "timeout": 60,
@@ -233,6 +243,16 @@
           "batchSize": 10,
           "retryAttempts": 10
         },
+        "sync_products": {
+          "source": "s3",
+          "timeout": 60,
+          "memory": 512,
+          "shared": [
+            "storage",
+            "data"
+          ],
+          "bucketName": "k9-dev-425688663965-us-east-2-an"
+        },
         "sync_companies": {
           "source": "s3",
           "timeout": 60,
@@ -359,6 +379,16 @@
           "streamArnParameter": "/k9/prod/data/dynamodb/stream",
           "batchSize": 10,
           "retryAttempts": 10
+        },
+        "sync_products": {
+          "source": "s3",
+          "timeout": 60,
+          "memory": 512,
+          "shared": [
+            "storage",
+            "data"
+          ],
+          "bucketName": "k9-dev-425688663965-us-east-2-an"
         },
         "sync_companies": {
           "source": "s3",

@@ -29,6 +29,7 @@ service-products = { workspace = true }
 service-users = { workspace = true }
 worker-index-companies = { workspace = true }
 worker-sync-companies = { workspace = true }
+worker-sync-products = { workspace = true }
 worker-sync-users = { workspace = true }
 
 [dependency-groups]

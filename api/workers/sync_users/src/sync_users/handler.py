@@ -15,6 +15,9 @@ def lambda_handler(event, context):
 # ──── Event Endpoints ─────────────────────────────────────────────────────────────────
 
 
-@app.created("uploads/users/*/picture.{png,jpeg,jxl,heic,webp}")
+FORMATS = "{png,jpeg,jxl,heic,webp}"
+
+
+@app.created(f"uploads/users/*/picture.{FORMATS}")
 def sync_user(request: Sync.Resource) -> None:
     provider.sync_user(request.key, id=request.id)
