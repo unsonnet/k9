@@ -12,10 +12,10 @@ from shared.resolvers.http.errors import (
     TooManyRequests,
     Unauthorized,
 )
-from shared.resolvers.http.responses import OK, Created, NoContent
+from shared.resolvers.http.responses import OK, NoContent
 
 from .http import Request, Response
-from .provider import ProductImageProvider
+from .provider import Image, ProductImageProvider, UploadURL
 
 __all__ = [
     "app",
@@ -50,15 +50,16 @@ def lambda_handler(event, context):
 def upload(
     caller: Caller,
     request: Request.Upload,
-) -> Created[Response.UploadURL] | Unauthorized | Forbidden | TooManyRequests:
+) -> OK[Response.UploadURL] | Unauthorized | Forbidden | TooManyRequests:
     try:
         require_admin(caller)
         form = provider.upload_image(
             id=request.id,
             sid=generate_subresource_id(),
             format=request.format,
+            hom=request.hom,
         )
-        return Created(Response.UploadURL.model_validate(form))
+        return OK(Response.UploadURL.model_validate(form))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -67,43 +68,10 @@ def upload(
         return TooManyRequests(cause=exc)
 
 
-@app.get(
-    "/products/<id>/images/<sid>",
-    summary="Update product image",
-    description="Update an image of a product. Requires admin role.",
-    tags=["product", "image"],
-    responses={
-        200: "Product image found",
-        401: "Authentication required",
-        403: "Access denied",
-        404: "Product image not found",
-        429: "Too many requests",
-    },
-)
-def update(
-    caller: Caller,
-    request: Request.Update,
-) -> OK[Response.UploadURL] | Unauthorized | Forbidden | NotFound | TooManyRequests:
-    try:
-        require_admin(caller)
-        form = provider.upload_image(
-            id=request.id,
-            sid=request.sid,
-            format=request.format,
-        )
-        return OK(Response.UploadURL.model_validate(form))
-    except DomainUnauthorized as exc:
-        return Unauthorized(cause=exc)
-    except DomainNotFound as exc:
-        return NotFound(cause=exc)
-    except DomainRateLimited as exc:
-        return TooManyRequests(cause=exc)
-
-
 @app.patch(
     "/products/<id>/images/<sid>",
     summary="Transform product image",
-    description="Transform an image of a product. Requires admin role.",
+    description="Mask and transform an image of a product. Requires admin role.",
     tags=["product", "image"],
     responses={
         200: "Product image transformed",
@@ -116,15 +84,26 @@ def update(
 def transform(
     caller: Caller,
     request: Request.Transform,
-) -> OK[Response.Image] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+) -> (
+    OK[Response.UploadURL]
+    | OK[Response.Image]
+    | Unauthorized
+    | Forbidden
+    | NotFound
+    | TooManyRequests
+):
     try:
         require_admin(caller)
-        image = provider.transform_image(
+        match provider.transform_image(
             id=request.id,
             sid=request.sid,
+            format=request.format,
             hom=request.hom,
-        )
-        return OK(Response.Image.model_validate(image))
+        ):
+            case UploadURL() as form:
+                return OK(Response.UploadURL.model_validate(form))
+            case Image() as image:
+                return OK(Response.Image.model_validate(image))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:

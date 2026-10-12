@@ -48,23 +48,18 @@ class SyncUserProvider(BaseProvider):
 
     @apimethod
     def sync_user(self, key: str, *, id: str) -> None:
+        target = f"users/{id}/picture.jxl"
+        self._mem.write(target, self._image(key), content_type="image/jxl")
+        self._mem.delete(key)
         self._idp.update_user(
             username=f"id:{id}",
-            picture=str(self._mem.get_url(self._convert(key))),
+            picture=str(self._mem.get_url(target)),
         )
 
     # ──── Private Methods ────
 
-    def _convert(self, key: str) -> str:
-        target = key.removeprefix("uploads/").rpartition(".")[0] + ".jxl"
-        data = self._to_jxl(self._mem.read(key))
-        self._mem.write(target, data, content_type="image/jxl")
-        self._mem.delete(key)
-        return target
-
-    @staticmethod
-    def _to_jxl(data: bytes) -> bytes:
-        img = ImageOps.exif_transpose(Image.open(BytesIO(data)))
-        img = img.convert("RGBA")
+    def _image(self, key: str) -> bytes:
+        data = self._mem.read(key)["Body"].read()
+        img = ImageOps.exif_transpose(Image.open(BytesIO(data))).convert("RGBA")
         img.save(out := BytesIO(), format="JXL", lossless=True)
         return out.getvalue()

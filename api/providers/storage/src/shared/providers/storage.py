@@ -7,11 +7,16 @@ from pydantic import HttpUrl
 from shared.errors import DomainForbidden, DomainNotFound, DomainUnknown
 from shared.providers.base import BaseProvider, ExceptionMap, GrantSpec, apimethod
 from types_boto3_s3.service_resource import Bucket
+from types_boto3_s3.type_defs import GetObjectOutputTypeDef
 
 __all__ = [
     "UploadURL",
     "StorageProvider",
+    "StorageObject",
 ]
+
+
+type StorageObject = GetObjectOutputTypeDef
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,14 +70,17 @@ class StorageProvider(BaseProvider):
         content_type: str,
         max_bytes: int,
         max_seconds: int,
+        metadata: Mapping[str, str] = {},
     ) -> UploadURL:
+        meta = {f"x-amz-meta-{k}": v for k, v in metadata.items()}
         return self._upload_url(
             self._s3.meta.client.generate_presigned_post(
                 Bucket=self._s3.name,
                 Key=key,
-                Fields={"Content-Type": content_type},
+                Fields={"Content-Type": content_type, **meta},
                 Conditions=[
                     {"Content-Type": content_type},
+                    *({k: v} for k, v in meta.items()),
                     ["content-length-range", 1, max_bytes],
                 ],
                 ExpiresIn=max_seconds,
@@ -88,8 +96,8 @@ class StorageProvider(BaseProvider):
         return HttpUrl(f"https://{bucket}.s3.{region}.amazonaws.com/{key}")
 
     @apimethod
-    def read(self, key: str) -> bytes:
-        return self._s3.Object(key).get()["Body"].read()
+    def read(self, key: str) -> StorageObject:
+        return self._s3.Object(key).get()
 
     @apimethod
     def write(self, key: str, data: bytes, *, content_type: str) -> None:

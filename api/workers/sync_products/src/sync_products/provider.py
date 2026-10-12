@@ -1,3 +1,4 @@
+from decimal import Decimal
 from io import BytesIO
 from typing import Iterable
 
@@ -7,7 +8,7 @@ from pillow_heif import register_heif_opener
 from shared.config import settings
 from shared.providers.base import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider
-from shared.providers.storage import StorageProvider
+from shared.providers.storage import StorageObject, StorageProvider
 
 __all__ = [
     "SyncProductProvider",
@@ -47,25 +48,47 @@ class SyncProductProvider(BaseProvider):
     # ──── Public Methods ────
 
     @apimethod
-    def sync_image(self, key: str, *, id: str, sid: str) -> None:
+    def create_image(self, key: str, *, id: str, sid: str) -> None:
+        new = self._mem.read(key)
+        target = f"products/{id}/images/{sid}.jxl"
+        self._mem.write(target, self._image(new), content_type="image/jxl")
+        self._mem.delete(key)
+        self._db.create_item(
+            type="product.image",
+            id=f"{id}.{sid}",
+            url=str(self._mem.get_url(target)),
+            **self._hom(new),
+        )
+
+    @apimethod
+    def update_image(self, key: str, *, id: str, sid: str) -> None:
+        new = self._mem.read(key)
+        target = f"products/{id}/images/{sid}.jxl"
+        old = self._mem.read(target)
+        self._mem.write(target, self._image(old, mask=new), content_type="image/jxl")
+        self._mem.delete(key)
         self._db.update_item(
             type="product.image",
             id=f"{id}.{sid}",
-            url=str(self._mem.get_url(self._convert(key))),
+            **self._hom(new),
         )
 
     # ──── Private Methods ────
 
-    def _convert(self, key: str) -> str:
-        target = key.removeprefix("uploads/").rpartition(".")[0] + ".jxl"
-        data = self._to_jxl(self._mem.read(key))
-        self._mem.write(target, data, content_type="image/jxl")
-        self._mem.delete(key)
-        return target
-
     @staticmethod
-    def _to_jxl(data: bytes) -> bytes:
-        img = ImageOps.exif_transpose(Image.open(BytesIO(data)))
-        img = img.convert("RGBA")
+    def _image(obj: StorageObject, *, mask: StorageObject | None = None) -> bytes:
+        data = obj["Body"].read()
+        img = ImageOps.exif_transpose(Image.open(BytesIO(data))).convert("RGBA")
+        if mask:
+            data = mask["Body"].read()
+            alpha = ImageOps.exif_transpose(Image.open(BytesIO(data))).convert("RGBA")
+            img.putalpha(alpha.getchannel("A").resize(img.size))
         img.save(out := BytesIO(), format="JXL", lossless=True)
         return out.getvalue()
+
+    @staticmethod
+    def _hom(obj: StorageObject) -> dict[str, list[list[Decimal]]]:
+        if not (raw := obj["Metadata"].get("hom")):
+            return {}
+        flat = [Decimal(x) for x in raw.split(",")]
+        return {"hom": [flat[i : i + 3] for i in range(0, 9, 3)]}

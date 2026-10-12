@@ -1,12 +1,11 @@
-from decimal import Decimal
 from typing import Iterable
 
-from shared.config import settings
+from shared.config import is_set, missing, settings
 from shared.providers.base import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider
 from shared.providers.storage import StorageProvider, UploadURL
 
-from .models import Image, ImageFormat
+from .models import Homomorphism, Image, ImageFormat
 
 __all__ = [
     "ProductImageProvider",
@@ -50,12 +49,14 @@ class ProductImageProvider(BaseProvider):
         id: str,
         sid: str,
         format: ImageFormat,
+        hom: Homomorphism,
     ) -> UploadURL:
         return self._mem.presign_post(
-            f"uploads/products/{id}/images/{sid}/reference.{format}",
+            f"uploads/products/{id}/images/{sid}/create.{format}",
             content_type=format.content_type,
             max_bytes=5 * 1024 * 1024,
             max_seconds=5 * 60,
+            metadata={"hom": self._serialize(hom)},
         )
 
     @apimethod
@@ -64,13 +65,23 @@ class ProductImageProvider(BaseProvider):
         *,
         id: str,
         sid: str,
-        hom: list[Decimal],
-    ) -> Image:
-        self._db.update_item(
-            type="product.image",
-            id=f"{id}.{sid}",
-            hom=hom,
-        )
+        format: ImageFormat | missing,
+        hom: Homomorphism | missing,
+    ) -> UploadURL | Image:
+        if is_set(format):
+            return self._mem.presign_post(
+                f"uploads/products/{id}/images/{sid}/update.{format}",
+                content_type=format.content_type,
+                max_bytes=5 * 1024 * 1024,
+                max_seconds=5 * 60,
+                metadata={"hom": self._serialize(hom)} if is_set(hom) else {},
+            )
+        if is_set(hom):
+            self._db.update_item(
+                type="product.image",
+                id=f"{id}.{sid}",
+                hom=hom,
+            )
         return Image.model_validate(
             self._db.read_item(
                 type="product.image",
@@ -90,3 +101,9 @@ class ProductImageProvider(BaseProvider):
             id=f"{id}.{sid}",
         )
         return None
+
+    # ──── Private Methods ────
+
+    @staticmethod
+    def _serialize(hom: Homomorphism) -> str:
+        return ",".join(str(x) for row in hom for x in row)
