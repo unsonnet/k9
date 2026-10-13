@@ -11,6 +11,7 @@ __all__ = [
 
 class Price(BaseModel, frozen=True):
     amount: Decimal | None
+    quantity: str | None
     posted_at: datetime
 
 
