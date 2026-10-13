@@ -165,6 +165,7 @@ def upload(
             id=request.id,
             sid=request.sid,
             format=request.format,
+            length=request.length,
         )
         return OK(Response.UploadURL.model_validate(form))
     except DomainUnauthorized as exc:

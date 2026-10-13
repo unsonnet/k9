@@ -49,12 +49,13 @@ class ProductImageProvider(BaseProvider):
         id: str,
         sid: str,
         format: ImageFormat,
+        length: int,
         hom: Homomorphism,
     ) -> UploadURL:
-        return self._mem.presign_post(
+        return self._mem.presign_put(
             f"uploads/products/{id}/images/{sid}/create.{format}",
             content_type=format.content_type,
-            max_bytes=5 * 1024 * 1024,
+            content_length=length,
             max_seconds=5 * 60,
             metadata={"hom": self._serialize(hom)},
         )
@@ -66,13 +67,14 @@ class ProductImageProvider(BaseProvider):
         id: str,
         sid: str,
         format: ImageFormat | missing,
+        length: int | missing,
         hom: Homomorphism | missing,
     ) -> UploadURL | Image:
-        if is_set(format):
-            return self._mem.presign_post(
+        if is_set(format) and is_set(length):
+            return self._mem.presign_put(
                 f"uploads/products/{id}/images/{sid}/update.{format}",
                 content_type=format.content_type,
-                max_bytes=5 * 1024 * 1024,
+                content_length=length,
                 max_seconds=5 * 60,
                 metadata={"hom": self._serialize(hom)} if is_set(hom) else {},
             )

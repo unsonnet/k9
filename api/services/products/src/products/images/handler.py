@@ -57,6 +57,7 @@ def upload(
             id=request.id,
             sid=generate_subresource_id(),
             format=request.format,
+            length=request.length,
             hom=request.hom,
         )
         return OK(Response.UploadURL.model_validate(form))
@@ -98,6 +99,7 @@ def transform(
             id=request.id,
             sid=request.sid,
             format=request.format,
+            length=request.length,
             hom=request.hom,
         ):
             case UploadURL() as form:

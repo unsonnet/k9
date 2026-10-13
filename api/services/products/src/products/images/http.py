@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from pydantic import BaseModel, HttpUrl, field_validator
+from pydantic import BaseModel, Field, HttpUrl, field_validator
 from shared.config import missing
 from shared.helpers import validate_resource_id, validate_subresource_id
 from shared.resolvers.http.requests import Body, Path
@@ -20,6 +20,7 @@ class Request:
     class Upload(BaseModel, frozen=True):
         id: Path[str]
         format: Body[ImageFormat]
+        length: Body[int] = Field(ge=1, le=5 * 1024 * 1024)
         hom: Body[Homomorphism]
 
         @field_validator("id")
@@ -31,6 +32,7 @@ class Request:
         id: Path[str]
         sid: Path[str]
         format: Body[ImageFormat | missing]
+        length: Body[int | missing] = Field(ge=1, le=5 * 1024 * 1024)
         hom: Body[Homomorphism | missing]
 
         @field_validator("id")
@@ -69,4 +71,4 @@ class Response:
 
     class UploadURL(BaseModel, frozen=True, from_attributes=True):
         url: HttpUrl
-        fields: dict[str, str]
+        headers: dict[str, str]

@@ -128,11 +128,12 @@ class CompanyContactProvider(BaseProvider):
         id: str,
         sid: str,
         format: ImageFormat,
+        length: int,
     ) -> UploadURL:
-        return self._mem.presign_post(
+        return self._mem.presign_put(
             f"uploads/companies/{id}/contacts/{sid}/picture.{format}",
             content_type=format.content_type,
-            max_bytes=5 * 1024 * 1024,
+            content_length=length,
             max_seconds=5 * 60,
         )
 

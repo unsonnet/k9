@@ -78,6 +78,7 @@ class Request:
     class Logo(BaseModel, frozen=True):
         id: Path[str]
         format: Body[ImageFormat]
+        length: Body[int] = Field(ge=1, le=5 * 1024 * 1024)
 
         @field_validator("id")
         @classmethod
@@ -112,4 +113,4 @@ class Response:
 
     class UploadURL(BaseModel, frozen=True, from_attributes=True):
         url: HttpUrl
-        fields: dict[str, str]
+        headers: dict[str, str]

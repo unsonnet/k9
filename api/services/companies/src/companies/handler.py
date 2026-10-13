@@ -218,6 +218,7 @@ def upload(
         form = provider.upload_logo(
             id=request.id,
             format=request.format,
+            length=request.length,
         )
         return OK(Response.UploadURL.model_validate(form))
     except DomainUnauthorized as exc:
