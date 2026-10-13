@@ -1,4 +1,3 @@
-from decimal import Decimal
 from functools import cached_property
 from typing import Iterable
 
@@ -6,10 +5,9 @@ from pydantic import HttpUrl
 from shared.config import is_set, missing, settings
 from shared.providers.base import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
-from shared.providers.search import Near, Page, SearchProvider, Term, Text
 from shared.providers.storage import StorageProvider, UploadURL
 
-from .models import Company, CompanyIndex, ImageFormat, Sector
+from .models import Company, ImageFormat, Sector
 
 __all__ = [
     "CompanyProvider",
@@ -19,7 +17,6 @@ __all__ = [
 class CompanyProvider(BaseProvider):
     _mem: StorageProvider
     _db: DatabaseProvider
-    _os: SearchProvider
 
     def __init__(
         self,
@@ -27,8 +24,6 @@ class CompanyProvider(BaseProvider):
         region: str | None = None,
         bucket: str | None = None,
         table: str | None = None,
-        index: str | None = None,
-        opensearch_endpoint: str | None = None,
     ) -> None:
         region = region or settings.aws_region
         # s3
@@ -41,38 +36,13 @@ class CompanyProvider(BaseProvider):
             region=region,
             table=table or settings.dynamodb_table,
         )
-        # opensearch
-        self._os = SearchProvider(
-            region=region,
-            endpoint=opensearch_endpoint or settings.opensearch_endpoint,
-            index=index or settings.opensearch_index_companies,
-        )
 
     @property
     def permissions(self) -> Iterable[GrantSpec]:
         yield from self._mem.permissions
         yield from self._db.permissions
-        yield from self._os.permissions
 
     # ──── Public Methods ────
-
-    @apimethod
-    def search_companies(
-        self,
-        *,
-        sector: list[Sector] | missing,
-        name: str | missing,
-        geo: tuple[Decimal, Decimal, int] | missing,
-        limit: int,
-        cursor: str | missing,
-    ) -> Page[CompanyIndex]:
-        return self._os.search(
-            Term("sector", [i.value for i in sector] if is_set(sector) else None),
-            Text("name", name if is_set(name) else None),
-            Near("$location", geo if is_set(geo) else None),
-            limit=limit,
-            cursor=cursor if is_set(cursor) else None,
-        ).hydrate(CompanyIndex)
 
     @apimethod
     def create_company(

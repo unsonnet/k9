@@ -35,36 +35,6 @@ def lambda_handler(event, context):
 # ──── API Endpoints ───────────────────────────────────────────────────────────────────
 
 
-@app.get(
-    "/companies",
-    summary="Search companies",
-    description="Search companies by sector, name, and coordinates.",
-    tags=["company"],
-    responses={
-        200: "Companies found",
-        401: "Authentication required",
-        429: "Too many requests",
-    },
-)
-def search(
-    caller: Caller,
-    request: Request.Search,
-) -> OK[Response.Page] | Unauthorized | TooManyRequests:
-    try:
-        page = provider.search_companies(
-            sector=request.sector,
-            name=request.name,
-            geo=request.geo,
-            limit=request.limit,
-            cursor=request.cursor,
-        )
-        return OK(Response.Page.model_validate(page))
-    except DomainUnauthorized as exc:
-        return Unauthorized(cause=exc)
-    except DomainRateLimited as exc:
-        return TooManyRequests(cause=exc)
-
-
 @app.post(
     "/companies",
     summary="Create company",

@@ -44,7 +44,14 @@
           "shared": [
             "identity",
             "storage",
-            "data",
+            "data"
+          ]
+        },
+        "companies.search": {
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
             "search"
           ]
         },
@@ -181,7 +188,14 @@
           "shared": [
             "identity",
             "storage",
-            "data",
+            "data"
+          ]
+        },
+        "companies.search": {
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
             "search"
           ]
         },
@@ -318,7 +332,14 @@
           "shared": [
             "identity",
             "storage",
-            "data",
+            "data"
+          ]
+        },
+        "companies.search": {
+          "timeout": 20,
+          "memory": 512,
+          "shared": [
+            "identity",
             "search"
           ]
         },

@@ -53,5 +53,3 @@ class Response:
         zip: str
         lat: Decimal
         lon: Decimal
-
-    type LocationIndex = Location
