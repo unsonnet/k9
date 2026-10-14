@@ -1,9 +1,11 @@
 from enum import StrEnum
-from itertools import chain
 from typing import Annotated, Literal, Self
 
 from aws_cdk import aws_lambda as lambda_
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+type StageName = Literal["dev", "stage", "prod"]
+type Environment = dict[str, str]
 
 
 class Architecture(StrEnum):
@@ -12,25 +14,28 @@ class Architecture(StrEnum):
 
     @property
     def cdk(self) -> lambda_.Architecture:
-        return (
-            lambda_.Architecture.ARM_64
-            if self is self.ARM64
-            else lambda_.Architecture.X86_64
-        )
+        return {
+            Architecture.ARM64: lambda_.Architecture.ARM_64,
+            Architecture.X86_64: lambda_.Architecture.X86_64,
+        }[self]
 
 
-def camel_case(s: str) -> str:
-    head, *tail = s.split("_")
+def _camel_case(value: str) -> str:
+    head, *tail = value.split("_")
     return head + "".join(part.capitalize() for part in tail)
 
 
-class ServiceConfig(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=camel_case)
+class _Config(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid", populate_by_name=True, alias_generator=_camel_case
+    )
 
-    timeout: int = 20
-    memory: int = 512
+
+class ServiceConfig(_Config):
+    timeout: int = Field(20, ge=1, le=900)
+    memory: int = Field(512, ge=128, le=10240)
     shared: list[str] = Field(default_factory=list)
-    environment: dict[str, str] = Field(default_factory=dict)
+    environment: Environment = Field(default_factory=dict)
 
 
 class DynamoDBWorkerConfig(ServiceConfig):
@@ -54,29 +59,59 @@ class S3WorkerConfig(ServiceConfig):
 
 
 type WorkerConfig = Annotated[
-    DynamoDBWorkerConfig | S3WorkerConfig,
-    Field(discriminator="source"),
+    DynamoDBWorkerConfig | S3WorkerConfig, Field(discriminator="source")
 ]
 
-type StageName = Literal["dev", "stage", "prod"]
-type Environment = dict[str, str]
+
+def _interpolate(value: object, variables: dict[str, str]) -> object:
+    """Expand only known placeholders, rejecting accidental/unresolved fields."""
+    if isinstance(value, str):
+        for key, replacement in variables.items():
+            value = value.replace("{" + key + "}", replacement)
+        return value
+    if isinstance(value, list):
+        return [_interpolate(item, variables) for item in value]
+    if isinstance(value, dict):
+        return {key: _interpolate(item, variables) for key, item in value.items()}
+    return value
 
 
-class StageConfig(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-
+class StageConfig(_Config):
     stage: StageName
-    account: str
-    region: str
+    account: str = Field(pattern=r"^\d{12}$")
+    region: str = Field(min_length=1)
     architecture: Architecture = Architecture.ARM64
     shared: dict[str, Environment] = Field(default_factory=dict)
     services: dict[str, ServiceConfig] = Field(default_factory=dict)
     workers: dict[str, WorkerConfig] = Field(default_factory=dict)
 
+    @classmethod
+    def from_context(cls, context: dict[str, object]) -> Self:
+        stage = context.get("stage")
+        if not isinstance(stage, str) or stage not in ("dev", "stage", "prod"):
+            raise ValueError("CDK context must specify stage: dev, stage, or prod")
+        account, region = context.get("account"), context.get("region")
+        if not isinstance(account, str) or not isinstance(region, str):
+            raise ValueError("CDK context requires string account and region")
+        keys = ("architecture", "shared", "services", "workers")
+        selected = {key: context[key] for key in keys if key in context}
+        data = {"stage": stage, "account": account, "region": region, **selected}
+        variables = {"stage": stage, "account": account, "region": region}
+        return cls.model_validate(_interpolate(data, variables))
+
     @model_validator(mode="after")
-    def expand_environments(self) -> Self:
-        app = {"APP_STAGE": self.stage, "APP_AWS_REGION": self.region}
-        for config in chain(self.services.values(), self.workers.values()):
-            shared = {k: v for g in config.shared for k, v in self.shared[g].items()}
-            config.environment = shared | config.environment | app
+    def validate_shared_groups(self) -> Self:
+        for name, config in (*self.services.items(), *self.workers.items()):
+            missing = set(config.shared) - self.shared.keys()
+            if missing:
+                raise ValueError(f"{name}: unknown shared groups: {sorted(missing)}")
         return self
+
+    def environment_for(self, config: ServiceConfig) -> Environment:
+        """Resolve shared values without mutating the original configuration."""
+        result: Environment = {}
+        for group in config.shared:
+            result.update(self.shared[group])
+        result.update(config.environment)
+        result.update(APP_STAGE=self.stage, APP_AWS_REGION=self.region)
+        return result

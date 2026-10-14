@@ -1,310 +1,104 @@
 {
   "app": "uv run app.py",
   "context": {
-    "dev": {
-      "account": "425688663965",
-      "region": "us-east-2",
-      "architecture": "x86_64",
-      "shared": {
-        "identity": {
-          "COGNITO_CLIENT_ID_PARAMETER": "/k9/dev/identity/cognito/client-id",
-          "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/dev/identity/cognito/client-secret",
-          "COGNITO_USER_POOL_ID_PARAMETER": "/k9/dev/identity/cognito/user-pool-id"
-        },
-        "storage": {
-          "S3_BUCKET_PARAMETER": "/k9/dev/storage/s3/bucket"
-        },
-        "data": {
-          "DYNAMODB_TABLE_PARAMETER": "/k9/dev/data/dynamodb/table"
-        },
-        "search": {
-          "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/dev/data/opensearch/endpoint",
-          "OPENSEARCH_INDEX_COMPANIES_PARAMETER": "/k9/dev/data/opensearch/index/companies"
-        }
+    "account": "425688663965",
+    "region": "us-east-2",
+    "architecture": "x86_64",
+    "shared": {
+      "identity": {
+        "COGNITO_CLIENT_ID_PARAMETER": "/k9/{stage}/identity/cognito/client-id",
+        "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/{stage}/identity/cognito/client-secret",
+        "COGNITO_USER_POOL_ID_PARAMETER": "/k9/{stage}/identity/cognito/user-pool-id"
       },
-      "services": {
-        "auth": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity"
-          ]
-        },
-        "users": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage"
-          ]
-        },
-        "companies": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data",
-            "search"
-          ]
-        },
-        "products": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data"
-          ]
-        }
+      "storage": {
+        "S3_BUCKET_PARAMETER": "/k9/{stage}/storage/s3/bucket"
       },
-      "workers": {
-        "index_companies": {
-          "source": "dynamodb",
-          "timeout": 60,
-          "memory": 512,
-          "shared": [
-            "search"
-          ],
-          "tableName": "k9-dev",
-          "streamArnParameter": "/k9/dev/data/dynamodb/stream",
-          "batchSize": 10,
-          "retryAttempts": 10
-        },
-        "sync_products": {
-          "source": "s3",
-          "timeout": 60,
-          "memory": 512,
-          "shared": [
-            "storage",
-            "data"
-          ],
-          "bucketName": "k9-dev-425688663965-us-east-2-an"
-        },
-        "sync_companies": {
-          "source": "s3",
-          "timeout": 60,
-          "memory": 512,
-          "shared": [
-            "storage",
-            "data"
-          ],
-          "bucketName": "k9-dev-425688663965-us-east-2-an"
-        },
-        "sync_users": {
-          "source": "s3",
-          "timeout": 60,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage"
-          ],
-          "bucketName": "k9-dev-425688663965-us-east-2-an"
-        }
+      "data": {
+        "DYNAMODB_TABLE_PARAMETER": "/k9/{stage}/data/dynamodb/table"
+      },
+      "search": {
+        "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/{stage}/data/opensearch/endpoint",
+        "OPENSEARCH_INDEX_COMPANIES_PARAMETER": "/k9/{stage}/data/opensearch/index/companies"
       }
     },
-    "stage": {
-      "account": "425688663965",
-      "region": "us-east-2",
-      "architecture": "arm64",
-      "shared": {
-        "identity": {
-          "COGNITO_CLIENT_ID_PARAMETER": "/k9/stage/identity/cognito/client-id",
-          "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/stage/identity/cognito/client-secret",
-          "COGNITO_USER_POOL_ID_PARAMETER": "/k9/stage/identity/cognito/user-pool-id"
-        },
-        "storage": {
-          "S3_BUCKET_PARAMETER": "/k9/stage/storage/s3/bucket"
-        },
-        "data": {
-          "DYNAMODB_TABLE_PARAMETER": "/k9/stage/data/dynamodb/table"
-        },
-        "search": {
-          "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/stage/data/opensearch/endpoint",
-          "OPENSEARCH_INDEX_COMPANIES_PARAMETER": "/k9/stage/data/opensearch/index/companies"
-        }
+    "services": {
+      "auth": {
+        "timeout": 20,
+        "memory": 512,
+        "shared": [
+          "identity"
+        ]
       },
-      "services": {
-        "auth": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity"
-          ]
-        },
-        "users": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage"
-          ]
-        },
-        "companies": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data",
-            "search"
-          ]
-        },
-        "products": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data"
-          ]
-        }
+      "users": {
+        "timeout": 20,
+        "memory": 512,
+        "shared": [
+          "identity",
+          "storage"
+        ]
       },
-      "workers": {
-        "index_companies": {
-          "source": "dynamodb",
-          "timeout": 60,
-          "memory": 512,
-          "shared": [
-            "search"
-          ],
-          "tableName": "k9-stage",
-          "streamArnParameter": "/k9/stage/data/dynamodb/stream",
-          "batchSize": 10,
-          "retryAttempts": 10
-        },
-        "sync_products": {
-          "source": "s3",
-          "timeout": 60,
-          "memory": 512,
-          "shared": [
-            "storage",
-            "data"
-          ],
-          "bucketName": "k9-dev-425688663965-us-east-2-an"
-        },
-        "sync_companies": {
-          "source": "s3",
-          "timeout": 60,
-          "memory": 512,
-          "shared": [
-            "storage",
-            "data"
-          ],
-          "bucketName": "k9-dev-425688663965-us-east-2-an"
-        },
-        "sync_users": {
-          "source": "s3",
-          "timeout": 60,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage"
-          ],
-          "bucketName": "k9-dev-425688663965-us-east-2-an"
-        }
+      "companies": {
+        "timeout": 20,
+        "memory": 512,
+        "shared": [
+          "identity",
+          "storage",
+          "data",
+          "search"
+        ]
+      },
+      "products": {
+        "timeout": 20,
+        "memory": 512,
+        "shared": [
+          "identity",
+          "storage",
+          "data"
+        ]
       }
     },
-    "prod": {
-      "account": "425688663965",
-      "region": "us-east-2",
-      "architecture": "arm64",
-      "shared": {
-        "identity": {
-          "COGNITO_CLIENT_ID_PARAMETER": "/k9/prod/identity/cognito/client-id",
-          "COGNITO_CLIENT_SECRET_PARAMETER": "/k9/prod/identity/cognito/client-secret",
-          "COGNITO_USER_POOL_ID_PARAMETER": "/k9/prod/identity/cognito/user-pool-id"
-        },
-        "storage": {
-          "S3_BUCKET_PARAMETER": "/k9/prod/storage/s3/bucket"
-        },
-        "data": {
-          "DYNAMODB_TABLE_PARAMETER": "/k9/prod/data/dynamodb/table"
-        },
-        "search": {
-          "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/prod/data/opensearch/endpoint",
-          "OPENSEARCH_INDEX_COMPANIES_PARAMETER": "/k9/prod/data/opensearch/index/companies"
-        }
+    "workers": {
+      "index_companies": {
+        "source": "dynamodb",
+        "timeout": 60,
+        "memory": 512,
+        "shared": [
+          "search"
+        ],
+        "tableName": "k9-{stage}",
+        "streamArnParameter": "/k9/{stage}/data/dynamodb/stream",
+        "batchSize": 10,
+        "retryAttempts": 10
       },
-      "services": {
-        "auth": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity"
-          ]
-        },
-        "users": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage"
-          ]
-        },
-        "companies": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data",
-            "search"
-          ]
-        },
-        "products": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data"
-          ]
-        }
+      "sync_products": {
+        "source": "s3",
+        "timeout": 60,
+        "memory": 512,
+        "shared": [
+          "storage",
+          "data"
+        ],
+        "bucketName": "k9-{stage}-{account}-{region}-an"
       },
-      "workers": {
-        "index_companies": {
-          "source": "dynamodb",
-          "timeout": 60,
-          "memory": 512,
-          "shared": [
-            "search"
-          ],
-          "tableName": "k9-prod",
-          "streamArnParameter": "/k9/prod/data/dynamodb/stream",
-          "batchSize": 10,
-          "retryAttempts": 10
-        },
-        "sync_products": {
-          "source": "s3",
-          "timeout": 60,
-          "memory": 512,
-          "shared": [
-            "storage",
-            "data"
-          ],
-          "bucketName": "k9-dev-425688663965-us-east-2-an"
-        },
-        "sync_companies": {
-          "source": "s3",
-          "timeout": 60,
-          "memory": 512,
-          "shared": [
-            "storage",
-            "data"
-          ],
-          "bucketName": "k9-dev-425688663965-us-east-2-an"
-        },
-        "sync_users": {
-          "source": "s3",
-          "timeout": 60,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage"
-          ],
-          "bucketName": "k9-dev-425688663965-us-east-2-an"
-        }
+      "sync_companies": {
+        "source": "s3",
+        "timeout": 60,
+        "memory": 512,
+        "shared": [
+          "storage",
+          "data"
+        ],
+        "bucketName": "k9-{stage}-{account}-{region}-an"
+      },
+      "sync_users": {
+        "source": "s3",
+        "timeout": 60,
+        "memory": 512,
+        "shared": [
+          "identity",
+          "storage"
+        ],
+        "bucketName": "k9-{stage}-{account}-{region}-an"
       }
     },
     "@aws-cdk/aws-signer:signingProfileNamePassedToCfn": true,

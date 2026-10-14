@@ -4,7 +4,6 @@ from k9.stack import create_stack
 
 if __name__ == "__main__":
     app = App()
-    stage = str(app.node.get_context("stage"))
-    config = StageConfig.model_validate(app.node.get_context(stage) | {"stage": stage})
+    config = StageConfig.from_context(app.node.get_all_context())
     create_stack(app, config)
     app.synth()
