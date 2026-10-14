@@ -16,45 +16,43 @@ class ManifestApp(Protocol):
     def manifest(self) -> dict[str, Any]: ...
 
 
-def collect_handlers(kind: str) -> dict[str, tuple[Path, Path]]:
+def collect_packages(kind: str) -> dict[str, Path]:
     base_dir = REPO_ROOT / kind
     if not base_dir.exists():
         return {}
 
-    handlers: dict[str, tuple[Path, Path]] = {}
+    packages: dict[str, Path] = {}
     for project_dir in sorted(p for p in base_dir.iterdir() if p.is_dir()):
         src_dir = project_dir / "src"
         if not src_dir.exists():
             continue
 
-        for path in sorted(src_dir.glob("**/handler.py")):
-            name = ".".join(path.parent.relative_to(src_dir).parts)
-            if name in handlers and handlers[name][0] != path:
-                raise RuntimeError(
-                    f"Ambiguous handler for {name}: {handlers[name][0]}, {path}"
-                )
-            handlers[name] = (path, src_dir)
+        for path in sorted(src_dir.glob("*/__init__.py")):
+            name = path.parent.name
+            if name in packages:
+                raise RuntimeError(f"Ambiguous package for {name}")
+            packages[name] = src_dir
 
-    return handlers
+    return packages
 
 
 def discover(kind: str) -> list[str]:
-    return sorted(collect_handlers(kind))
+    return sorted(collect_packages(kind))
 
 
 def import_app(kind: str, name: str) -> ManifestApp:
     try:
-        _, src_dir = collect_handlers(kind)[name]
+        src_dir = collect_packages(kind)[name]
     except KeyError as exc:
-        raise FileNotFoundError(f"Missing handler for {kind}.{name}") from exc
+        raise FileNotFoundError(f"Missing package for {kind}.{name}") from exc
 
     if (src := str(src_dir)) not in sys.path:
         sys.path.insert(0, src)
 
-    module = importlib.import_module(f"{name}.handler")
+    module = importlib.import_module(name)
     app = getattr(module, "app", None)
     if not callable(getattr(app, "manifest", None)):
-        raise TypeError(f"{name}.handler.app must provide manifest(); got {type(app)}")
+        raise TypeError(f"{name}.app must provide manifest(); got {type(app)}")
     return app  # type: ignore
 
 

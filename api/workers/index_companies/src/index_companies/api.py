@@ -1,19 +1,11 @@
 from shared.errors import DomainNotFound
-from shared.resolvers.dynamodb import DynamoDBResolver
 
+from . import app
 from .models import Drop, Index
 from .provider import IndexCompanyProvider
 
-app = DynamoDBResolver()
 provider = IndexCompanyProvider()
 app.grant(*provider.permissions)
-
-
-def lambda_handler(event, context):
-    return app.resolve(event, context)
-
-
-# ──── Event Endpoints ─────────────────────────────────────────────────────────────────
 
 
 @app.insert("company")

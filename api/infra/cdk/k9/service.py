@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Annotated, Any, Literal, cast
 
-from aws_cdk import Duration, Stack
+from aws_cdk import Duration, Stack, Tags
 from aws_cdk import aws_apigatewayv2 as apigwv2
 from aws_cdk import aws_apigatewayv2_authorizers as authorizers
 from aws_cdk import aws_dynamodb as dynamodb
@@ -24,13 +24,17 @@ from .config import (
     StageName,
     WorkerConfig,
 )
-from .image import Kind, image_code
+from .image import Kind, image_code, package_name
 
 
 def pascal_case(s: str) -> str:
     return "".join(
         p.capitalize() for p in s.replace("-", "_").replace(".", "_").split("_")
     )
+
+
+def function_name(stage: StageName, kind: Kind, name: str) -> str:
+    return f"k9-api-{stage}-{package_name(kind, name)}"
 
 
 class Grant(BaseModel):
@@ -138,16 +142,19 @@ def create_function(
     architecture: lambda_.Architecture,
     root: Path,
 ) -> lambda_.DockerImageFunction:
+    physical_name = function_name(stage, kind, name)
     function = lambda_.DockerImageFunction(
         scope,
         "Function",
-        function_name=f"k9-api-{stage}-{name.replace('.', '-')}",
+        function_name=physical_name,
         code=image_code(root, kind, name, architecture),
         timeout=Duration.seconds(config.timeout),
         memory_size=config.memory,
         architecture=architecture,
         environment=config.environment,
     )
+    Tags.of(function).add("Name", physical_name)
+    Tags.of(function).add("Component", kind.removesuffix("s"))
 
     parameters = (p for k, p in config.environment.items() if k.endswith("_PARAMETER"))
     for index, parameter in enumerate(parameters, 1):
@@ -208,7 +215,7 @@ class ServiceRegistration(Construct):
         http: apigwv2.HttpApi,
         authorizer: authorizers.HttpJwtAuthorizer | None = None,
     ) -> None:
-        super().__init__(scope, f"{pascal_case(name)}Service")
+        super().__init__(scope, f"Service{pascal_case(name)}")
 
         manifest = load_manifest(root, "services", name)
         self.function = create_function(
@@ -246,8 +253,9 @@ class WorkerRegistration(Construct):
         stage: StageName,
         architecture: lambda_.Architecture,
         root: Path,
+        source_buckets: dict[str, s3.IBucket],
     ) -> None:
-        super().__init__(scope, f"{pascal_case(name)}Worker")
+        super().__init__(scope, f"Worker{pascal_case(name)}")
 
         manifest = load_manifest(root, "workers", name)
         if any(event.source != config.source for event in manifest.events):
@@ -271,7 +279,11 @@ class WorkerRegistration(Construct):
             case DynamoDBWorkerConfig():
                 self._bind_dynamodb(config, cast(list[DynamoDBEvent], manifest.events))
             case S3WorkerConfig():
-                self._bind_s3(config, cast(list[S3Event], manifest.events))
+                self._bind_s3(
+                    config,
+                    cast(list[S3Event], manifest.events),
+                    source_buckets,
+                )
 
         if parameter := config.opensearch_collection_arn_parameter:
             collection = ssm.StringParameter.value_for_string_parameter(
@@ -328,8 +340,16 @@ class WorkerRegistration(Construct):
         self,
         config: S3WorkerConfig,
         events: list[S3Event],
+        source_buckets: dict[str, s3.IBucket],
     ) -> None:
-        bucket = s3.Bucket.from_bucket_name(self, "SourceBucket", config.bucket_name)
+        bucket = source_buckets.get(config.bucket_name)
+        if bucket is None:
+            bucket = s3.Bucket.from_bucket_name(
+                self,
+                "SourceBucket",
+                config.bucket_name,
+            )
+            source_buckets[config.bucket_name] = bucket
         destination = s3_notifications.LambdaDestination(
             cast(lambda_.IFunction, self.function)
         )

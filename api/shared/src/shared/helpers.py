@@ -1,14 +1,26 @@
+import importlib
+import pkgutil
 import re
 import unicodedata
 from datetime import datetime, timezone
 from secrets import SystemRandom
 from string import ascii_lowercase, ascii_uppercase, digits
-from typing import Final, overload
+from typing import Final, Iterable, overload
 
 from .config import Caller
 from .errors import DomainForbidden
 
 _RANDOM: Final = SystemRandom()
+
+
+# ──── Registration ────────────────────────────────────────────────────────────────────
+
+
+def load_apis(package: str, path: Iterable[str]) -> None:
+    """Import every `api` module in a package tree so its endpoints register on the app."""
+    for module in pkgutil.walk_packages(path, f"{package}."):
+        if module.name.rpartition(".")[2] == "api":
+            importlib.import_module(module.name)
 
 
 # ──── Datetime ────────────────────────────────────────────────────────────────────────

@@ -1,8 +1,9 @@
 from pathlib import Path
 
-from aws_cdk import CfnOutput, Environment, Stack
+from aws_cdk import CfnOutput, Environment, Stack, Tags
 from aws_cdk import aws_apigatewayv2 as apigwv2
 from aws_cdk import aws_apigatewayv2_authorizers as apigwv2_authorizers
+from aws_cdk import aws_s3 as s3
 from aws_cdk import aws_ssm as ssm
 from constructs import Construct
 
@@ -19,6 +20,9 @@ def create_stack(scope: Construct, config: StageConfig) -> Stack:
         env=Environment(account=config.account, region=config.region),
         description=f"K9 API infrastructure for {config.stage}",
     )
+    Tags.of(stack).add("Application", "k9-api")
+    Tags.of(stack).add("Environment", config.stage)
+    Tags.of(stack).add("ManagedBy", "aws-cdk")
 
     http = apigwv2.HttpApi(
         stack,
@@ -26,6 +30,7 @@ def create_stack(scope: Construct, config: StageConfig) -> Stack:
         api_name=f"k9-api-{config.stage}",
         create_default_stage=True,
     )
+    Tags.of(http).add("Name", f"k9-api-{config.stage}")
 
     authorizer: apigwv2_authorizers.HttpJwtAuthorizer | None = None
     if identity := config.shared.get("identity"):
@@ -60,6 +65,7 @@ def create_stack(scope: Construct, config: StageConfig) -> Stack:
             value=service.function.function_name,
         )
 
+    source_buckets: dict[str, s3.IBucket] = {}
     for name, worker_config in config.workers.items():
         worker = WorkerRegistration(
             stack,
@@ -68,6 +74,7 @@ def create_stack(scope: Construct, config: StageConfig) -> Stack:
             stage=config.stage,
             architecture=config.architecture.cdk,
             root=root,
+            source_buckets=source_buckets,
         )
         CfnOutput(
             stack,

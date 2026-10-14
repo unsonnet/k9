@@ -1,19 +1,9 @@
-from shared.resolvers.s3 import S3Resolver
-
+from . import app
 from .models import Sync
 from .provider import SyncCompanyProvider
 
-app = S3Resolver()
 provider = SyncCompanyProvider()
 app.grant(*provider.permissions)
-
-
-def lambda_handler(event, context):
-    return app.resolve(event, context)
-
-
-# ──── Event Endpoints ─────────────────────────────────────────────────────────────────
-
 
 FORMATS = "{png,jpeg,jxl,heic,webp}"
 

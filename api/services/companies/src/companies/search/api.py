@@ -1,27 +1,14 @@
 from shared.errors import DomainRateLimited, DomainUnauthorized
-from shared.resolvers.http import Caller, HttpResolver
+from shared.resolvers.http import Caller
 from shared.resolvers.http.errors import TooManyRequests, Unauthorized
 from shared.resolvers.http.responses import OK
 
+from .. import app
 from .http import Request, Response
 from .provider import CompanySearchProvider
 
-__all__ = [
-    "app",
-    "lambda_handler",
-]
-
-
-app = HttpResolver(enable_validation=True)
 provider = CompanySearchProvider()
 app.grant(*provider.permissions)
-
-
-def lambda_handler(event, context):
-    return app.resolve(event, context)
-
-
-# ──── API Endpoints ───────────────────────────────────────────────────────────────────
 
 
 @app.get(

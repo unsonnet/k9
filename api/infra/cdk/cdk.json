@@ -44,33 +44,8 @@
           "shared": [
             "identity",
             "storage",
-            "data"
-          ]
-        },
-        "companies.search": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
+            "data",
             "search"
-          ]
-        },
-        "companies.contacts": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data"
-          ]
-        },
-        "companies.locations": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data"
           ]
         },
         "products": {
@@ -79,23 +54,6 @@
           "shared": [
             "identity",
             "storage",
-            "data"
-          ]
-        },
-        "products.images": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data"
-          ]
-        },
-        "products.listings": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
             "data"
           ]
         }
@@ -188,33 +146,8 @@
           "shared": [
             "identity",
             "storage",
-            "data"
-          ]
-        },
-        "companies.search": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
+            "data",
             "search"
-          ]
-        },
-        "companies.contacts": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data"
-          ]
-        },
-        "companies.locations": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data"
           ]
         },
         "products": {
@@ -223,23 +156,6 @@
           "shared": [
             "identity",
             "storage",
-            "data"
-          ]
-        },
-        "products.images": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data"
-          ]
-        },
-        "products.listings": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
             "data"
           ]
         }
@@ -332,33 +248,8 @@
           "shared": [
             "identity",
             "storage",
-            "data"
-          ]
-        },
-        "companies.search": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
+            "data",
             "search"
-          ]
-        },
-        "companies.contacts": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data"
-          ]
-        },
-        "companies.locations": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data"
           ]
         },
         "products": {
@@ -367,23 +258,6 @@
           "shared": [
             "identity",
             "storage",
-            "data"
-          ]
-        },
-        "products.images": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
-            "storage",
-            "data"
-          ]
-        },
-        "products.listings": {
-          "timeout": 20,
-          "memory": 512,
-          "shared": [
-            "identity",
             "data"
           ]
         }

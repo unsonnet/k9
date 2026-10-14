@@ -4,8 +4,8 @@ from shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from shared.helpers import generate_resource_id, require_admin
-from shared.resolvers.http import Caller, HttpResolver
+from shared.helpers import generate_subresource_id, require_admin
+from shared.resolvers.http import Caller
 from shared.resolvers.http.errors import (
     Forbidden,
     NotFound,
@@ -14,34 +14,21 @@ from shared.resolvers.http.errors import (
 )
 from shared.resolvers.http.responses import OK, Created, NoContent
 
+from .. import app
 from .http import Request, Response
-from .provider import CompanyProvider
+from .provider import CompanyContactProvider
 
-__all__ = [
-    "app",
-    "lambda_handler",
-]
-
-
-app = HttpResolver(enable_validation=True)
-provider = CompanyProvider()
+provider = CompanyContactProvider()
 app.grant(*provider.permissions)
 
 
-def lambda_handler(event, context):
-    return app.resolve(event, context)
-
-
-# ──── API Endpoints ───────────────────────────────────────────────────────────────────
-
-
 @app.post(
-    "/companies",
-    summary="Create company",
-    description="Create a company. Requires admin role.",
-    tags=["company"],
+    "/companies/<id>/contacts",
+    summary="Create company contact",
+    description="Create a contact of a company. Requires admin role.",
+    tags=["company", "contact"],
     responses={
-        201: "Company created",
+        201: "Company contact created",
         401: "Authentication required",
         403: "Access denied",
         429: "Too many requests",
@@ -50,16 +37,18 @@ def lambda_handler(event, context):
 def create(
     caller: Caller,
     request: Request.Create,
-) -> Created[Response.Company] | Unauthorized | Forbidden | TooManyRequests:
+) -> Created[Response.Contact] | Unauthorized | Forbidden | TooManyRequests:
     try:
         require_admin(caller)
-        company = provider.create_company(
-            id=generate_resource_id(),
-            sector=request.sector,
+        contact = provider.create_contact(
+            id=request.id,
+            sid=generate_subresource_id(),
             name=request.name,
-            website=request.website,
+            title=request.title,
+            email=request.email,
+            phone=request.phone,
         )
-        return Created(Response.Company.model_validate(company))
+        return Created(Response.Contact.model_validate(contact))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -68,62 +57,35 @@ def create(
         return TooManyRequests(cause=exc)
 
 
-@app.get(
-    "/companies/<id>",
-    summary="Read company",
-    description="Read a company.",
-    tags=["company"],
-    responses={
-        200: "Company found",
-        401: "Authentication required",
-        404: "Company not found",
-        429: "Too many requests",
-    },
-)
-def read(
-    caller: Caller,
-    request: Request.Read,
-) -> OK[Response.Company] | Unauthorized | NotFound | TooManyRequests:
-    try:
-        company = provider.read_company(
-            id=request.id,
-        )
-        return OK(Response.Company.model_validate(company))
-    except DomainUnauthorized as exc:
-        return Unauthorized(cause=exc)
-    except DomainNotFound as exc:
-        return NotFound(cause=exc)
-    except DomainRateLimited as exc:
-        return TooManyRequests(cause=exc)
-
-
 @app.patch(
-    "/companies/<id>",
-    summary="Update company",
-    description="Update a company. Requires admin role.",
-    tags=["company"],
+    "/companies/<id>/contacts/<sid>",
+    summary="Update company contact",
+    description="Update a contact of a company. Requires admin role.",
+    tags=["company", "contact"],
     responses={
-        200: "Company updated",
+        200: "Company contact updated",
         401: "Authentication required",
         403: "Access denied",
-        404: "Company not found",
+        404: "Company contact not found",
         429: "Too many requests",
     },
 )
 def update(
     caller: Caller,
     request: Request.Update,
-) -> OK[Response.Company] | Unauthorized | Forbidden | NotFound | TooManyRequests:
+) -> OK[Response.Contact] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
         require_admin(caller)
-        company = provider.update_company(
+        contact = provider.update_contact(
             id=request.id,
-            sector=request.sector,
+            sid=request.sid,
             name=request.name,
-            logo=request.logo,
-            website=request.website,
+            title=request.title,
+            picture=request.picture,
+            email=request.email,
+            phone=request.phone,
         )
-        return OK(Response.Company.model_validate(company))
+        return OK(Response.Contact.model_validate(contact))
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -135,12 +97,12 @@ def update(
 
 
 @app.delete(
-    "/companies/<id>",
-    summary="Delete company",
-    description="Delete a company. Requires admin role.",
-    tags=["company"],
+    "/companies/<id>/contacts/<sid>",
+    summary="Delete company contact",
+    description="Delete a contact of a company. Requires admin role.",
+    tags=["company", "contact"],
     responses={
-        200: "Company deleted",
+        200: "Company contact deleted",
         401: "Authentication required",
         403: "Access denied",
         429: "Too many requests",
@@ -152,8 +114,9 @@ def delete(
 ) -> NoContent | Unauthorized | Forbidden | TooManyRequests:
     try:
         require_admin(caller)
-        provider.delete_company(
+        provider.delete_contact(
             id=request.id,
+            sid=request.sid,
         )
         return NoContent()
     except DomainNotFound:
@@ -167,12 +130,12 @@ def delete(
 
 
 @app.post(
-    "/companies/<id>/logo",
-    summary="Upload company logo",
-    description="Create a company logo upload form. Requires admin role.",
-    tags=["company"],
+    "/companies/<id>/contacts/<sid>/picture",
+    summary="Upload company contact picture",
+    description="Create a company contact picture upload form. Requires admin role.",
+    tags=["company", "contact"],
     responses={
-        200: "Company logo upload form created",
+        200: "Company contact picture upload form created",
         401: "Authentication required",
         403: "Access denied",
         404: "Company not found",
@@ -181,12 +144,13 @@ def delete(
 )
 def upload(
     caller: Caller,
-    request: Request.Logo,
+    request: Request.Picture,
 ) -> OK[Response.UploadURL] | Unauthorized | Forbidden | NotFound | TooManyRequests:
     try:
         require_admin(caller)
-        form = provider.upload_logo(
+        form = provider.upload_picture(
             id=request.id,
+            sid=request.sid,
             format=request.format,
             length=request.length,
         )

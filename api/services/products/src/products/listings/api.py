@@ -5,7 +5,7 @@ from shared.errors import (
     DomainUnauthorized,
 )
 from shared.helpers import generate_subresource_id, require_admin
-from shared.resolvers.http import Caller, HttpResolver
+from shared.resolvers.http import Caller
 from shared.resolvers.http.errors import (
     Forbidden,
     NotFound,
@@ -14,25 +14,12 @@ from shared.resolvers.http.errors import (
 )
 from shared.resolvers.http.responses import OK, Created, NoContent
 
+from .. import app
 from .http import Request, Response
 from .provider import ProductListingProvider
 
-__all__ = [
-    "app",
-    "lambda_handler",
-]
-
-
-app = HttpResolver(enable_validation=True)
 provider = ProductListingProvider()
 app.grant(*provider.permissions)
-
-
-def lambda_handler(event, context):
-    return app.resolve(event, context)
-
-
-# ──── API Endpoints ───────────────────────────────────────────────────────────────────
 
 
 @app.post(

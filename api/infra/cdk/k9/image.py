@@ -14,7 +14,7 @@ type Kind = Literal["services", "workers"]
 
 def package_name(kind: Kind, name: str) -> str:
     prefix = "service" if kind == "services" else "worker"
-    return f"{prefix}-{name.split('.')[0].replace('_', '-')}"
+    return f"{prefix}-{name.replace('_', '-')}"
 
 
 def stage_context(root: Path, kind: Kind, name: str) -> Path:
@@ -74,7 +74,7 @@ def image_code(
 ) -> lambda_.DockerImageCode:
     return lambda_.DockerImageCode.from_image_asset(
         directory=str(stage_context(root, kind, name)),
-        cmd=[f"{name.replace('-', '_')}.handler.lambda_handler"],
+        cmd=[f"{name}.lambda_handler"],
         platform=(
             ecr_assets.Platform.LINUX_ARM64
             if architecture == lambda_.Architecture.ARM_64
