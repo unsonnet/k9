@@ -5,7 +5,6 @@ from aws_lambda_powertools.event_handler.middlewares.openapi_validation import (
     _get_body_field_location,
     _get_embed_body,
     _handle_missing_field_value,
-    _normalize_field_value,
     _validate_field,
 )
 from aws_lambda_powertools.event_handler.openapi.compat import (
@@ -57,7 +56,6 @@ def _request_body_to_args(
             _handle_missing_field_value(field, values, errors, loc)
             continue
 
-        value = _normalize_field_value(value=value, field_info=field.field_info)
         values[field.name] = _validate_field(
             field=field, value=value, loc=loc, existing_errors=errors
         )

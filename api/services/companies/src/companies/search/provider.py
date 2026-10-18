@@ -3,7 +3,8 @@ from typing import Iterable
 
 from shared.config import is_set, missing, settings
 from shared.providers.base import BaseProvider, GrantSpec, apimethod
-from shared.providers.search import Near, Page, SearchProvider, Term, Text
+from shared.providers.search import Page, SearchProvider
+from shared.providers.search.queries import Near, Term, Text
 
 from .models import CompanyIndex, Sector
 
@@ -46,9 +47,9 @@ class CompanySearchProvider(BaseProvider):
         cursor: str | missing,
     ) -> Page[CompanyIndex]:
         return self._os.search(
-            Term("sector", [i.value for i in sector] if is_set(sector) else None),
-            Text("name", name if is_set(name) else None),
-            Near("$location", geo if is_set(geo) else None),
+            Term("sector", *sector) if is_set(sector) else None,
+            Text("name", name) if is_set(name) else None,
+            Near("$location.geo", geo) if is_set(geo) else None,
             limit=limit,
             cursor=cursor if is_set(cursor) else None,
         ).hydrate(CompanyIndex)

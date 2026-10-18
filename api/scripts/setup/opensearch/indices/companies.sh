@@ -206,6 +206,7 @@ main() {
             logo: { type: "keyword", index: false },
             website: { type: "keyword", index: false },
             "$location": {
+              type: "nested",
               properties: {
                 id: { type: "keyword" },
                 type: { type: "keyword" },
@@ -217,6 +218,7 @@ main() {
               }
             },
             "$contact": {
+              type: "nested",
               properties: {
                 id: { type: "keyword" },
                 type: { type: "keyword" },

@@ -138,5 +138,9 @@ class Settings:
     def opensearch_index_companies(self) -> str:
         return self.env_or_parameter("OPENSEARCH_INDEX_COMPANIES")
 
+    @cached_property
+    def opensearch_index_products(self) -> str:
+        return self.env_or_parameter("OPENSEARCH_INDEX_PRODUCTS")
+
 
 settings = Settings()

@@ -21,7 +21,7 @@ class Request:
         brand: Body[str]
         material: Body[Material]
         format: Body[Format]
-        subformats: Body[set[Format]]
+        subformats: Body[list[Format]]
         meta: Body[bytes | None]
 
         @field_validator("brand")
@@ -42,7 +42,7 @@ class Request:
         brand: Body[str | missing] = missing
         material: Body[Material | missing] = missing
         format: Body[Format | missing] = missing
-        subformats: Body[set[Format] | missing] = missing
+        subformats: Body[list[Format] | missing] = missing
         meta: Body[bytes | None | missing] = missing
 
         @field_validator("id", "brand")
@@ -68,7 +68,7 @@ class Response:
         brand: str
         material: Material
         format: Format
-        subformats: set[Format]
+        subformats: list[Format]
         images: list[image.Image]
         listings: list[listing.Listing]
         meta: bytes | None

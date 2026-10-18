@@ -5,7 +5,7 @@ description = "Products API Endpoints"
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.12.5",
-    "shared[database,storage]",
+    "shared[database,search,storage]",
 ]
 
 [tool.uv.sources]

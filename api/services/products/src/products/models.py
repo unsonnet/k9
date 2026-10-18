@@ -85,7 +85,7 @@ class Product(BaseModel, frozen=True):
     brand: str
     material: Material
     format: Format
-    subformats: set[Format]
+    subformats: list[Format]
     images: list[Image] = Field(default_factory=list, alias="$image")
     listings: list[Listing] = Field(default_factory=list, alias="$listing")
     meta: bytes | None

@@ -18,7 +18,8 @@
       },
       "search": {
         "OPENSEARCH_ENDPOINT_PARAMETER": "/k9/{stage}/data/opensearch/endpoint",
-        "OPENSEARCH_INDEX_COMPANIES_PARAMETER": "/k9/{stage}/data/opensearch/index/companies"
+        "OPENSEARCH_INDEX_COMPANIES_PARAMETER": "/k9/{stage}/data/opensearch/index/companies",
+        "OPENSEARCH_INDEX_PRODUCTS_PARAMETER": "/k9/{stage}/data/opensearch/index/products"
       }
     },
     "services": {
@@ -53,12 +54,25 @@
         "shared": [
           "identity",
           "storage",
-          "data"
+          "data",
+          "search"
         ]
       }
     },
     "workers": {
       "index_companies": {
+        "source": "dynamodb",
+        "timeout": 60,
+        "memory": 512,
+        "shared": [
+          "search"
+        ],
+        "tableName": "k9-{stage}",
+        "streamArnParameter": "/k9/{stage}/data/dynamodb/stream",
+        "batchSize": 10,
+        "retryAttempts": 10
+      },
+      "index_products": {
         "source": "dynamodb",
         "timeout": 60,
         "memory": 512,

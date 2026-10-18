@@ -17,6 +17,7 @@ members = [
     "shared-provider-search",
     "shared-provider-storage",
     "worker-index-companies",
+    "worker-index-products",
     "worker-sync-companies",
     "worker-sync-products",
     "worker-sync-users",
@@ -1552,13 +1553,13 @@ version = "0.1.0"
 source = { editable = "services/products" }
 dependencies = [
     { name = "pydantic" },
-    { name = "shared", extra = ["database", "storage"] },
+    { name = "shared", extra = ["database", "search", "storage"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "shared", extras = ["database", "storage"], editable = "shared" },
+    { name = "shared", extras = ["database", "search", "storage"], editable = "shared" },
 ]
 
 [[package]]
@@ -1915,6 +1916,17 @@ wheels = [
 name = "worker-index-companies"
 version = "0.3.0"
 source = { editable = "workers/index_companies" }
+dependencies = [
+    { name = "shared", extra = ["search"] },
+]
+
+[package.metadata]
+requires-dist = [{ name = "shared", extras = ["search"], editable = "shared" }]
+
+[[package]]
+name = "worker-index-products"
+version = "0.1.0"
+source = { editable = "workers/index_products" }
 dependencies = [
     { name = "shared", extra = ["search"] },
 ]

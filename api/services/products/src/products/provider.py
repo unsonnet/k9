@@ -50,7 +50,7 @@ class ProductProvider(BaseProvider):
         brand: str,
         material: Material,
         format: Format,
-        subformats: set[Format],
+        subformats: list[Format],
         meta: bytes | None,
     ) -> Product:
         with self._db.batch() as batch:
@@ -90,7 +90,7 @@ class ProductProvider(BaseProvider):
         brand: str | missing,
         material: Material | missing,
         format: Format | missing,
-        subformats: set[Format] | missing,
+        subformats: list[Format] | missing,
         meta: bytes | None | missing,
     ) -> Product:
         attrs: dict[str, DatabaseTypes] = {}

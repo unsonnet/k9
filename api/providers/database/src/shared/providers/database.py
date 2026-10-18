@@ -230,7 +230,7 @@ class DatabaseBatchProvider(AbstractContextManager, BaseProvider):
 
     @staticmethod
     def _parent(type: str, id: str) -> tuple[str, str]:
-        return ".".join(type.split(".")[:-1]), ".".join(id.split(".")[1:])
+        return ".".join(type.split(".")[:-1]), ".".join(id.split(".")[:-1])
 
 
 class DatabaseProvider(BaseProvider):

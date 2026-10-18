@@ -20,7 +20,7 @@ __all__ = [
 
 class Request:
     class Search(BaseModel, frozen=True):
-        sector: Query[list[Sector] | missing] = missing
+        sector: Query[list[Sector] | missing] = Field(missing, min_length=1)
         name: Query[str | missing] = missing
         lat: Query[Decimal | missing] = Field(missing, ge=-90, le=90)
         lon: Query[Decimal | missing] = Field(missing, ge=-180, le=180)
