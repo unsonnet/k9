@@ -185,9 +185,9 @@ main() {
         mappings: {
           dynamic: "strict",
           properties: {
+            key: { properties: { type: { type: "keyword" }, id: { type: "keyword" } } },
             id: { type: "keyword" },
             type: { type: "keyword" },
-            sector: { type: "keyword" },
             name: {
               type: "text",
               analyzer: "name_text",
@@ -205,11 +205,11 @@ main() {
             },
             logo: { type: "keyword", index: false },
             website: { type: "keyword", index: false },
-            "$location": {
+            "$locations": {
               type: "nested",
               properties: {
+                key: { properties: { type: { type: "keyword" }, id: { type: "keyword" } } },
                 id: { type: "keyword" },
-                type: { type: "keyword" },
                 street: { type: "keyword" },
                 city: { type: "keyword" },
                 state: { type: "keyword" },
@@ -217,11 +217,11 @@ main() {
                 geo: { type: "geo_point" }
               }
             },
-            "$contact": {
+            "$contacts": {
               type: "nested",
               properties: {
+                key: { properties: { type: { type: "keyword" }, id: { type: "keyword" } } },
                 id: { type: "keyword" },
-                type: { type: "keyword" },
                 name: { type: "keyword" },
                 title: { type: "keyword" },
                 picture: { type: "keyword", index: false },

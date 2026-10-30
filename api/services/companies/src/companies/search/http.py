@@ -7,7 +7,7 @@ from shared.config import missing
 from shared.helpers import sanitize_query
 from shared.resolvers.http.requests import Query
 
-from .models import Sector
+from .models import CompanyType
 
 __all__ = [
     "Request",
@@ -20,7 +20,7 @@ __all__ = [
 
 class Request:
     class Search(BaseModel, frozen=True):
-        sector: Query[list[Sector] | missing] = Field(missing, min_length=1)
+        type: Query[list[CompanyType] | missing] = Field(missing, min_length=1)
         name: Query[str | missing] = missing
         lat: Query[Decimal | missing] = Field(missing, ge=-90, le=90)
         lon: Query[Decimal | missing] = Field(missing, ge=-180, le=180)
@@ -56,7 +56,7 @@ class Response:
 
     class CompanyIndex(BaseModel, frozen=True, from_attributes=True):
         id: str
-        sector: Sector
+        type: CompanyType
         name: str
         logo: HttpUrl
         website: HttpUrl | None

@@ -1,4 +1,3 @@
-from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
 
@@ -20,5 +19,3 @@ class Image(BaseModel, frozen=True):
     id: str
     url: HttpUrl
     hom: Homomorphism
-    created_at: datetime
-    updated_at: datetime | None

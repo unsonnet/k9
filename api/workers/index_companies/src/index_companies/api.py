@@ -8,24 +8,24 @@ provider = IndexCompanyProvider()
 app.grant(*provider.permissions)
 
 
-@app.insert("company")
-@app.modify("company")
+@app.insert("companies")
+@app.modify("companies")
 def index_company(request: Index.Company) -> None:
     provider.index(
-        type=request.type,
+        request.key["key"],
         id=request.id,
-        sector=request.sector.value,
+        type=request.type.value,
         name=request.name,
         logo=request.logo,
         website=request.website,
     )
 
 
-@app.insert("company.contact")
-@app.modify("company.contact")
+@app.insert("companies/contacts")
+@app.modify("companies/contacts")
 def index_contact(request: Index.Contact) -> None:
     provider.index(
-        type=request.type,
+        request.key["key"],
         id=request.id,
         name=request.name,
         title=request.title,
@@ -35,11 +35,11 @@ def index_contact(request: Index.Contact) -> None:
     )
 
 
-@app.insert("company.location")
-@app.modify("company.location")
+@app.insert("companies/locations")
+@app.modify("companies/locations")
 def index_location(request: Index.Location) -> None:
     provider.index(
-        type=request.type,
+        request.key["key"],
         id=request.id,
         street=request.street,
         city=request.city,
@@ -49,14 +49,11 @@ def index_location(request: Index.Location) -> None:
     )
 
 
-@app.remove("company")
-@app.remove("company.contact")
-@app.remove("company.location")
+@app.remove("companies")
+@app.remove("companies/contacts")
+@app.remove("companies/locations")
 def drop(request: Drop.Item) -> None:
     try:
-        provider.drop(
-            type=request.type,
-            id=request.id,
-        )
+        provider.drop(request.key["key"])
     except DomainNotFound:
         pass

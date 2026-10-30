@@ -7,7 +7,7 @@ from shared.providers.base import BaseProvider, GrantSpec, apimethod
 from shared.providers.database import DatabaseProvider, DatabaseTypes
 from shared.providers.storage import StorageProvider, UploadURL
 
-from .models import Company, ImageFormat, Sector
+from .models import Company, CompanyType, ImageFormat
 
 __all__ = [
     "CompanyProvider",
@@ -49,14 +49,14 @@ class CompanyProvider(BaseProvider):
         self,
         *,
         id: str,
-        sector: Sector,
+        type: CompanyType,
         name: str,
         website: HttpUrl | None,
     ) -> Company:
         self._db.create_item(
-            type="company",
+            f"companies/{id}",
             id=id,
-            sector=sector.value,
+            type=type.value,
             name=name,
             logo=str(self.default_logo),
             website=str(website) if website is not None else None,
@@ -70,10 +70,7 @@ class CompanyProvider(BaseProvider):
         id: str,
     ) -> Company:
         return Company.model_validate(
-            self._db.read_item(
-                type="company",
-                id=id,
-            )
+            self._db.read_item(f"companies/{id}"),
         )
 
     @apimethod
@@ -81,25 +78,21 @@ class CompanyProvider(BaseProvider):
         self,
         *,
         id: str,
-        sector: Sector | missing,
+        type: CompanyType | missing,
         name: str | missing,
         logo: None | missing,
         website: HttpUrl | None | missing,
     ) -> Company:
         attrs: dict[str, DatabaseTypes] = {}
-        if is_set(sector):
-            attrs["sector"] = sector.value
+        if is_set(type):
+            attrs["type"] = type.value
         if is_set(name):
             attrs["name"] = name
         if is_set(logo):
             attrs["logo"] = str(self.default_logo)
         if is_set(website):
             attrs["website"] = str(website) if website is not None else None
-        self._db.update_item(
-            type="company",
-            id=id,
-            **attrs,
-        )
+        self._db.update_item(f"companies/{id}", **attrs)
         return self.read_company(id=id)
 
     @apimethod
@@ -108,10 +101,7 @@ class CompanyProvider(BaseProvider):
         *,
         id: str,
     ) -> None:
-        self._db.delete_item(
-            type="company",
-            id=id,
-        )
+        self._db.delete_item(f"companies/{id}")
         return None
 
     @apimethod

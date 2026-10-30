@@ -78,6 +78,6 @@ class ProductIndex(BaseModel, frozen=True):
     material: Material
     format: Format
     subformats: list[Format] = Field(alias="$subformat")
-    images: list[ImageIndex] = Field(default_factory=list, alias="$image")
-    listings: list[ListingIndex] = Field(default_factory=list, alias="$listing")
+    images: list[ImageIndex] = Field(default_factory=list, alias="$images")
+    listings: list[ListingIndex] = Field(default_factory=list, alias="$listings")
     score: float | None = Field(None, alias="$score")

@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import base64
 import json
 from collections.abc import Iterable
 from dataclasses import dataclass
+from itertools import batched
 from typing import Any
 from urllib.parse import urlparse
 
@@ -25,12 +28,12 @@ __all__ = [
     "SearchProvider",
 ]
 
-# Resolves the parent chain `params.path` inside the root document.
 _WALK = """
     def node = ctx._source;
     for (key in params.path) {
-        List resource = node.getOrDefault('$' + key.type, []);
-        node = resource.find(item -> item.id == key.id);
+        node.putIfAbsent('$' + key.type, []);
+        List resource = node['$' + key.type];
+        node = resource.find(item -> item.key == key);
         if (node == null) {
             return;
         }
@@ -40,9 +43,9 @@ _WALK = """
 _UPSERT = (
     _WALK
     + """
-    node.putIfAbsent('$' + params.item.type, []);
-    List resource = node['$' + params.item.type];
-    node = resource.find(item -> item.id == params.item.id);
+    node.putIfAbsent('$' + params.item.key.type, []);
+    List resource = node['$' + params.item.key.type];
+    node = resource.find(item -> item.key == params.item.key);
     if (node == null) {
         resource.add(params.item);
     } else {
@@ -52,11 +55,12 @@ _UPSERT = (
 """
 )
 
+
 _DELETE = (
     _WALK
     + """
-    List resource = node.getOrDefault('$' + params.item.type, []);
-    resource.removeIf(item -> item.id == params.item.id);
+    List resource = node.getOrDefault('$' + params.item.key.type, []);
+    resource.removeIf(item -> item.key == params.item.key);
 """
 )
 
@@ -66,7 +70,7 @@ class Page[T]:
     items: list[T]
     cursor: str | None
 
-    def hydrate[M: BaseModel](self, model: type[M]) -> "Page[M]":
+    def hydrate[M: BaseModel](self, model: type[M]) -> Page[M]:
         return Page(
             items=[model.model_validate(item) for item in self.items],
             cursor=self.cursor,
@@ -143,19 +147,13 @@ class SearchProvider(BaseProvider):
         return self._page(response, limit=limit)
 
     @apimethod
-    def upsert(
-        self,
-        *,
-        type: str,
-        id: str,
-        **attrs: Any,
-    ) -> None:
-        *path, item = self._keys(type=type, id=id)
-        item = {**item, **attrs}
+    def upsert(self, key: str, **attrs: Any) -> None:
+        *path, leaf = self._path(key)
+        item = {"key": leaf, **attrs}
         if not path:
             self._os.update(
                 index=self._idx,
-                id=item["id"],
+                id=leaf["id"],
                 body={"doc": item, "doc_as_upsert": True},
                 params={"refresh": "wait_for"},
             )
@@ -163,31 +161,23 @@ class SearchProvider(BaseProvider):
         self._script(path, item, _UPSERT)
 
     @apimethod
-    def delete(
-        self,
-        *,
-        type: str,
-        id: str,
-    ) -> None:
-        *path, item = self._keys(type=type, id=id)
+    def delete(self, key: str) -> None:
+        *path, leaf = self._path(key)
         if not path:
             self._os.delete(
                 index=self._idx,
-                id=item["id"],
+                id=leaf["id"],
                 params={"refresh": "wait_for"},
             )
             return
-        self._script(path, item, _DELETE)
+        self._script(path, {"key": leaf}, _DELETE)
 
     # ──── Private Methods ────
 
     @staticmethod
-    def _keys(*, type: str, id: str) -> list[dict[str, Any]]:
-        """Split dotted `type` and `id` into root-to-leaf keys."""
-        return [
-            {"type": t, "id": i}
-            for t, i in zip(type.split("."), id.split("."), strict=True)
-        ]
+    def _path(key: str) -> list[dict[str, Any]]:
+        """Split key into root-to-leaf keys."""
+        return [{"type": t, "id": i} for t, i in batched(key.split("/"), 2)]
 
     def _script(
         self,
@@ -196,7 +186,7 @@ class SearchProvider(BaseProvider):
         source: str,
     ) -> None:
         """Run `source` on the root document, walking the keys after the root."""
-        root, *parents = path
+        root, *path = path
         self._os.update(
             index=self._idx,
             id=root["id"],
@@ -204,7 +194,7 @@ class SearchProvider(BaseProvider):
                 "script": {
                     "lang": "painless",
                     "source": source,
-                    "params": {"path": parents, "item": item},
+                    "params": {"path": path, "item": item},
                 }
             },
             params={"refresh": "wait_for"},
@@ -284,11 +274,10 @@ class SearchProvider(BaseProvider):
     def _hit(raw: Any, /) -> dict[str, Any]:
         match raw:
             case {
-                "_source": {"id": str(id), **source},
+                "_source": dict(source),
                 "_score": int() | float() | None as score,
             }:
                 return {
-                    "id": id,
                     **source,
                     "$score": None if score is None else float(score),
                 }

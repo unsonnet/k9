@@ -8,11 +8,11 @@ provider = IndexProductProvider()
 app.grant(*provider.permissions)
 
 
-@app.insert("product")
-@app.modify("product")
+@app.insert("products")
+@app.modify("products")
 def index_product(request: Index.Product) -> None:
     provider.index(
-        type=request.type,
+        key=request.key["key"],
         id=request.id,
         brand=request.brand,
         material=request.material,
@@ -21,21 +21,21 @@ def index_product(request: Index.Product) -> None:
     )
 
 
-@app.insert("product.image")
-@app.modify("product.image")
+@app.insert("products/images")
+@app.modify("products/images")
 def index_image(request: Index.Image) -> None:
     provider.index(
-        type=request.type,
+        key=request.key["key"],
         id=request.id,
         url=request.url,
     )
 
 
-@app.insert("product.listing")
-@app.modify("product.listing")
+@app.insert("products/listings")
+@app.modify("products/listings")
 def index_listing(request: Index.Listing) -> None:
     provider.index(
-        type=request.type,
+        key=request.key["key"],
         id=request.id,
         vendor=request.vendor,
         sku=request.sku,
@@ -43,14 +43,11 @@ def index_listing(request: Index.Listing) -> None:
     )
 
 
-@app.remove("product")
-@app.remove("product.image")
-@app.remove("product.listing")
+@app.remove("products")
+@app.remove("products/images")
+@app.remove("products/listings")
 def drop(request: Drop.Item) -> None:
     try:
-        provider.drop(
-            type=request.type,
-            id=request.id,
-        )
+        provider.drop(key=request.key["key"])
     except DomainNotFound:
         pass

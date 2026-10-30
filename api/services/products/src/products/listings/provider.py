@@ -47,13 +47,10 @@ class ProductListingProvider(BaseProvider):
         url: HttpUrl | None,
     ) -> Listing:
         with self._db.batch() as batch:
-            batch.check_item(
-                type="company",
-                id=vendor,
-            )
+            batch.check_item(f"companies/{vendor}")
             batch.create_item(
-                type="product.listing",
-                id=f"{id}.{sid}",
+                f"products/{id}/listings/{sid}",
+                id=sid,
                 vendor=vendor,
                 sku=sku,
                 name=name,
@@ -70,10 +67,7 @@ class ProductListingProvider(BaseProvider):
         sid: str,
     ) -> Listing:
         return Listing.model_validate(
-            self._db.read_item(
-                type="product.listing",
-                id=f"{id}.{sid}",
-            )
+            self._db.read_item(f"products/{id}/listings/{sid}"),
         )
 
     @apimethod
@@ -92,10 +86,7 @@ class ProductListingProvider(BaseProvider):
         with self._db.batch() as batch:
             if is_set(vendor):
                 attrs["vendor"] = vendor
-                batch.check_item(
-                    type="company",
-                    id=vendor,
-                )
+                batch.check_item(f"companies/{vendor}")
             if is_set(sku):
                 attrs["sku"] = sku
             if is_set(name):
@@ -104,11 +95,7 @@ class ProductListingProvider(BaseProvider):
                 attrs["prices"] = [i.model_dump() for i in prices]
             if is_set(url):
                 attrs["url"] = str(url) if url is not None else None
-            batch.update_item(
-                type="product.listing",
-                id=f"{id}.{sid}",
-                **attrs,
-            )
+            batch.update_item(f"products/{id}/listings/{sid}", **attrs)
         return self.read_listing(id=id, sid=sid)
 
     @apimethod
@@ -118,8 +105,5 @@ class ProductListingProvider(BaseProvider):
         id: str,
         sid: str,
     ) -> None:
-        self._db.delete_item(
-            type="product.listing",
-            id=f"{id}.{sid}",
-        )
+        self._db.delete_item(f"products/{id}/listings/{sid}")
         return None

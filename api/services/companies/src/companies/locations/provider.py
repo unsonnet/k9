@@ -53,8 +53,8 @@ class CompanyLocationProvider(BaseProvider):
     ) -> Location:
         lat, lon = self._loc.geocode(street, city, state, zip)
         self._db.create_item(
-            type="company.location",
-            id=f"{id}.{sid}",
+            f"companies/{id}/locations/{sid}",
+            id=sid,
             street=street,
             city=city,
             state=state,
@@ -62,11 +62,17 @@ class CompanyLocationProvider(BaseProvider):
             lat=lat,
             lon=lon,
         )
+        return self.read_location(id=id, sid=sid)
+
+    @apimethod
+    def read_location(
+        self,
+        *,
+        id: str,
+        sid: str,
+    ) -> Location:
         return Location.model_validate(
-            self._db.read_item(
-                type="company.location",
-                id=f"{id}.{sid}",
-            ),
+            self._db.read_item(f"companies/{id}/locations/{sid}"),
         )
 
     @apimethod
@@ -76,8 +82,5 @@ class CompanyLocationProvider(BaseProvider):
         id: str,
         sid: str,
     ) -> None:
-        self._db.delete_item(
-            type="company.location",
-            id=f"{id}.{sid}",
-        )
+        self._db.delete_item(f"companies/{id}/locations/{sid}")
         return None

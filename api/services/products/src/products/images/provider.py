@@ -43,7 +43,7 @@ class ProductImageProvider(BaseProvider):
     # ──── Public Methods ────
 
     @apimethod
-    def upload_image(
+    def create_image(
         self,
         *,
         id: str,
@@ -61,7 +61,18 @@ class ProductImageProvider(BaseProvider):
         )
 
     @apimethod
-    def transform_image(
+    def read_image(
+        self,
+        *,
+        id: str,
+        sid: str,
+    ) -> Image:
+        return Image.model_validate(
+            self._db.read_item(f"products/{id}/images/{sid}"),
+        )
+
+    @apimethod
+    def update_image(
         self,
         *,
         id: str,
@@ -79,17 +90,8 @@ class ProductImageProvider(BaseProvider):
                 metadata={"hom": self._serialize(hom)} if is_set(hom) else {},
             )
         if is_set(hom):
-            self._db.update_item(
-                type="product.image",
-                id=f"{id}.{sid}",
-                hom=hom,
-            )
-        return Image.model_validate(
-            self._db.read_item(
-                type="product.image",
-                id=f"{id}.{sid}",
-            ),
-        )
+            self._db.update_item(f"products/{id}/images/{sid}", hom=hom)
+        return self.read_image(id=id, sid=sid)
 
     @apimethod
     def delete_image(
@@ -98,10 +100,7 @@ class ProductImageProvider(BaseProvider):
         id: str,
         sid: str,
     ) -> None:
-        self._db.delete_item(
-            type="product.image",
-            id=f"{id}.{sid}",
-        )
+        self._db.delete_item(f"products/{id}/images/{sid}")
         return None
 
     # ──── Private Methods ────

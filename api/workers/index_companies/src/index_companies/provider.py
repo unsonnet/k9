@@ -32,16 +32,9 @@ class IndexCompanyProvider(BaseProvider):
     # ──── Public Methods ────
 
     @apimethod
-    def index(self, *, type: str, id: str, **attrs) -> None:
-        self._os.upsert(
-            type=type,
-            id=id,
-            **attrs,
-        )
+    def index(self, key: str, **attrs) -> None:
+        self._os.upsert(key, **attrs)
 
     @apimethod
-    def drop(self, *, type: str, id: str) -> None:
-        self._os.delete(
-            type=type,
-            id=id,
-        )
+    def drop(self, key: str) -> None:
+        self._os.delete(key)

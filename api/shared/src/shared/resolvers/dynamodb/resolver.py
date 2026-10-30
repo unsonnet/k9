@@ -140,7 +140,7 @@ class DynamoDBResolver:
         try:
             method: str = record.event_name.name  # type: ignore
             payload = record.dynamodb
-            rule: str = (payload.new_image or payload.old_image).get("type")  # type: ignore
+            rule: str = (payload.new_image or payload.old_image).get("key").get("type")  # type: ignore
             handler = self._handlers[method, rule]
         except Exception as exc:
             LOG.error(

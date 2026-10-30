@@ -44,7 +44,11 @@ class LocationProvider(BaseProvider):
 
     @apimethod
     def geocode(
-        self, street: str, city: str, state: str, zip: str
+        self,
+        street: str,
+        city: str,
+        state: str,
+        zip: str,
     ) -> tuple[Decimal, Decimal]:
         response = self._loc.geocode(QueryText=f"{street}, {city}, {state} {zip} USA")
         items = response.get("ResultItems", [])

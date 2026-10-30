@@ -58,19 +58,25 @@ class CompanyContactProvider(BaseProvider):
         phone: PhoneNumber | None,
     ) -> Contact:
         self._db.create_item(
-            type="company.contact",
-            id=f"{id}.{sid}",
+            f"companies/{id}/contacts/{sid}",
+            id=sid,
             name=name,
             title=title,
             picture=str(self.default_picture),
             email=email,
             phone=phone,
         )
+        return self.read_contact(id=id, sid=sid)
+
+    @apimethod
+    def read_contact(
+        self,
+        *,
+        id: str,
+        sid: str,
+    ) -> Contact:
         return Contact.model_validate(
-            self._db.read_item(
-                type="company.contact",
-                id=f"{id}.{sid}",
-            ),
+            self._db.read_item(f"companies/{id}/contacts/{sid}"),
         )
 
     @apimethod
@@ -96,16 +102,9 @@ class CompanyContactProvider(BaseProvider):
             attrs["email"] = email
         if is_set(phone):
             attrs["phone"] = phone
-        self._db.update_item(
-            type="company.contact",
-            id=f"{id}.{sid}",
-            **attrs,
-        )
+        self._db.update_item(f"companies/{id}/contacts/{sid}", **attrs)
         return Contact.model_validate(
-            self._db.read_item(
-                type="company.contact",
-                id=f"{id}.{sid}",
-            ),
+            self._db.read_item(f"companies/{id}/contacts/{sid}"),
         )
 
     @apimethod
@@ -115,10 +114,7 @@ class CompanyContactProvider(BaseProvider):
         id: str,
         sid: str,
     ) -> None:
-        self._db.delete_item(
-            type="company.contact",
-            id=f"{id}.{sid}",
-        )
+        self._db.delete_item(f"companies/{id}/contacts/{sid}")
         return None
 
     @apimethod

@@ -40,7 +40,7 @@ def upload(
 ) -> OK[Response.UploadURL] | Unauthorized | Forbidden | TooManyRequests:
     try:
         require_admin(caller)
-        form = provider.upload_image(
+        form = provider.create_image(
             id=request.id,
             sid=generate_subresource_id(),
             format=request.format,
@@ -82,7 +82,7 @@ def transform(
 ):
     try:
         require_admin(caller)
-        match provider.transform_image(
+        match provider.update_image(
             id=request.id,
             sid=request.sid,
             format=request.format,

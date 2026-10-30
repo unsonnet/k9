@@ -1,5 +1,6 @@
 from decimal import Decimal
 from enum import StrEnum
+from typing import TypedDict
 
 from shared.resolvers.dynamodb import EventModel, NewImage, OldImage
 
@@ -9,23 +10,29 @@ __all__ = [
 ]
 
 
-class Sector(StrEnum):
+class CompanyType(StrEnum):
     INSURANCE = "insurance"
     MANUFACTURER = "manufacturer"
     RETAILER = "retailer"
 
 
+class DynamoDBKey(TypedDict):
+    key: str
+    id: str
+    type: str
+
+
 class Index:
     class Company(EventModel, frozen=True):
-        type: NewImage[str]
+        key: NewImage[DynamoDBKey]
         id: NewImage[str]
-        sector: NewImage[Sector]
+        type: NewImage[CompanyType]
         name: NewImage[str]
         logo: NewImage[str]
         website: NewImage[str | None]
 
     class Contact(EventModel, frozen=True):
-        type: NewImage[str]
+        key: NewImage[DynamoDBKey]
         id: NewImage[str]
         name: NewImage[str]
         title: NewImage[str | None]
@@ -34,7 +41,7 @@ class Index:
         phone: NewImage[str | None]
 
     class Location(EventModel, frozen=True):
-        type: NewImage[str]
+        key: NewImage[DynamoDBKey]
         id: NewImage[str]
         street: NewImage[str]
         city: NewImage[str]
@@ -46,5 +53,4 @@ class Index:
 
 class Drop:
     class Item(EventModel, frozen=True):
-        type: OldImage[str]
-        id: OldImage[str]
+        key: OldImage[DynamoDBKey]

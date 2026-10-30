@@ -1,3 +1,5 @@
+from typing import TypedDict
+
 from pydantic import BaseModel
 from shared.resolvers.dynamodb import EventModel, NewImage, OldImage
 
@@ -14,9 +16,15 @@ class Format(BaseModel, frozen=True):
     wear: float | None
 
 
+class DynamoDBKey(TypedDict):
+    key: str
+    id: str
+    type: str
+
+
 class Index:
     class Product(EventModel, frozen=True):
-        type: NewImage[str]
+        key: NewImage[DynamoDBKey]
         id: NewImage[str]
         brand: NewImage[str]
         material: NewImage[dict[str, str | None]]
@@ -24,12 +32,12 @@ class Index:
         subformats: NewImage[list[Format]]
 
     class Image(EventModel, frozen=True):
-        type: NewImage[str]
+        key: NewImage[DynamoDBKey]
         id: NewImage[str]
         url: NewImage[str]
 
     class Listing(EventModel, frozen=True):
-        type: NewImage[str]
+        key: NewImage[DynamoDBKey]
         id: NewImage[str]
         vendor: NewImage[str]
         sku: NewImage[str | None]
@@ -38,5 +46,4 @@ class Index:
 
 class Drop:
     class Item(EventModel, frozen=True):
-        type: OldImage[str]
-        id: OldImage[str]
+        key: OldImage[DynamoDBKey]

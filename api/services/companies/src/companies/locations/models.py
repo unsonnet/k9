@@ -1,4 +1,3 @@
-from datetime import datetime
 from decimal import Decimal
 
 from pydantic import BaseModel
@@ -16,5 +15,3 @@ class Location(BaseModel, frozen=True):
     zip: str
     lat: Decimal
     lon: Decimal
-    created_at: datetime
-    updated_at: datetime | None

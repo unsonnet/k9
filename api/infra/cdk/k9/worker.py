@@ -39,7 +39,7 @@ def dynamodb_filters(events: list[DynamoDBEvent]) -> list[Mapping[str, Any]]:
         lambda_.FilterCriteria.filter(
             {
                 "eventName": lambda_.FilterRule.is_equal(event),
-                "dynamodb": {image: {"type": {"S": sorted(rules)}}},
+                "dynamodb": {image: {"key": {"M": {"type": {"S": sorted(rules)}}}}},
             }
         )
         for (event, image), rules in sorted(grouped.items())

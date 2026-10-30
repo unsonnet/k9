@@ -42,7 +42,7 @@ def create(
         require_admin(caller)
         company = provider.create_company(
             id=generate_resource_id(),
-            sector=request.sector,
+            type=request.type,
             name=request.name,
             website=request.website,
         )
@@ -105,7 +105,7 @@ def update(
         require_admin(caller)
         company = provider.update_company(
             id=request.id,
-            sector=request.sector,
+            type=request.type,
             name=request.name,
             logo=request.logo,
             website=request.website,

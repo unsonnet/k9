@@ -1,24 +1,23 @@
-from datetime import datetime
 from enum import StrEnum
 
 from pydantic import BaseModel, Field, HttpUrl
 from shared.providers.storage import UploadURL
 from shared.resolvers.http.requests import ImageFormat
 
-from .contacts.provider import Contact
+from .contacts.models import Contact
 from .locations.models import Location
 
 __all__ = [
     "Company",
     "Contact",
     "Location",
-    "Sector",
+    "CompanyType",
     "UploadURL",
     "ImageFormat",
 ]
 
 
-class Sector(StrEnum):
+class CompanyType(StrEnum):
     INSURANCE = "insurance"
     MANUFACTURER = "manufacturer"
     RETAILER = "retailer"
@@ -26,11 +25,9 @@ class Sector(StrEnum):
 
 class Company(BaseModel, frozen=True):
     id: str
-    sector: Sector
+    type: CompanyType
     name: str
     logo: HttpUrl
     website: HttpUrl | None
-    locations: list[Location] = Field(default_factory=list, alias="$location")
-    contacts: list[Contact] = Field(default_factory=list, alias="$contact")
-    created_at: datetime
-    updated_at: datetime | None
+    locations: list[Location] = Field(default_factory=list, alias="$locations")
+    contacts: list[Contact] = Field(default_factory=list, alias="$contacts")

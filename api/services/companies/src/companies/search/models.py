@@ -3,13 +3,13 @@ from decimal import Decimal
 from pydantic import AliasPath, BaseModel, Field, HttpUrl
 from shared.providers.search import Page
 
-from ..models import Sector
+from ..models import CompanyType
 
 __all__ = [
     "LocationIndex",
     "CompanyIndex",
     "Page",
-    "Sector",
+    "CompanyType",
 ]
 
 
@@ -25,8 +25,8 @@ class LocationIndex(BaseModel, frozen=True):
 
 class CompanyIndex(BaseModel, frozen=True):
     id: str
-    sector: Sector
+    type: CompanyType
     name: str
     logo: HttpUrl
     website: HttpUrl | None
-    locations: list[LocationIndex] = Field(default_factory=list, alias="$location")
+    locations: list[LocationIndex] = Field(default_factory=list, alias="$locations")

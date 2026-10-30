@@ -7,7 +7,7 @@ from shared.resolvers.http.requests import Body, Path
 
 from .contacts.http import Response as contact
 from .locations.http import Response as location
-from .models import ImageFormat, Sector
+from .models import CompanyType, ImageFormat
 
 __all__ = [
     "Request",
@@ -20,7 +20,7 @@ __all__ = [
 
 class Request:
     class Create(BaseModel, frozen=True):
-        sector: Body[Sector]
+        type: Body[CompanyType]
         name: Body[str] = Field(min_length=1)
         website: Body[HttpUrl | None]
 
@@ -34,7 +34,7 @@ class Request:
 
     class Update(BaseModel, frozen=True):
         id: Path[str]
-        sector: Body[Sector | missing] = missing
+        type: Body[CompanyType | missing] = missing
         name: Body[str | missing] = Field(missing, min_length=1)
         logo: Body[None | missing] = missing
         website: Body[HttpUrl | None | missing] = missing
@@ -69,7 +69,7 @@ class Request:
 class Response:
     class Company(BaseModel, frozen=True, from_attributes=True):
         id: str
-        sector: Sector
+        type: CompanyType
         name: str
         logo: HttpUrl
         website: HttpUrl | None

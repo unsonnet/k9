@@ -54,8 +54,8 @@ class SyncProductProvider(BaseProvider):
         self._mem.write(target, self._image(new), content_type="image/jxl")
         self._mem.delete(key)
         self._db.create_item(
-            type="product.image",
-            id=f"{id}.{sid}",
+            f"products/{id}/images/{sid}",
+            id=sid,
             url=str(self._mem.get_url(target)),
             **self._hom(new),
         )
@@ -68,8 +68,7 @@ class SyncProductProvider(BaseProvider):
         self._mem.write(target, self._image(old, mask=new), content_type="image/jxl")
         self._mem.delete(key)
         self._db.update_item(
-            type="product.image",
-            id=f"{id}.{sid}",
+            f"products/{id}/images/{sid}",
             **self._hom(new),
         )
 

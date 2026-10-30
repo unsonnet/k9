@@ -68,10 +68,10 @@ class ProductSearchProvider(BaseProvider):
         cursor: str | missing,
     ) -> Page[ProductIndex]:
         if is_set(reference):
-            self._db.read_item(type="product", id=reference)
+            self._db.read_item(f"products/{reference}")
         return self._os.search(
-            Text("$listing.name", q) if is_set(q) else None,
-            Prefix("$listing.sku", sku) if is_set(sku) else None,
+            Text("$listings.name", q) if is_set(q) else None,
+            Prefix("$listings.sku", sku) if is_set(sku) else None,
             self._store(store) if is_set(store) else None,
             self._material(material) if is_set(material) else None,
             self._format(format) if is_set(format) else None,
@@ -84,7 +84,7 @@ class ProductSearchProvider(BaseProvider):
 
     @staticmethod
     def _store(store: list[str]) -> Query:
-        return AnyOf(Term("brand", *store), Term("$listing.vendor", *store))
+        return AnyOf(Term("brand", *store), Term("$listings.vendor", *store))
 
     @staticmethod
     def _material(options: list[MaterialFilter]) -> Query:

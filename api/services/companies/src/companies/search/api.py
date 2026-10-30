@@ -14,7 +14,7 @@ app.grant(*provider.permissions)
 @app.get(
     "/companies/search",
     summary="Search companies",
-    description="Search companies by sector, name, and coordinates.",
+    description="Search companies by type, name, and coordinates.",
     tags=["company", "search"],
     responses={
         200: "Companies found",
@@ -28,7 +28,7 @@ def search(
 ) -> OK[Response.Page] | Unauthorized | TooManyRequests:
     try:
         page = provider.search_companies(
-            sector=request.sector,
+            type=request.type,
             name=request.name,
             geo=request.geo,
             limit=request.limit,

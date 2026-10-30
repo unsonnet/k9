@@ -54,12 +54,9 @@ class ProductProvider(BaseProvider):
         meta: bytes | None,
     ) -> Product:
         with self._db.batch() as batch:
-            batch.check_item(
-                type="company",
-                id=brand,
-            )
+            batch.check_item(f"companies/{brand}")
             batch.create_item(
-                type="product",
+                f"products/{id}",
                 id=id,
                 brand=brand,
                 material=material.model_dump(),
@@ -76,10 +73,7 @@ class ProductProvider(BaseProvider):
         id: str,
     ) -> Product:
         return Product.model_validate(
-            self._db.read_item(
-                type="product",
-                id=id,
-            )
+            self._db.read_item(f"products/{id}"),
         )
 
     @apimethod
@@ -97,10 +91,7 @@ class ProductProvider(BaseProvider):
         with self._db.batch() as batch:
             if is_set(brand):
                 attrs["brand"] = brand
-                batch.check_item(
-                    type="company",
-                    id=brand,
-                )
+                batch.check_item(f"companies/{brand}")
             if is_set(material):
                 attrs["material"] = material.model_dump()
             if is_set(format):
@@ -109,11 +100,7 @@ class ProductProvider(BaseProvider):
                 attrs["subformats"] = [i.model_dump() for i in subformats]
             if is_set(meta):
                 attrs["meta"] = meta
-            batch.update_item(
-                type="product",
-                id=id,
-                **attrs,
-            )
+            batch.update_item(f"products/{id}", **attrs)
         return self.read_product(id=id)
 
     @apimethod
@@ -122,8 +109,5 @@ class ProductProvider(BaseProvider):
         *,
         id: str,
     ) -> None:
-        self._db.delete_item(
-            type="product",
-            id=id,
-        )
+        self._db.delete_item(f"products/{id}")
         return None

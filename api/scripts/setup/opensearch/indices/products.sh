@@ -191,8 +191,8 @@ main() {
         mappings: {
           dynamic: "strict",
           properties: {
+            key: { properties: { type: { type: "keyword" }, id: { type: "keyword" } } },
             id: { type: "keyword" },
-            type: { type: "keyword" },
             brand: { type: "keyword" },
             material: {
               properties: {
@@ -221,19 +221,19 @@ main() {
                 wear: { type: "double" }
               }
             },
-            "$image": {
+            "$images": {
               type: "nested",
               properties: {
+                key: { properties: { type: { type: "keyword" }, id: { type: "keyword" } } },
                 id: { type: "keyword" },
-                type: { type: "keyword" },
                 url: { type: "keyword", index: false }
               }
             },
-            "$listing": {
+            "$listings": {
               type: "nested",
               properties: {
+                key: { properties: { type: { type: "keyword" }, id: { type: "keyword" } } },
                 id: { type: "keyword" },
-                type: { type: "keyword" },
                 vendor: { type: "keyword" },
                 sku: { type: "keyword", normalizer: "sku_lowercase" },
                 name: {

@@ -52,8 +52,7 @@ class SyncCompanyProvider(BaseProvider):
         self._mem.write(target, self._image(key), content_type="image/jxl")
         self._mem.delete(key)
         self._db.update_item(
-            type="company",
-            id=id,
+            f"companies/{id}",
             logo=str(self._mem.get_url(target)),
         )
 
@@ -63,8 +62,7 @@ class SyncCompanyProvider(BaseProvider):
         self._mem.write(target, self._image(key), content_type="image/jxl")
         self._mem.delete(key)
         self._db.update_item(
-            type="company.contact",
-            id=f"{id}.{sid}",
+            f"companies/{id}/contacts/{sid}",
             picture=str(self._mem.get_url(target)),
         )
 
