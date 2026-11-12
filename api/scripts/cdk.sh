@@ -53,7 +53,7 @@ run_mkdocs() {
 
   [[ -f "$env_file" ]] && env_args+=(--env-file "$env_file")
 
-  uv run "${env_args[@]}" \
+  uv run --all-packages "${env_args[@]}" \
     --project "$repo_root" \
     "$repo_root/scripts/mkdocs.py"
 }
@@ -68,6 +68,7 @@ run_cdk() {
 
   local -a cmd=(
     uv run
+    --all-packages
     --project "$repo_root"
     cdk
     --context "stage=$stage"
@@ -140,7 +141,7 @@ main() {
   else
     exec bash -c 'cd "$1/infra/cdk" && shift && "$@"' _ \
       "$repo_root" \
-      uv run --project "$repo_root" cdk --context "stage=$stage" --asset-parallelism false "$action" "$stack_name"
+      uv run --all-packages --project "$repo_root" cdk --context "stage=$stage" --asset-parallelism false "$action" "$stack_name"
   fi
 }
 

@@ -4,12 +4,15 @@ version = "0.3.0"
 description = "Company API Endpoints"
 requires-python = ">=3.12"
 dependencies = [
-    "pydantic-extra-types[phonenumbers]>=2.11.1",
-    "pydantic[email]>=2.12.5",
-    "shared[database,location,search,storage]",
+    "provider[database,location,search,storage]",
+    "pydantic>=2.12.5",
+    "resolver[http]",
+    "shared",
 ]
 
 [tool.uv.sources]
+provider = { workspace = true }
+resolver = { workspace = true }
 shared = { workspace = true }
 
 [build-system]
@@ -17,4 +20,5 @@ requires = ["uv_build>=0.8.0,<0.9"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "companies"
+module-name = "k9.services"
+namespace = true

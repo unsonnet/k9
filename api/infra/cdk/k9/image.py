@@ -80,6 +80,6 @@ def image_code(
     )
     return lambda_.DockerImageCode.from_image_asset(
         directory=str(stage_context(root, kind, name)),
-        cmd=[f"{name}.lambda_handler"],
+        cmd=[f"k9.{kind}.{name}.lambda_handler"],
         platform=platform,
     )

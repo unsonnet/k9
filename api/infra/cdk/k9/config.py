@@ -78,7 +78,7 @@ def _interpolate(value: object, variables: dict[str, str]) -> object:
 
 class StageConfig(_Config):
     stage: StageName
-    account: str = Field(pattern=r"^\d{12}$")
+    account: str = Field(pattern=r"\A\d{12}\z")
     region: str = Field(min_length=1)
     architecture: Architecture = Architecture.ARM64
     shared: dict[str, Environment] = Field(default_factory=dict)

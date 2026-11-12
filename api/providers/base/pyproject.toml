@@ -1,0 +1,33 @@
+[project]
+name = "provider"
+version = "0.1.0"
+description = "Shared providers for K9 API"
+requires-python = ">=3.12"
+dependencies = [
+    "resolver",
+    "shared",
+]
+
+[project.optional-dependencies]
+database = ["provider-database"]
+identity = ["provider-identity"]
+location = ["provider-location"]
+search = ["provider-search"]
+storage = ["provider-storage"]
+
+[tool.uv.sources]
+provider-database = { workspace = true }
+provider-identity = { workspace = true }
+provider-location = { workspace = true }
+provider-search = { workspace = true }
+provider-storage = { workspace = true }
+resolver = { workspace = true }
+shared = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "k9.providers"
+namespace = true

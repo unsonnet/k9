@@ -1,5 +1,5 @@
 {
-  "app": "uv run app.py",
+  "app": "uv run --all-packages app.py",
   "context": {
     "account": "425688663965",
     "region": "us-east-2",

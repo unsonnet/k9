@@ -9,24 +9,30 @@ package = false
 
 [tool.uv.workspace]
 members = [
-    "shared",
-    "providers/*",
-    "services/*",
-    "workers/*",
     "infra/cdk",
+    "providers/*",
+    "resolvers/*",
+    "services/*",
+    "shared",
+    "workers/*",
 ]
 
 [tool.uv.sources]
-shared = { workspace = true }
-shared-provider-database = { workspace = true }
-shared-provider-identity = { workspace = true }
-shared-provider-location = { workspace = true }
-shared-provider-search = { workspace = true }
-shared-provider-storage = { workspace = true }
+provider = { workspace = true }
+provider-database = { workspace = true }
+provider-identity = { workspace = true }
+provider-location = { workspace = true }
+provider-search = { workspace = true }
+provider-storage = { workspace = true }
+resolver = { workspace = true }
+resolver-dynamodb = { workspace = true }
+resolver-http = { workspace = true }
+resolver-s3 = { workspace = true }
 service-auth = { workspace = true }
 service-companies = { workspace = true }
 service-products = { workspace = true }
 service-users = { workspace = true }
+shared = { workspace = true }
 worker-index-companies = { workspace = true }
 worker-index-products = { workspace = true }
 worker-sync-companies = { workspace = true }

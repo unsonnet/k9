@@ -1,15 +1,17 @@
 [project]
-name = "shared-provider-database"
+name = "provider-database"
 version = "0.1.0"
 description = "DynamoDB database provider for K9 API"
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.42.85",
+    "provider",
     "shared",
     "types-boto3[dynamodb]>=1.42.85",
 ]
 
 [tool.uv.sources]
+provider = { workspace = true }
 shared = { workspace = true }
 
 [build-system]
@@ -17,5 +19,5 @@ requires = ["uv_build>=0.8.0,<0.9"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "shared.providers"
+module-name = "k9.providers"
 namespace = true

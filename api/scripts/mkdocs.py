@@ -27,7 +27,7 @@ def collect_packages(kind: str) -> dict[str, Path]:
         if not src_dir.exists():
             continue
 
-        for path in sorted(src_dir.glob("*/__init__.py")):
+        for path in sorted(src_dir.glob(f"k9/{kind}/*/__init__.py")):
             name = path.parent.name
             if name in packages:
                 raise RuntimeError(f"Ambiguous package for {name}")
@@ -49,7 +49,7 @@ def import_app(kind: str, name: str) -> ManifestApp:
     if (src := str(src_dir)) not in sys.path:
         sys.path.insert(0, src)
 
-    module = importlib.import_module(name)
+    module = importlib.import_module(f"k9.{kind}.{name}")
     app = getattr(module, "app", None)
     if not callable(getattr(app, "manifest", None)):
         raise TypeError(f"{name}.app must provide manifest(); got {type(app)}")

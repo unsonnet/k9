@@ -4,11 +4,15 @@ version = "0.3.0"
 description = "User API Endpoints"
 requires-python = ">=3.12"
 dependencies = [
+    "provider[identity,storage]",
     "pydantic>=2.12.5",
-    "shared[identity,storage]",
+    "resolver[http]",
+    "shared",
 ]
 
 [tool.uv.sources]
+provider = { workspace = true }
+resolver = { workspace = true }
 shared = { workspace = true }
 
 [build-system]
@@ -16,4 +20,5 @@ requires = ["uv_build>=0.8.0,<0.9"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "users"
+module-name = "k9.services"
+namespace = true

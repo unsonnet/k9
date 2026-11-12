@@ -4,10 +4,15 @@ version = "0.1.0"
 description = "Index Products Worker"
 requires-python = ">=3.12"
 dependencies = [
-	"shared[search]",
+	"provider[search]",
+    "pydantic>=2.12.5",
+	"resolver[dynamodb]",
+	"shared",
 ]
 
 [tool.uv.sources]
+provider = { workspace = true }
+resolver = { workspace = true }
 shared = { workspace = true }
 
 [build-system]
@@ -15,4 +20,5 @@ requires = ["uv_build>=0.8.0,<0.9"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
-module-name = "index_products"
+module-name = "k9.workers"
+namespace = true

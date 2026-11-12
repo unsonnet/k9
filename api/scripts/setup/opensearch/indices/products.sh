@@ -212,7 +212,7 @@ main() {
                 wear: { type: "double" }
               }
             },
-            "$subformat": {
+            "$subformats": {
               type: "nested",
               properties: {
                 length: { type: "double" },
