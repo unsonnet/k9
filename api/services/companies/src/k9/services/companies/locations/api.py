@@ -6,8 +6,8 @@ from k9.shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from k9.shared.helpers import generate_subresource_id, require_admin
-from k9.shared.types import Caller
+from k9.shared.helpers import require_admin
+from k9.types.common import Caller, SubresourceID
 
 from .. import app
 from .http import Request, Response
@@ -36,7 +36,7 @@ def create(
         require_admin(caller)
         location = provider.create_location(
             id=request.id,
-            sid=generate_subresource_id(),
+            sid=SubresourceID.random(),
             scope=request.scope,
             street=request.street,
             city=request.city,

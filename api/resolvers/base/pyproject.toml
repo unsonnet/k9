@@ -3,8 +3,7 @@ name = "resolver"
 version = "0.1.0"
 description = "Shared resolvers for K9 API"
 requires-python = ">=3.12"
-dependencies = [
-]
+dependencies = []
 
 [project.optional-dependencies]
 dynamodb = ["resolver-dynamodb"]

@@ -14,7 +14,7 @@ from k9.providers.search.queries import (
     Text,
 )
 from k9.shared.config import is_set, missing, settings
-from k9.shared.types import ResourceID, SubresourceID
+from k9.types.common import ResourceID, SubresourceID
 from pydantic import BaseModel, Field, HttpUrl, model_validator
 
 from ..provider import Format, Material

@@ -7,7 +7,7 @@ from k9.providers.identity import IdentityProvider, Page
 from k9.providers.storage import HttpUrl, StorageProvider, Upload
 from k9.resolvers.http.requests import ImageFormat
 from k9.shared.config import is_set, missing, settings
-from k9.shared.types import Name, Password, Role, UserID
+from k9.types.common import Name, Password, Role, UserID
 from pydantic import BaseModel
 
 __all__ = [

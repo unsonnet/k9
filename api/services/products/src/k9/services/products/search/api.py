@@ -6,7 +6,7 @@ from k9.resolvers.http.errors import (
 )
 from k9.resolvers.http.responses import OK
 from k9.shared.errors import DomainNotFound, DomainRateLimited, DomainUnauthorized
-from k9.shared.types import Caller
+from k9.types.common import Caller
 
 from .. import app
 from .http import Request, Response

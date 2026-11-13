@@ -1,7 +1,7 @@
 [project]
 name = "shared"
-version = "0.1.0"
-description = "Shared utilities and types for K9 API"
+version = "0.2.0"
+description = "Shared utilities for K9 API"
 requires-python = ">=3.12"
 dependencies = [
     "aws-lambda-powertools>=3.26.0",
@@ -9,7 +9,11 @@ dependencies = [
     "pydantic>=2.12.5",
     "requests-aws4auth>=1.3.2",
     "types-boto3[ssm]>=1.42.85",
+    "types",
 ]
+
+[tool.uv.sources]
+types = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.8.0,<0.9"]

@@ -3,7 +3,7 @@ from typing import Iterable
 from k9.providers.base import BaseProvider, GrantSpec, apimethod
 from k9.providers.database import DatabaseProvider, DatabaseTypes
 from k9.shared.config import is_set, missing, settings
-from k9.shared.types import ResourceID, SubresourceID
+from k9.types.common import ResourceID, SubresourceID
 from pydantic import BaseModel, Field, HttpUrl
 
 from .prices.provider import Price

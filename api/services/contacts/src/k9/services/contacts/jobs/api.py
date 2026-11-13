@@ -7,7 +7,7 @@ from k9.shared.errors import (
     DomainUnauthorized,
 )
 from k9.shared.helpers import require_admin
-from k9.shared.types import Caller
+from k9.types.common import Caller
 
 from .. import app
 from .http import Request, Response

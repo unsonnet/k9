@@ -11,8 +11,8 @@ from k9.shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from k9.shared.helpers import generate_subresource_id, require_admin
-from k9.shared.types import Caller
+from k9.shared.helpers import require_admin
+from k9.types.common import Caller, SubresourceID
 
 from .. import app
 from .http import Request, Response
@@ -41,7 +41,7 @@ def upload(
         require_admin(caller)
         form = provider.create_image(
             id=request.id,
-            sid=generate_subresource_id(),
+            sid=SubresourceID.random(),
             scope=request.scope,
             format=request.format,
             length=request.length,

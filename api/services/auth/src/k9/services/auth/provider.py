@@ -4,7 +4,7 @@ from typing import Iterable, Mapping
 from k9.providers.base import BaseProvider, GrantSpec, apimethod
 from k9.providers.identity import MFA, Challenge, IdentityProvider, Tokens
 from k9.shared.config import settings
-from k9.shared.types import Name, Password, UserID
+from k9.types.common import Name, Password, UserID
 
 __all__ = [
     "AuthProvider",

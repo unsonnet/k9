@@ -3,7 +3,7 @@ from inspect import Parameter
 from typing import Any, Callable, NotRequired, Protocol, TypedDict, overload
 
 from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
-from k9.shared.types import Caller
+from k9.types.common import Caller
 from pydantic import BaseModel
 
 __all__ = [

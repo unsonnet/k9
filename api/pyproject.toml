@@ -14,6 +14,7 @@ members = [
     "resolvers/*",
     "services/*",
     "shared",
+    "types/*",
     "workers/*",
 ]
 
@@ -34,6 +35,11 @@ service-contacts = { workspace = true }
 service-products = { workspace = true }
 service-users = { workspace = true }
 shared = { workspace = true }
+types = { workspace = true }
+types-company = { workspace = true }
+types-contact = { workspace = true }
+types-product = { workspace = true }
+types-user = { workspace = true }
 worker-index-companies = { workspace = true }
 worker-index-products = { workspace = true }
 worker-sync-companies = { workspace = true }

@@ -6,8 +6,8 @@ from k9.shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from k9.shared.helpers import generate_resource_id, require_admin
-from k9.shared.types import Caller
+from k9.shared.helpers import require_admin
+from k9.types.common import Caller, ResourceID
 
 from . import app
 from .http import Request, Response
@@ -35,7 +35,7 @@ def create(
     try:
         require_admin(caller)
         company = provider.create_company(
-            id=generate_resource_id(),
+            id=ResourceID.random(),
             scope=request.scope,
             type=request.type,
             name=request.name,

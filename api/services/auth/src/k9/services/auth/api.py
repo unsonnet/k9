@@ -2,7 +2,7 @@ from k9.resolvers.http.errors import Forbidden, TooManyRequests, Unauthorized
 from k9.resolvers.http.responses import OK, Accepted, NoContent
 from k9.shared.errors import DomainForbidden, DomainRateLimited, DomainUnauthorized
 from k9.shared.helpers import require_admin_or_self
-from k9.shared.types import Caller
+from k9.types.common import Caller
 
 from . import app
 from .http import Request, Response

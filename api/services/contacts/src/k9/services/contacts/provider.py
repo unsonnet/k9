@@ -6,7 +6,7 @@ from k9.providers.database import DatabaseProvider, DatabaseTypes
 from k9.providers.storage import HttpUrl, StorageProvider, Upload
 from k9.resolvers.http.requests import ImageFormat
 from k9.shared.config import is_set, missing, settings
-from k9.shared.types import ResourceID
+from k9.types.common import ResourceID
 from pydantic import BaseModel, EmailStr, Field
 from pydantic_extra_types.phone_numbers import PhoneNumber
 

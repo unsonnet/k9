@@ -7,13 +7,8 @@ from k9.shared.errors import (
     DomainRateLimited,
     DomainUnauthorized,
 )
-from k9.shared.helpers import (
-    generate_password,
-    generate_user_id,
-    require_admin,
-    require_admin_or_self,
-)
-from k9.shared.types import Caller
+from k9.shared.helpers import require_admin, require_admin_or_self
+from k9.types.common import Caller, Password, UserID
 
 from . import app
 from .http import Request, Response
@@ -67,10 +62,10 @@ def create(
     try:
         require_admin(caller)
         creds = provider.create_user(
-            id=generate_user_id(),
+            id=UserID.random(),
             role=request.role,
             name=request.name,
-            password=generate_password(),
+            password=Password.random(),
             enabled=request.enabled,
         )
         return Created(Response.Credentials.model_validate(creds))
@@ -239,7 +234,7 @@ def reset(
         user_id = require_admin_or_self(caller, request.id)
         creds = provider.reset_user(
             id=user_id,
-            password=generate_password(),
+            password=Password.random(),
         )
         return OK(Response.Credentials.model_validate(creds))
     except DomainUnauthorized as exc:

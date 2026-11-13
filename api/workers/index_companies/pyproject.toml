@@ -7,12 +7,14 @@ dependencies = [
 	"provider[search]",
 	"resolver[dynamodb]",
 	"shared",
+	"types",
 ]
 
 [tool.uv.sources]
 provider = { workspace = true }
 resolver = { workspace = true }
 shared = { workspace = true }
+types = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.8.0,<0.9"]

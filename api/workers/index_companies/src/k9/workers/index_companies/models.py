@@ -1,7 +1,7 @@
 from decimal import Decimal
 from typing import Literal
 
-from k9.shared.types import ResourceID, SubresourceID
+from k9.types.common import ResourceID, SubresourceID
 from pydantic import BaseModel, HttpUrl
 
 type Industry = Literal["insurance", "manufacturer", "retailer"]

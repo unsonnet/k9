@@ -5,7 +5,7 @@ from k9.providers.base import BaseProvider, GrantSpec, apimethod
 from k9.providers.database import DatabaseProvider, DatabaseTypes
 from k9.providers.storage import StorageProvider
 from k9.shared.config import is_set, missing, settings
-from k9.shared.types import ResourceID
+from k9.types.common import ResourceID
 from pydantic import BaseModel, Field
 
 from .images.provider import Image
