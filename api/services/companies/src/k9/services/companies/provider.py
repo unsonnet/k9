@@ -16,7 +16,7 @@ __all__ = [
 ]
 
 
-type Industry = Literal["insurance", "manufacturer", "retailer"]
+type Industry = Literal["insurance", "manufacturing", "retail"]
 
 
 class Company(BaseModel, frozen=True):

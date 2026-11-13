@@ -30,6 +30,7 @@ resolver-http = { workspace = true }
 resolver-s3 = { workspace = true }
 service-auth = { workspace = true }
 service-companies = { workspace = true }
+service-contacts = { workspace = true }
 service-products = { workspace = true }
 service-users = { workspace = true }
 shared = { workspace = true }
