@@ -30,7 +30,7 @@
           "identity"
         ]
       },
-      "users": {
+      "user": {
         "timeout": 20,
         "memory": 512,
         "shared": [
@@ -38,7 +38,7 @@
           "storage"
         ]
       },
-      "companies": {
+      "company": {
         "timeout": 20,
         "memory": 512,
         "shared": [
@@ -48,7 +48,7 @@
           "search"
         ]
       },
-      "products": {
+      "product": {
         "timeout": 20,
         "memory": 512,
         "shared": [
@@ -60,7 +60,7 @@
       }
     },
     "workers": {
-      "index_companies": {
+      "index_company": {
         "source": "dynamodb",
         "timeout": 60,
         "memory": 512,
@@ -72,7 +72,7 @@
         "batchSize": 10,
         "retryAttempts": 10
       },
-      "index_products": {
+      "index_product": {
         "source": "dynamodb",
         "timeout": 60,
         "memory": 512,
@@ -84,7 +84,7 @@
         "batchSize": 10,
         "retryAttempts": 10
       },
-      "sync_products": {
+      "sync_product": {
         "source": "s3",
         "timeout": 60,
         "memory": 512,
@@ -94,7 +94,7 @@
         ],
         "bucketName": "k9-{stage}-{account}-{region}-an"
       },
-      "sync_companies": {
+      "sync_company": {
         "source": "s3",
         "timeout": 60,
         "memory": 512,
@@ -104,7 +104,7 @@
         ],
         "bucketName": "k9-{stage}-{account}-{region}-an"
       },
-      "sync_users": {
+      "sync_user": {
         "source": "s3",
         "timeout": 60,
         "memory": 512,

@@ -1,6 +1,5 @@
-from .provider import SearchProvider
-from .queries import AllOf, AnyOf, Bool, Exclude, Near, Prefix, Query, Range, Term, Text
-from .types import Page
+from .provider import Page, SearchProvider
+from .types import AllOf, AnyOf, Bool, Exclude, Near, Prefix, Query, Range, Term, Text
 
 __all__ = [
     "AllOf",

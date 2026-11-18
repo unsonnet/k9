@@ -22,9 +22,9 @@ from aws_lambda_powertools.event_handler.openapi.exceptions import (
 )
 from aws_lambda_powertools.event_handler.openapi.types import OpenAPIResponse
 from k9.resolvers.base import GrantSpec, RouteSpec
-from k9.shared.config import is_set, missing, settings
-from k9.shared.errors import DomainInvariantViolation
-from k9.types.common import Caller
+from k9.shared.config import settings
+from k9.types.common import Caller, is_set, missing
+from k9.types.errors import DomainInvariantViolation
 from pydantic import BaseModel
 from pydantic import ValidationError as PydanticValidationError
 from types_boto3_cognito_idp import CognitoIdentityProviderClient

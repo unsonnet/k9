@@ -11,7 +11,7 @@ from aws_lambda_powertools.event_handler.openapi.compat import (
     ModelField,
     get_missing_field_error,
 )
-from k9.shared.config import is_set, missing
+from k9.types.common import is_set, missing
 
 
 def _extract_field_value_from_body(

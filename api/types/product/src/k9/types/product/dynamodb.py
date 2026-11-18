@@ -1,7 +1,8 @@
 from decimal import Decimal
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal, Self
 
-from k9.types.common import DateID, ResourceID, SubresourceID
+from k9.types.base import Partial, ResourceModel
+from k9.types.common import DateID, ResourceID, SubresourceID, missing
 from pydantic import BaseModel, Field, HttpUrl
 
 __all__ = [
@@ -81,7 +82,7 @@ class Format(BaseModel, frozen=True):
     wear: Decimal | None
 
 
-class Image(BaseModel, frozen=True):
+class Image(ResourceModel, frozen=True):
     type Vector = Annotated[list[Decimal], Field(min_length=3, max_length=3)]
     type Homomorphism = Annotated[list[Vector], Field(min_length=3, max_length=3)]
 
@@ -90,8 +91,22 @@ class Image(BaseModel, frozen=True):
     url: HttpUrl
     hom: Homomorphism
 
+    # BEGIN GENERATED PARTIAL SIGNATURE
+    if TYPE_CHECKING:
 
-class Price(BaseModel, frozen=True):
+        @classmethod
+        def partial(
+            cls,
+            *,
+            id: SubresourceID | missing = ...,
+            scope: ResourceID | None | missing = ...,
+            url: HttpUrl | missing = ...,
+            hom: Homomorphism | missing = ...,
+        ) -> Partial[Self]: ...
+    # END GENERATED PARTIAL SIGNATURE
+
+
+class Price(ResourceModel, frozen=True):
     id: DateID
     scope: ResourceID | None
     currency: str | None
@@ -99,8 +114,24 @@ class Price(BaseModel, frozen=True):
     unit: Decimal | None
     stock: Decimal | None
 
+    # BEGIN GENERATED PARTIAL SIGNATURE
+    if TYPE_CHECKING:
 
-class Listing(BaseModel, frozen=True):
+        @classmethod
+        def partial(
+            cls,
+            *,
+            id: DateID | missing = ...,
+            scope: ResourceID | None | missing = ...,
+            currency: str | None | missing = ...,
+            rate: Decimal | None | missing = ...,
+            unit: Decimal | None | missing = ...,
+            stock: Decimal | None | missing = ...,
+        ) -> Partial[Self]: ...
+    # END GENERATED PARTIAL SIGNATURE
+
+
+class Listing(ResourceModel, frozen=True):
     id: SubresourceID
     scope: ResourceID | None
     vendor: ResourceID
@@ -108,8 +139,24 @@ class Listing(BaseModel, frozen=True):
     name: str
     website: HttpUrl | None
 
+    # BEGIN GENERATED PARTIAL SIGNATURE
+    if TYPE_CHECKING:
 
-class Product(BaseModel, frozen=True):
+        @classmethod
+        def partial(
+            cls,
+            *,
+            id: SubresourceID | missing = ...,
+            scope: ResourceID | None | missing = ...,
+            vendor: ResourceID | missing = ...,
+            sku: str | None | missing = ...,
+            name: str | missing = ...,
+            website: HttpUrl | None | missing = ...,
+        ) -> Partial[Self]: ...
+    # END GENERATED PARTIAL SIGNATURE
+
+
+class Product(ResourceModel, frozen=True):
     id: ResourceID
     scope: ResourceID | None
     brand: ResourceID | None
@@ -117,3 +164,20 @@ class Product(BaseModel, frozen=True):
     format: Format
     subformats: list[Format]
     meta: bytes | None
+
+    # BEGIN GENERATED PARTIAL SIGNATURE
+    if TYPE_CHECKING:
+
+        @classmethod
+        def partial(
+            cls,
+            *,
+            id: ResourceID | missing = ...,
+            scope: ResourceID | None | missing = ...,
+            brand: ResourceID | None | missing = ...,
+            material: Material | missing = ...,
+            format: Format | missing = ...,
+            subformats: list[Format] | missing = ...,
+            meta: bytes | None | missing = ...,
+        ) -> Partial[Self]: ...
+    # END GENERATED PARTIAL SIGNATURE

@@ -1,18 +1,20 @@
 [project]
-name = "provider-identity"
-version = "0.1.0"
-description = "Cognito identity provider for K9 API"
+name = "providers-identity"
+version = "1.0.0"
+description = "Cognito identity provider"
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.42.85",
-    "provider",
+    "providers",
     "shared",
+    "types",
     "types-boto3[cognito-idp]>=1.42.85",
 ]
 
 [tool.uv.sources]
-provider = { workspace = true }
+providers = { workspace = true }
 shared = { workspace = true }
+types = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.8.0,<0.9"]

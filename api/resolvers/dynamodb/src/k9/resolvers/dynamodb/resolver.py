@@ -9,7 +9,7 @@ from aws_lambda_powertools.utilities.batch import (
 )
 from aws_lambda_powertools.utilities.typing import LambdaContext
 from k9.resolvers.base import LOG, EventSpec, GrantSpec
-from k9.shared.config import is_set, missing
+from k9.types.common import is_set, missing
 from pydantic import BaseModel
 
 from .types import MISSING_PARAM, DynamoDBEventDecorator, DynamoDBRecord

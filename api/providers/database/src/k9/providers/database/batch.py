@@ -6,8 +6,9 @@ from typing import Self
 import boto3
 from boto3.dynamodb.conditions import Key
 from k9.providers.base import BaseProvider, ExceptionMap, GrantSpec, apimethod
-from k9.shared.errors import DomainInvariantViolation, DomainNotFound, DomainRateLimited
 from k9.shared.helpers import now
+from k9.types.base import Partial, ResourceModel
+from k9.types.errors import DomainInvariantViolation, DomainNotFound, DomainRateLimited
 from types_boto3_dynamodb.service_resource import Table
 from types_boto3_dynamodb.type_defs import TransactWriteItemTypeDef
 
@@ -79,16 +80,23 @@ class DatabaseBatchProvider(AbstractContextManager, BaseProvider):
         return None
 
     @apimethod
-    def check_item(self, key: str) -> None:
+    def check_item(self, key: str, /) -> None:
         if self._txs.get(key):
             raise DomainInvariantViolation
         self._txs[key] = self._exists(key)
         return None
 
     @apimethod
-    def create_item(self, key: str, **attrs: DatabaseTypes) -> None:
+    def create_item(
+        self,
+        key: str,
+        model: ResourceModel | None = None,
+        /,
+        **attrs: DatabaseTypes,
+    ) -> None:
         if self._txs.get(key):
             raise DomainInvariantViolation
+        attrs |= model.model_dump_dynamodb() if model else {}
         pk, sk = self._index(key)
         self._txs[key] = {
             "Put": {
@@ -108,7 +116,7 @@ class DatabaseBatchProvider(AbstractContextManager, BaseProvider):
         return None
 
     @apimethod
-    def query_item(self, key: str) -> Iterable[dict[str, DatabaseTypes]]:
+    def query_item(self, key: str, /) -> Iterable[dict[str, DatabaseTypes]]:
         pk, sk = self._index(key)
         expr = Key("pk").eq(pk) & Key("sk").begins_with(sk)
         resp = self._db.query(KeyConditionExpression=expr, ConsistentRead=True)
@@ -122,9 +130,16 @@ class DatabaseBatchProvider(AbstractContextManager, BaseProvider):
             yield from resp["Items"]
 
     @apimethod
-    def update_item(self, key: str, **attrs: DatabaseTypes) -> None:
+    def update_item(
+        self,
+        key: str,
+        model: ResourceModel | Partial | None = None,
+        /,
+        **attrs: DatabaseTypes,
+    ) -> None:
         if self._txs.get(key):
             raise DomainInvariantViolation
+        attrs |= model.model_dump_dynamodb() if model else {}
         pk, sk = self._index(key)
         attrs["updated_at"] = now().isoformat()
         names = {f"#n{i}": n for i, n in enumerate(attrs.keys())}
@@ -143,7 +158,7 @@ class DatabaseBatchProvider(AbstractContextManager, BaseProvider):
         return None
 
     @apimethod
-    def delete_item(self, key: str) -> None:
+    def delete_item(self, key: str, /) -> None:
         for item in self.query_item(key):
             subkey = str(item["key"]["key"])  # type: ignore
             if self._txs.get(subkey):

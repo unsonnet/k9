@@ -1,28 +1,19 @@
 import os
 from functools import cache, cached_property
-from typing import TYPE_CHECKING, TypeAliasType, TypeGuard
 
 import boto3
-from pydantic_core import MISSING as missing  # type: ignore
 from requests_aws4auth import AWS4Auth
 from types_boto3_ssm import SSMClient
-from typing_extensions import Sentinel as MISSING
-
-from .errors import MissingSettingError
-
-if TYPE_CHECKING:
-    type missing = TypeAliasType
 
 __all__ = [
-    "is_set",
-    "missing",
-    "MISSING",
     "settings",
 ]
 
 
-def is_set[T](value: T | missing) -> TypeGuard[T]:
-    return value is not missing
+class MissingSettingError(RuntimeError):
+    def __init__(self, *keys: str):
+        variables = ", ".join(keys)
+        super().__init__(f"Missing required environment setting. Checked: {variables}")
 
 
 class Settings:

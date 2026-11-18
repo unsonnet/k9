@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime
 
-from pydantic import BaseModel
+from k9.types.base import Page, ResourceModel
 from types_boto3_cognito_idp.literals import ChallengeNameTypeType
 
 __all__ = [
@@ -37,29 +36,25 @@ STANDARD_ATTRIBUTES: set[str] = {
 }
 
 
-@dataclass(frozen=True, slots=True)
-class Challenge:
+class Challenge(ResourceModel, frozen=True):
     type Key = ChallengeNameTypeType
     session: str
     challenge: Key
 
 
-@dataclass(frozen=True, slots=True)
-class MFA:
+class MFA(ResourceModel, frozen=True):
     secret: str
     url: str
 
 
-@dataclass(frozen=True, slots=True)
-class Tokens:
+class Tokens(ResourceModel, frozen=True):
     access_token: str
     expires_in: int
     refresh_token: str | None
     id_token: str | None
 
 
-@dataclass(frozen=True, slots=True)
-class User:
+class User(ResourceModel, frozen=True):
     username: str
     enabled: bool
     attributes: dict[str, str | None]
@@ -69,15 +64,3 @@ class User:
 
     def __getattr__(self, key: str) -> str | None:
         return self.attributes.get(key)
-
-
-@dataclass(frozen=True, slots=True)
-class Page[T]:
-    items: list[T]
-    cursor: str | None
-
-    def hydrate[M: BaseModel](self, model: type[M]) -> Page[M]:
-        return Page(
-            items=[model.model_validate(item) for item in self.items],
-            cursor=self.cursor,
-        )

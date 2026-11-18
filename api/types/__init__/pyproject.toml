@@ -1,0 +1,29 @@
+[project]
+name = "types"
+version = "1.1.0"
+description = "Common types"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.12.5",
+    "types-boto3[dynamodb]>=1.42.85",
+]
+
+[project.optional-dependencies]
+company = ["types-company"]
+contact = ["types-contact"]
+product = ["types-product"]
+user = ["types-user"]
+
+[tool.uv.sources]
+types-company = { workspace = true }
+types-contact = { workspace = true }
+types-product = { workspace = true }
+types-user = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "k9.types"
+namespace = true

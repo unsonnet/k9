@@ -1,18 +1,18 @@
 [project]
-name = "provider-location"
-version = "0.1.0"
-description = "Places/location provider for K9 API"
+name = "providers-location"
+version = "1.0.0"
+description = "Places/location provider"
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.42.85",
-    "provider",
-    "shared",
+    "providers",
+    "types",
     "types-boto3[geo-places]>=1.42.85",
 ]
 
 [tool.uv.sources]
-provider = { workspace = true }
-shared = { workspace = true }
+providers = { workspace = true }
+types = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.8.0,<0.9"]

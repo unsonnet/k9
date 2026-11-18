@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import base64
 import json
 from collections.abc import Iterable
@@ -10,7 +8,8 @@ from urllib.parse import urlparse
 import boto3
 from k9.providers.base import BaseProvider, ExceptionMap, GrantSpec, apimethod
 from k9.shared.config import settings
-from k9.shared.errors import DomainForbidden, DomainInvariantViolation, DomainNotFound
+from k9.types.base import Page
+from k9.types.errors import DomainForbidden, DomainInvariantViolation, DomainNotFound
 from opensearchpy import OpenSearch, RequestsHttpConnection
 from opensearchpy.exceptions import (
     AuthenticationException,
@@ -19,10 +18,10 @@ from opensearchpy.exceptions import (
     RequestError,
 )
 
-from .queries import Bool, Query
-from .types import Page
+from .types import Bool, Query
 
 __all__ = [
+    "Page",
     "SearchProvider",
 ]
 

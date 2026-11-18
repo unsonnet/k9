@@ -6,11 +6,11 @@ from aws_lambda_powertools.event_handler.openapi.params import Path as HTTPPath
 from aws_lambda_powertools.event_handler.openapi.params import Query as HTTPQuery
 
 __all__ = [
-    "Payload",
     "Body",
-    "Path",
-    "Query",
     "ImageFormat",
+    "Path",
+    "Payload",
+    "Query",
 ]
 
 

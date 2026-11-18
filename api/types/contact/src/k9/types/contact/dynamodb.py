@@ -1,7 +1,8 @@
-from typing import Literal
+from typing import TYPE_CHECKING, Literal, Self
 
-from k9.types.common import DateID, ResourceID
-from pydantic import BaseModel, EmailStr, Field, HttpUrl
+from k9.types.base import Partial, ResourceModel
+from k9.types.common import DateID, ResourceID, missing
+from pydantic import EmailStr, Field, HttpUrl
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
 __all__ = [
@@ -13,7 +14,7 @@ __all__ = [
 ]
 
 
-class Job(BaseModel, frozen=True):
+class Job(ResourceModel, frozen=True):
     id: DateID
     scope: ResourceID | None
     company: ResourceID
@@ -21,11 +22,27 @@ class Job(BaseModel, frozen=True):
     email: EmailStr | None
     phone: PhoneNumber | None
 
+    # BEGIN GENERATED PARTIAL SIGNATURE
+    if TYPE_CHECKING:
+
+        @classmethod
+        def partial(
+            cls,
+            *,
+            id: DateID | missing = ...,
+            scope: ResourceID | None | missing = ...,
+            company: ResourceID | missing = ...,
+            title: str | missing = ...,
+            email: EmailStr | None | missing = ...,
+            phone: PhoneNumber | None | missing = ...,
+        ) -> Partial[Self]: ...
+    # END GENERATED PARTIAL SIGNATURE
+
 
 type Industry = Literal["insurance", "manufacturing", "retail"]
 
 
-class Contact(BaseModel, frozen=True):
+class Contact(ResourceModel, frozen=True):
     id: ResourceID
     scope: ResourceID | None
     type: Industry
@@ -34,3 +51,21 @@ class Contact(BaseModel, frozen=True):
     email: EmailStr | None
     phone: PhoneNumber | None
     jobs: list[Job] = Field(default_factory=list, alias="$jobs")
+
+    # BEGIN GENERATED PARTIAL SIGNATURE
+    if TYPE_CHECKING:
+
+        @classmethod
+        def partial(
+            cls,
+            *,
+            id: ResourceID | missing = ...,
+            scope: ResourceID | None | missing = ...,
+            type: Industry | missing = ...,
+            name: str | missing = ...,
+            picture: HttpUrl | missing = ...,
+            email: EmailStr | None | missing = ...,
+            phone: PhoneNumber | None | missing = ...,
+            jobs: list[Job] | missing = ...,
+        ) -> Partial[Self]: ...
+    # END GENERATED PARTIAL SIGNATURE

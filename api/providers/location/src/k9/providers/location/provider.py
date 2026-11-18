@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import boto3
 from k9.providers.base import BaseProvider, ExceptionMap, GrantSpec, apimethod
-from k9.shared.errors import DomainForbidden, DomainNotFound, DomainRateLimited
+from k9.types.errors import DomainForbidden, DomainNotFound, DomainRateLimited
 from types_boto3_geo_places import LocationServicePlacesV2Client
 
 __all__ = [

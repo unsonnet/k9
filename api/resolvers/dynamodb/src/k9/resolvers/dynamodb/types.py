@@ -4,7 +4,7 @@ from typing import Callable, Protocol, overload
 from aws_lambda_powertools.utilities.data_classes.dynamo_db_stream_event import (
     DynamoDBRecord,
 )
-from k9.shared.config import missing
+from k9.types.common import missing
 from pydantic import BaseModel
 
 __all__ = [

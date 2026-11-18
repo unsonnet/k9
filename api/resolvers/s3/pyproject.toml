@@ -1,17 +1,17 @@
 [project]
-name = "resolver-s3"
-version = "0.1.0"
-description = "S3 event resolver for K9 API"
+name = "resolvers-s3"
+version = "1.0.0"
+description = "S3 event resolver"
 requires-python = ">=3.12"
 dependencies = [
     "aws-lambda-powertools>=3.26.0",
     "boto3>=1.42.85",
     "pydantic>=2.12.5",
-    "resolver",
+    "resolvers",
 ]
 
 [tool.uv.sources]
-resolver = { workspace = true }
+resolvers = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.8.0,<0.9"]

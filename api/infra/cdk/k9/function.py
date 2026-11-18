@@ -24,7 +24,7 @@ def create_function(
     environment: Environment,
     manifest: Manifest,
 ) -> lambda_.IFunction:
-    physical_name = f"k9-api-{stage}-{package_name(kind, name)}"
+    physical_name = f"k9-api-{stage}-{package_name(kind[:-1], name)}"
     function = lambda_.DockerImageFunction(
         scope,
         "Function",

@@ -1,12 +1,11 @@
 from k9.resolvers.http.errors import Forbidden, TooManyRequests, Unauthorized
 from k9.resolvers.http.responses import OK, Accepted, NoContent
-from k9.shared.errors import DomainForbidden, DomainRateLimited, DomainUnauthorized
-from k9.shared.helpers import require_admin_or_self
 from k9.types.common import Caller
+from k9.types.errors import DomainForbidden, DomainRateLimited, DomainUnauthorized
 
 from . import app
-from .http import Request, Response
-from .provider import AuthProvider, Challenge, Tokens
+from .http import Login, LoginChallenge, Logout, Refresh, Verify
+from .provider import MFA, AuthProvider, Challenge, Tokens
 
 provider = AuthProvider()
 app.grant(*provider.permissions)
@@ -25,23 +24,17 @@ app.grant(*provider.permissions)
     },
 )
 def login(
-    request: Request.Login,
-) -> (
-    OK[Response.Tokens]
-    | Accepted[Response.Challenge]
-    | Unauthorized
-    | Forbidden
-    | TooManyRequests
-):
+    request: Login,
+) -> OK[Tokens] | Accepted[Challenge] | Unauthorized | Forbidden | TooManyRequests:
     try:
         match provider.authenticate(
             name=request.name,
             password=request.password,
         ):
             case Tokens() as tokens:
-                return OK(Response.Tokens.model_validate(tokens))
+                return OK(tokens)
             case Challenge() as challenge:
-                return Accepted(Response.Challenge.model_validate(challenge))
+                return Accepted(challenge)
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid credentials", cause=exc)
     except DomainForbidden as exc:
@@ -63,14 +56,8 @@ def login(
     },
 )
 def challenge(
-    request: Request.Challenge,
-) -> (
-    OK[Response.Tokens]
-    | Accepted[Response.Challenge]
-    | Unauthorized
-    | Forbidden
-    | TooManyRequests
-):
+    request: LoginChallenge,
+) -> OK[Tokens] | Accepted[Challenge] | Unauthorized | Forbidden | TooManyRequests:
     try:
         match provider.respond_to_challenge(
             session=request.session,
@@ -78,9 +65,9 @@ def challenge(
             response=request.response,
         ):
             case Tokens() as tokens:
-                return OK(Response.Tokens.model_validate(tokens))
+                return OK(tokens)
             case Challenge() as challenge:
-                return Accepted(Response.Challenge.model_validate(challenge))
+                return Accepted(challenge)
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid challenge response", cause=exc)
     except DomainForbidden as exc:
@@ -102,13 +89,13 @@ def challenge(
 )
 def setup(
     caller: Caller,
-) -> OK[Response.MFA] | Unauthorized | Forbidden | TooManyRequests:
+) -> OK[MFA] | Unauthorized | Forbidden | TooManyRequests:
     try:
         mfa = provider.setup_mfa(
             access_token=caller.token,
             name=caller.name,
         )
-        return OK(Response.MFA.model_validate(mfa))
+        return OK(mfa)
     except DomainUnauthorized as exc:
         return Unauthorized(cause=exc)
     except DomainForbidden as exc:
@@ -130,7 +117,7 @@ def setup(
 )
 def verify(
     caller: Caller,
-    request: Request.Verify,
+    request: Verify,
 ) -> NoContent | Unauthorized | Forbidden | TooManyRequests:
     try:
         provider.verify_mfa(
@@ -158,13 +145,13 @@ def verify(
     },
 )
 def refresh(
-    request: Request.Refresh,
-) -> OK[Response.Tokens] | Unauthorized | Forbidden | TooManyRequests:
+    request: Refresh,
+) -> OK[Tokens] | Unauthorized | Forbidden | TooManyRequests:
     try:
         tokens = provider.refresh_tokens(
             refresh_token=request.refreshToken,
         )
-        return OK(Response.Tokens.model_validate(tokens))
+        return OK(tokens)
     except DomainUnauthorized as exc:
         return Unauthorized("Invalid refresh token", cause=exc)
     except DomainForbidden as exc:
@@ -185,10 +172,10 @@ def refresh(
 )
 def logout(
     caller: Caller,
-    request: Request.Logout,
+    request: Logout,
 ) -> NoContent | Forbidden | TooManyRequests:
     try:
-        user_id = require_admin_or_self(caller, request.id)
+        user_id = caller.resolve(request.id)
         provider.revoke_tokens(
             id=user_id,
         )

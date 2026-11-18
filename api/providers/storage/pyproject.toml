@@ -1,19 +1,21 @@
 [project]
-name = "provider-storage"
-version = "0.1.0"
-description = "S3 storage provider for K9 API"
+name = "providers-storage"
+version = "1.0.0"
+description = "S3 storage provider"
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.42.85",
     "pydantic>=2.12.5",
-    "provider",
+    "providers",
     "shared",
+    "types",
     "types-boto3[s3]>=1.42.85",
 ]
 
 [tool.uv.sources]
-provider = { workspace = true }
+providers = { workspace = true }
 shared = { workspace = true }
+types = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.8.0,<0.9"]

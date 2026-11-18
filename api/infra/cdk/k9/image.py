@@ -11,8 +11,8 @@ IGNORE = shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo", "*.pyd")
 DOCKERFILE = Path(__file__).resolve().parents[1] / "Dockerfile"
 
 
-def package_name(kind: Kind, name: str) -> str:
-    return f"{kind[:-1]}-{name.replace('_', '-')}"
+def package_name(kind: str, name: str) -> str:
+    return f"{kind}-{name.replace('_', '-')}"
 
 
 def stage_context(root: Path, kind: Kind, name: str) -> Path:

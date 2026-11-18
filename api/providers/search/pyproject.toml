@@ -1,19 +1,20 @@
 [project]
-name = "provider-search"
-version = "0.1.0"
-description = "OpenSearch provider for K9 API"
+name = "providers-search"
+version = "1.0.0"
+description = "OpenSearch provider"
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.42.85",
     "opensearch-py>=3.2.0",
-    "provider",
-    "pydantic>=2.12.5",
+    "providers",
     "shared",
+    "types",
 ]
 
 [tool.uv.sources]
-provider = { workspace = true }
+providers = { workspace = true }
 shared = { workspace = true }
+types = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.8.0,<0.9"]

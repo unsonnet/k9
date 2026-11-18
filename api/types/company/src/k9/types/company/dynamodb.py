@@ -1,7 +1,8 @@
 from decimal import Decimal
-from typing import Literal
+from typing import TYPE_CHECKING, Literal, Self
 
-from k9.types.common import ResourceID, SubresourceID
+from k9.types.base import Partial, ResourceModel
+from k9.types.common import ResourceID, SubresourceID, missing
 from pydantic import BaseModel, Field, HttpUrl
 
 __all__ = [
@@ -25,17 +26,31 @@ class Coordinates(BaseModel, frozen=True):
     lng: Decimal
 
 
-class Location(BaseModel, frozen=True):
+class Location(ResourceModel, frozen=True):
     id: SubresourceID
     scope: ResourceID | None
     address: Address
     geo: Coordinates
 
+    # BEGIN GENERATED PARTIAL SIGNATURE
+    if TYPE_CHECKING:
+
+        @classmethod
+        def partial(
+            cls,
+            *,
+            id: SubresourceID | missing = ...,
+            scope: ResourceID | None | missing = ...,
+            address: Address | missing = ...,
+            geo: Coordinates | missing = ...,
+        ) -> Partial[Self]: ...
+    # END GENERATED PARTIAL SIGNATURE
+
 
 type Industry = Literal["insurance", "manufacturing", "retail"]
 
 
-class Company(BaseModel, frozen=True):
+class Company(ResourceModel, frozen=True):
     id: ResourceID
     scope: ResourceID | None
     type: Industry
@@ -43,3 +58,20 @@ class Company(BaseModel, frozen=True):
     logo: HttpUrl
     website: HttpUrl | None
     locations: list[Location] = Field(default_factory=list, alias="$locations")
+
+    # BEGIN GENERATED PARTIAL SIGNATURE
+    if TYPE_CHECKING:
+
+        @classmethod
+        def partial(
+            cls,
+            *,
+            id: ResourceID | missing = ...,
+            scope: ResourceID | None | missing = ...,
+            type: Industry | missing = ...,
+            name: str | missing = ...,
+            logo: HttpUrl | missing = ...,
+            website: HttpUrl | None | missing = ...,
+            locations: list[Location] | missing = ...,
+        ) -> Partial[Self]: ...
+    # END GENERATED PARTIAL SIGNATURE

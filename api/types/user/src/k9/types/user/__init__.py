@@ -1,5 +1,6 @@
-from .dynamodb import User
+from .dynamodb import Credentials, User
 
 __all__ = [
+    "Credentials",
     "User",
 ]

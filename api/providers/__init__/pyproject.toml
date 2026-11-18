@@ -1,0 +1,33 @@
+[project]
+name = "providers"
+version = "1.0.0"
+description = "Base provider"
+requires-python = ">=3.12"
+dependencies = [
+    "resolvers",
+    "types",
+]
+
+[project.optional-dependencies]
+database = ["providers-database"]
+identity = ["providers-identity"]
+location = ["providers-location"]
+search = ["providers-search"]
+storage = ["providers-storage"]
+
+[tool.uv.sources]
+providers-database = { workspace = true }
+providers-identity = { workspace = true }
+providers-location = { workspace = true }
+providers-search = { workspace = true }
+providers-storage = { workspace = true }
+resolvers = { workspace = true }
+types = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "k9.providers"
+namespace = true

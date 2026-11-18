@@ -3,10 +3,10 @@ from collections.abc import Iterable, Mapping
 import boto3
 from botocore.config import Config
 from k9.providers.base import BaseProvider, ExceptionMap, GrantSpec, apimethod
-from k9.shared.errors import DomainForbidden, DomainNotFound
+from k9.types.errors import DomainForbidden, DomainNotFound
 from types_boto3_s3.service_resource import Bucket
 
-from .types import HttpUrl, StorageObject, Upload
+from .types import HttpUrl, StorageObject, UploadForm
 
 __all__ = [
     "StorageProvider",
@@ -64,7 +64,7 @@ class StorageProvider(BaseProvider):
         content_length: int,
         max_seconds: int,
         metadata: Mapping[str, str] = {},
-    ) -> Upload:
+    ) -> UploadForm:
         url = self._s3.meta.client.generate_presigned_url(
             ClientMethod="put_object",
             Params={
@@ -78,7 +78,7 @@ class StorageProvider(BaseProvider):
             ExpiresIn=max_seconds,
             HttpMethod="PUT",
         )
-        return Upload(
+        return UploadForm(
             url=HttpUrl(url),
             headers={
                 "Content-Type": content_type,

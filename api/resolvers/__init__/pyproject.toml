@@ -1,0 +1,24 @@
+[project]
+name = "resolvers"
+version = "1.0.0"
+description = "Base resolver"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dynamodb = ["resolvers-dynamodb"]
+http = ["resolvers-http"]
+s3 = ["resolvers-s3"]
+
+[tool.uv.sources]
+resolvers-dynamodb = { workspace = true }
+resolvers-http = { workspace = true }
+resolvers-s3 = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "k9.resolvers"
+namespace = true

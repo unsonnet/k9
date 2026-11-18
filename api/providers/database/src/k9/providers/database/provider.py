@@ -1,7 +1,9 @@
 from collections.abc import Iterable
 from itertools import batched
+from typing import Any, overload
 
 from k9.providers.base import BaseProvider, GrantSpec, apimethod
+from k9.types.base import Partial, ResourceModel
 
 from .batch import DatabaseBatchProvider
 from .types import DatabaseTypes, Node
@@ -33,13 +35,26 @@ class DatabaseProvider(BaseProvider):
         return self._db
 
     @apimethod
-    def create_item(self, key: str, **attrs: DatabaseTypes) -> None:
+    def create_item(
+        self, key: str, model: ResourceModel | None = None, /, **attrs: DatabaseTypes
+    ) -> None:
         with self.batch() as batch:
-            batch.create_item(key, **attrs)
+            batch.create_item(key, model, **attrs)
         return None
 
+    @overload
+    def read_item(self, key: str, /) -> dict[str, DatabaseTypes]: ...
+
+    @overload
+    def read_item[T: ResourceModel](self, key: str, model: type[T], /) -> T: ...
+
     @apimethod
-    def read_item(self, key: str) -> dict[str, DatabaseTypes]:
+    def read_item(
+        self,
+        key: str,
+        model: type[ResourceModel] | None = None,
+        /,
+    ) -> dict[str, DatabaseTypes] | ResourceModel:
         root = Node()
         skip = (key.count("/") + 1) // 2
         for item in self._db.query_item(key):
@@ -48,16 +63,23 @@ class DatabaseProvider(BaseProvider):
             for part in list(batched(subkey.split("/"), 2))[skip:]:
                 node = node.subitems.setdefault(part, Node())  # type: ignore
             node.item = item
-        return root.serialize()
+        item = root.serialize()
+        return model.model_validate(item) if model is not None else item
 
     @apimethod
-    def update_item(self, key: str, **attrs: DatabaseTypes) -> None:
+    def update_item(
+        self,
+        key: str,
+        model: ResourceModel | Partial[Any] | None = None,
+        /,
+        **attrs: DatabaseTypes,
+    ) -> None:
         with self.batch() as batch:
-            batch.update_item(key, **attrs)
+            batch.update_item(key, model, **attrs)
         return None
 
     @apimethod
-    def delete_item(self, key: str) -> None:
+    def delete_item(self, key: str, /) -> None:
         with self.batch() as batch:
             batch.delete_item(key)
         return None

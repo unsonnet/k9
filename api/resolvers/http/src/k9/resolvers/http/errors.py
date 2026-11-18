@@ -7,16 +7,16 @@ from pydantic import BaseModel
 from .responses import Response
 
 __all__ = [
-    "ClientError",
     "BadRequest",
-    "Unauthorized",
+    "ClientError",
     "Forbidden",
-    "NotFound",
-    "MethodNotAllowed",
-    "UnprocessableEntity",
-    "TooManyRequests",
-    "ServerError",
     "InternalServerError",
+    "MethodNotAllowed",
+    "NotFound",
+    "ServerError",
+    "TooManyRequests",
+    "Unauthorized",
+    "UnprocessableEntity",
 ]
 
 

@@ -1,5 +1,5 @@
+from k9.resolvers.base import load_apis
 from k9.resolvers.http import HttpResolver
-from k9.shared.helpers import load_apis
 
 __all__ = [
     "app",

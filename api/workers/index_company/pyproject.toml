@@ -1,0 +1,25 @@
+[project]
+name = "workers-index-company"
+version = "1.0.0"
+description = "Index company worker"
+requires-python = ">=3.12"
+dependencies = [
+	"providers[search]",
+	"resolvers[dynamodb]",
+	"shared",
+	"types[company]",
+]
+
+[tool.uv.sources]
+providers = { workspace = true }
+resolvers = { workspace = true }
+shared = { workspace = true }
+types = { workspace = true }
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.9"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "k9.workers"
+namespace = true

@@ -1,7 +1,7 @@
 [project]
 name = "types-contact"
-version = "1.0.0"
-description = "Contact Types"
+version = "1.1.0"
+description = "Contact types"
 requires-python = ">=3.12"
 dependencies = [
     "email-validator>=2.3.0",

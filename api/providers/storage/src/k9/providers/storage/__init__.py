@@ -1,9 +1,9 @@
 from .provider import StorageProvider
-from .types import HttpUrl, StorageObject, Upload
+from .types import HttpUrl, StorageObject, UploadForm
 
 __all__ = [
     "HttpUrl",
     "StorageObject",
     "StorageProvider",
-    "Upload",
+    "UploadForm",
 ]

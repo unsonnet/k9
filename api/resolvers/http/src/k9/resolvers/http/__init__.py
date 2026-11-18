@@ -12,12 +12,12 @@ class ImageMIMEType(StrEnum):
 
 
 __all__ = [
-    "HttpResolver",
     "Body",
+    "ClientError",
+    "HttpResolver",
+    "ImageMIMEType",
     "Path",
     "Query",
     "Response",
-    "ClientError",
     "ServerError",
-    "ImageMIMEType",
 ]

@@ -14,32 +14,32 @@ resolution-markers = [
 members = [
     "infra",
     "k9",
-    "provider",
-    "provider-database",
-    "provider-identity",
-    "provider-location",
-    "provider-search",
-    "provider-storage",
-    "resolver",
-    "resolver-dynamodb",
-    "resolver-http",
-    "resolver-s3",
-    "service-auth",
-    "service-companies",
-    "service-contacts",
-    "service-products",
-    "service-users",
+    "providers",
+    "providers-database",
+    "providers-identity",
+    "providers-location",
+    "providers-search",
+    "providers-storage",
+    "resolvers",
+    "resolvers-dynamodb",
+    "resolvers-http",
+    "resolvers-s3",
+    "services-auth",
+    "services-company",
+    "services-contact",
+    "services-product",
+    "services-user",
     "shared",
     "types",
     "types-company",
     "types-contact",
     "types-product",
     "types-user",
-    "worker-index-companies",
-    "worker-index-products",
-    "worker-sync-companies",
-    "worker-sync-products",
-    "worker-sync-users",
+    "workers-index-company",
+    "workers-index-product",
+    "workers-sync-company",
+    "workers-sync-product",
+    "workers-sync-user",
 ]
 
 [[package]]
@@ -710,7 +710,7 @@ wheels = [
 
 [[package]]
 name = "k9"
-version = "0.1.0"
+version = "1.0.0"
 source = { virtual = "." }
 
 [package.dev-dependencies]
@@ -1129,139 +1129,147 @@ wheels = [
 ]
 
 [[package]]
-name = "provider"
-version = "0.1.0"
-source = { editable = "providers/base" }
+name = "providers"
+version = "1.0.0"
+source = { editable = "providers/__init__" }
 dependencies = [
-    { name = "resolver" },
-    { name = "shared" },
+    { name = "resolvers" },
+    { name = "types" },
 ]
 
 [package.optional-dependencies]
 database = [
-    { name = "provider-database" },
+    { name = "providers-database" },
 ]
 identity = [
-    { name = "provider-identity" },
+    { name = "providers-identity" },
 ]
 location = [
-    { name = "provider-location" },
+    { name = "providers-location" },
 ]
 search = [
-    { name = "provider-search" },
+    { name = "providers-search" },
 ]
 storage = [
-    { name = "provider-storage" },
+    { name = "providers-storage" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "provider-database", marker = "extra == 'database'", editable = "providers/database" },
-    { name = "provider-identity", marker = "extra == 'identity'", editable = "providers/identity" },
-    { name = "provider-location", marker = "extra == 'location'", editable = "providers/location" },
-    { name = "provider-search", marker = "extra == 'search'", editable = "providers/search" },
-    { name = "provider-storage", marker = "extra == 'storage'", editable = "providers/storage" },
-    { name = "resolver", editable = "resolvers/base" },
-    { name = "shared", editable = "shared" },
+    { name = "providers-database", marker = "extra == 'database'", editable = "providers/database" },
+    { name = "providers-identity", marker = "extra == 'identity'", editable = "providers/identity" },
+    { name = "providers-location", marker = "extra == 'location'", editable = "providers/location" },
+    { name = "providers-search", marker = "extra == 'search'", editable = "providers/search" },
+    { name = "providers-storage", marker = "extra == 'storage'", editable = "providers/storage" },
+    { name = "resolvers", editable = "resolvers/__init__" },
+    { name = "types", editable = "types/__init__" },
 ]
 provides-extras = ["database", "identity", "location", "search", "storage"]
 
 [[package]]
-name = "provider-database"
-version = "0.1.0"
+name = "providers-database"
+version = "1.0.0"
 source = { editable = "providers/database" }
 dependencies = [
     { name = "boto3" },
-    { name = "provider" },
+    { name = "providers" },
+    { name = "pydantic" },
     { name = "shared" },
+    { name = "types" },
     { name = "types-boto3", extra = ["dynamodb"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.42.85" },
-    { name = "provider", editable = "providers/base" },
+    { name = "providers", editable = "providers/__init__" },
+    { name = "pydantic", specifier = ">=2.12.5" },
     { name = "shared", editable = "shared" },
+    { name = "types", editable = "types/__init__" },
     { name = "types-boto3", extras = ["dynamodb"], specifier = ">=1.42.85" },
 ]
 
 [[package]]
-name = "provider-identity"
-version = "0.1.0"
+name = "providers-identity"
+version = "1.0.0"
 source = { editable = "providers/identity" }
 dependencies = [
     { name = "boto3" },
-    { name = "provider" },
+    { name = "providers" },
     { name = "shared" },
+    { name = "types" },
     { name = "types-boto3", extra = ["cognito-idp"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.42.85" },
-    { name = "provider", editable = "providers/base" },
+    { name = "providers", editable = "providers/__init__" },
     { name = "shared", editable = "shared" },
+    { name = "types", editable = "types/__init__" },
     { name = "types-boto3", extras = ["cognito-idp"], specifier = ">=1.42.85" },
 ]
 
 [[package]]
-name = "provider-location"
-version = "0.1.0"
+name = "providers-location"
+version = "1.0.0"
 source = { editable = "providers/location" }
 dependencies = [
     { name = "boto3" },
-    { name = "provider" },
-    { name = "shared" },
+    { name = "providers" },
+    { name = "types" },
     { name = "types-boto3", extra = ["geo-places"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.42.85" },
-    { name = "provider", editable = "providers/base" },
-    { name = "shared", editable = "shared" },
+    { name = "providers", editable = "providers/__init__" },
+    { name = "types", editable = "types/__init__" },
     { name = "types-boto3", extras = ["geo-places"], specifier = ">=1.42.85" },
 ]
 
 [[package]]
-name = "provider-search"
-version = "0.1.0"
+name = "providers-search"
+version = "1.0.0"
 source = { editable = "providers/search" }
 dependencies = [
     { name = "boto3" },
     { name = "opensearch-py" },
-    { name = "provider" },
-    { name = "pydantic" },
+    { name = "providers" },
     { name = "shared" },
+    { name = "types" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.42.85" },
     { name = "opensearch-py", specifier = ">=3.2.0" },
-    { name = "provider", editable = "providers/base" },
-    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "providers", editable = "providers/__init__" },
     { name = "shared", editable = "shared" },
+    { name = "types", editable = "types/__init__" },
 ]
 
 [[package]]
-name = "provider-storage"
-version = "0.1.0"
+name = "providers-storage"
+version = "1.0.0"
 source = { editable = "providers/storage" }
 dependencies = [
     { name = "boto3" },
-    { name = "provider" },
+    { name = "providers" },
     { name = "pydantic" },
     { name = "shared" },
+    { name = "types" },
     { name = "types-boto3", extra = ["s3"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = ">=1.42.85" },
-    { name = "provider", editable = "providers/base" },
+    { name = "providers", editable = "providers/__init__" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "shared", editable = "shared" },
+    { name = "types", editable = "types/__init__" },
     { name = "types-boto3", extras = ["s3"], specifier = ">=1.42.85" },
 ]
 
@@ -1616,39 +1624,40 @@ wheels = [
 ]
 
 [[package]]
-name = "resolver"
-version = "0.1.0"
-source = { editable = "resolvers/base" }
+name = "resolvers"
+version = "1.0.0"
+source = { editable = "resolvers/__init__" }
 
 [package.optional-dependencies]
 dynamodb = [
-    { name = "resolver-dynamodb" },
+    { name = "resolvers-dynamodb" },
 ]
 http = [
-    { name = "resolver-http" },
+    { name = "resolvers-http" },
 ]
 s3 = [
-    { name = "resolver-s3" },
+    { name = "resolvers-s3" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "resolver-dynamodb", marker = "extra == 'dynamodb'", editable = "resolvers/dynamodb" },
-    { name = "resolver-http", marker = "extra == 'http'", editable = "resolvers/http" },
-    { name = "resolver-s3", marker = "extra == 's3'", editable = "resolvers/s3" },
+    { name = "resolvers-dynamodb", marker = "extra == 'dynamodb'", editable = "resolvers/dynamodb" },
+    { name = "resolvers-http", marker = "extra == 'http'", editable = "resolvers/http" },
+    { name = "resolvers-s3", marker = "extra == 's3'", editable = "resolvers/s3" },
 ]
 provides-extras = ["dynamodb", "http", "s3"]
 
 [[package]]
-name = "resolver-dynamodb"
-version = "0.1.0"
+name = "resolvers-dynamodb"
+version = "1.0.0"
 source = { editable = "resolvers/dynamodb" }
 dependencies = [
     { name = "aws-lambda-powertools" },
     { name = "boto3" },
     { name = "pydantic" },
-    { name = "resolver" },
+    { name = "resolvers" },
     { name = "shared" },
+    { name = "types" },
 ]
 
 [package.metadata]
@@ -1656,19 +1665,20 @@ requires-dist = [
     { name = "aws-lambda-powertools", specifier = ">=3.26.0" },
     { name = "boto3", specifier = ">=1.42.85" },
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "resolver", editable = "resolvers/base" },
+    { name = "resolvers", editable = "resolvers/__init__" },
     { name = "shared", editable = "shared" },
+    { name = "types", editable = "types/__init__" },
 ]
 
 [[package]]
-name = "resolver-http"
-version = "0.1.0"
+name = "resolvers-http"
+version = "1.0.0"
 source = { editable = "resolvers/http" }
 dependencies = [
     { name = "aws-lambda-powertools" },
     { name = "boto3" },
     { name = "pydantic" },
-    { name = "resolver" },
+    { name = "resolvers" },
     { name = "shared" },
     { name = "types" },
     { name = "types-boto3", extra = ["cognito-idp"] },
@@ -1679,21 +1689,21 @@ requires-dist = [
     { name = "aws-lambda-powertools", specifier = ">=3.26.0" },
     { name = "boto3", specifier = ">=1.42.85" },
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "resolver", editable = "resolvers/base" },
+    { name = "resolvers", editable = "resolvers/__init__" },
     { name = "shared", editable = "shared" },
-    { name = "types", editable = "types/common" },
+    { name = "types", editable = "types/__init__" },
     { name = "types-boto3", extras = ["cognito-idp"], specifier = ">=1.42.85" },
 ]
 
 [[package]]
-name = "resolver-s3"
-version = "0.1.0"
+name = "resolvers-s3"
+version = "1.0.0"
 source = { editable = "resolvers/s3" }
 dependencies = [
     { name = "aws-lambda-powertools" },
     { name = "boto3" },
     { name = "pydantic" },
-    { name = "resolver" },
+    { name = "resolvers" },
 ]
 
 [package.metadata]
@@ -1701,7 +1711,7 @@ requires-dist = [
     { name = "aws-lambda-powertools", specifier = ">=3.26.0" },
     { name = "boto3", specifier = ">=1.42.85" },
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "resolver", editable = "resolvers/base" },
+    { name = "resolvers", editable = "resolvers/__init__" },
 ]
 
 [[package]]
@@ -1756,112 +1766,108 @@ wheels = [
 ]
 
 [[package]]
-name = "service-auth"
-version = "0.3.0"
+name = "services-auth"
+version = "1.0.0"
 source = { editable = "services/auth" }
 dependencies = [
-    { name = "provider", extra = ["identity"] },
+    { name = "providers", extra = ["identity"] },
     { name = "pydantic" },
-    { name = "resolver", extra = ["http"] },
+    { name = "resolvers", extra = ["http"] },
     { name = "shared" },
     { name = "types" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "provider", extras = ["identity"], editable = "providers/base" },
+    { name = "providers", extras = ["identity"], editable = "providers/__init__" },
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "resolver", extras = ["http"], editable = "resolvers/base" },
+    { name = "resolvers", extras = ["http"], editable = "resolvers/__init__" },
     { name = "shared", editable = "shared" },
-    { name = "types", editable = "types/common" },
+    { name = "types", editable = "types/__init__" },
 ]
 
 [[package]]
-name = "service-companies"
-version = "0.3.0"
-source = { editable = "services/companies" }
+name = "services-company"
+version = "1.0.0"
+source = { editable = "services/company" }
 dependencies = [
-    { name = "provider", extra = ["database", "location", "search", "storage"] },
+    { name = "providers", extra = ["database", "location", "storage"] },
     { name = "pydantic" },
-    { name = "resolver", extra = ["http"] },
+    { name = "resolvers", extra = ["http"] },
     { name = "shared" },
-    { name = "types" },
+    { name = "types", extra = ["company"] },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "provider", extras = ["database", "location", "search", "storage"], editable = "providers/base" },
+    { name = "providers", extras = ["database", "location", "storage"], editable = "providers/__init__" },
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "resolver", extras = ["http"], editable = "resolvers/base" },
+    { name = "resolvers", extras = ["http"], editable = "resolvers/__init__" },
     { name = "shared", editable = "shared" },
-    { name = "types", editable = "types/common" },
+    { name = "types", extras = ["company"], editable = "types/__init__" },
 ]
 
 [[package]]
-name = "service-contacts"
-version = "0.1.0"
-source = { editable = "services/contacts" }
+name = "services-contact"
+version = "1.0.0"
+source = { editable = "services/contact" }
 dependencies = [
-    { name = "email-validator" },
-    { name = "provider", extra = ["database", "search", "storage"] },
+    { name = "providers", extra = ["database", "storage"] },
     { name = "pydantic" },
-    { name = "pydantic-extra-types", extra = ["phonenumbers"] },
-    { name = "resolver", extra = ["http"] },
+    { name = "resolvers", extra = ["http"] },
     { name = "shared" },
-    { name = "types" },
+    { name = "types", extra = ["contact"] },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "email-validator", specifier = ">=2.3.0" },
-    { name = "provider", extras = ["database", "search", "storage"], editable = "providers/base" },
+    { name = "providers", extras = ["database", "storage"], editable = "providers/__init__" },
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "pydantic-extra-types", extras = ["phonenumbers"], specifier = ">=2.11.1" },
-    { name = "resolver", extras = ["http"], editable = "resolvers/base" },
+    { name = "resolvers", extras = ["http"], editable = "resolvers/__init__" },
     { name = "shared", editable = "shared" },
-    { name = "types", editable = "types/common" },
+    { name = "types", extras = ["contact"], editable = "types/__init__" },
 ]
 
 [[package]]
-name = "service-products"
-version = "0.1.0"
-source = { editable = "services/products" }
+name = "services-product"
+version = "1.0.0"
+source = { editable = "services/product" }
 dependencies = [
-    { name = "provider", extra = ["database", "search", "storage"] },
+    { name = "providers", extra = ["database", "storage"] },
     { name = "pydantic" },
-    { name = "resolver", extra = ["http"] },
+    { name = "resolvers", extra = ["http"] },
     { name = "shared" },
-    { name = "types" },
+    { name = "types", extra = ["product"] },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "provider", extras = ["database", "search", "storage"], editable = "providers/base" },
+    { name = "providers", extras = ["database", "storage"], editable = "providers/__init__" },
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "resolver", extras = ["http"], editable = "resolvers/base" },
+    { name = "resolvers", extras = ["http"], editable = "resolvers/__init__" },
     { name = "shared", editable = "shared" },
-    { name = "types", editable = "types/common" },
+    { name = "types", extras = ["product"], editable = "types/__init__" },
 ]
 
 [[package]]
-name = "service-users"
-version = "0.3.0"
-source = { editable = "services/users" }
+name = "services-user"
+version = "1.0.0"
+source = { editable = "services/user" }
 dependencies = [
-    { name = "provider", extra = ["identity", "storage"] },
+    { name = "providers", extra = ["identity", "storage"] },
     { name = "pydantic" },
-    { name = "resolver", extra = ["http"] },
+    { name = "resolvers", extra = ["http"] },
     { name = "shared" },
-    { name = "types" },
+    { name = "types", extra = ["user"] },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "provider", extras = ["identity", "storage"], editable = "providers/base" },
+    { name = "providers", extras = ["identity", "storage"], editable = "providers/__init__" },
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "resolver", extras = ["http"], editable = "resolvers/base" },
+    { name = "resolvers", extras = ["http"], editable = "resolvers/__init__" },
     { name = "shared", editable = "shared" },
-    { name = "types", editable = "types/common" },
+    { name = "types", extras = ["user"], editable = "types/__init__" },
 ]
 
 [[package]]
@@ -1871,9 +1877,7 @@ source = { editable = "shared" }
 dependencies = [
     { name = "aws-lambda-powertools" },
     { name = "boto3" },
-    { name = "pydantic" },
     { name = "requests-aws4auth" },
-    { name = "types" },
     { name = "types-boto3", extra = ["ssm"] },
 ]
 
@@ -1881,9 +1885,7 @@ dependencies = [
 requires-dist = [
     { name = "aws-lambda-powertools", specifier = ">=3.26.0" },
     { name = "boto3", specifier = ">=1.42.85" },
-    { name = "pydantic", specifier = ">=2.12.5" },
     { name = "requests-aws4auth", specifier = ">=1.3.2" },
-    { name = "types", editable = "types/common" },
     { name = "types-boto3", extras = ["ssm"], specifier = ">=1.42.85" },
 ]
 
@@ -1947,10 +1949,11 @@ wheels = [
 
 [[package]]
 name = "types"
-version = "1.0.0"
-source = { editable = "types/common" }
+version = "1.1.0"
+source = { editable = "types/__init__" }
 dependencies = [
     { name = "pydantic" },
+    { name = "types-boto3", extra = ["dynamodb"] },
 ]
 
 [package.optional-dependencies]
@@ -1970,6 +1973,7 @@ user = [
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "types-boto3", extras = ["dynamodb"], specifier = ">=1.42.85" },
     { name = "types-company", marker = "extra == 'company'", editable = "types/company" },
     { name = "types-contact", marker = "extra == 'contact'", editable = "types/contact" },
     { name = "types-product", marker = "extra == 'product'", editable = "types/product" },
@@ -2063,7 +2067,7 @@ wheels = [
 
 [[package]]
 name = "types-company"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "types/company" }
 dependencies = [
     { name = "pydantic" },
@@ -2073,12 +2077,12 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "types", editable = "types/common" },
+    { name = "types", editable = "types/__init__" },
 ]
 
 [[package]]
 name = "types-contact"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "types/contact" }
 dependencies = [
     { name = "email-validator" },
@@ -2092,12 +2096,12 @@ requires-dist = [
     { name = "email-validator", specifier = ">=2.3.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-extra-types", extras = ["phonenumbers"], specifier = ">=2.11.1" },
-    { name = "types", editable = "types/common" },
+    { name = "types", editable = "types/__init__" },
 ]
 
 [[package]]
 name = "types-product"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "types/product" }
 dependencies = [
     { name = "pydantic" },
@@ -2107,7 +2111,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "types", editable = "types/common" },
+    { name = "types", editable = "types/__init__" },
 ]
 
 [[package]]
@@ -2121,7 +2125,7 @@ wheels = [
 
 [[package]]
 name = "types-user"
-version = "1.0.0"
+version = "1.1.0"
 source = { editable = "types/user" }
 dependencies = [
     { name = "pydantic" },
@@ -2131,7 +2135,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "types", editable = "types/common" },
+    { name = "types", editable = "types/__init__" },
 ]
 
 [[package]]
@@ -2186,112 +2190,118 @@ wheels = [
 ]
 
 [[package]]
-name = "worker-index-companies"
-version = "0.3.0"
-source = { editable = "workers/index_companies" }
+name = "workers-index-company"
+version = "1.0.0"
+source = { editable = "workers/index_company" }
 dependencies = [
-    { name = "provider", extra = ["search"] },
-    { name = "resolver", extra = ["dynamodb"] },
+    { name = "providers", extra = ["search"] },
+    { name = "resolvers", extra = ["dynamodb"] },
+    { name = "shared" },
+    { name = "types", extra = ["company"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "providers", extras = ["search"], editable = "providers/__init__" },
+    { name = "resolvers", extras = ["dynamodb"], editable = "resolvers/__init__" },
+    { name = "shared", editable = "shared" },
+    { name = "types", extras = ["company"], editable = "types/__init__" },
+]
+
+[[package]]
+name = "workers-index-product"
+version = "1.0.0"
+source = { editable = "workers/index_product" }
+dependencies = [
+    { name = "providers", extra = ["search"] },
+    { name = "pydantic" },
+    { name = "resolvers", extra = ["dynamodb"] },
+    { name = "shared" },
+    { name = "types", extra = ["product"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "providers", extras = ["search"], editable = "providers/__init__" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "resolvers", extras = ["dynamodb"], editable = "resolvers/__init__" },
+    { name = "shared", editable = "shared" },
+    { name = "types", extras = ["product"], editable = "types/__init__" },
+]
+
+[[package]]
+name = "workers-sync-company"
+version = "1.0.0"
+source = { editable = "workers/sync_company" }
+dependencies = [
+    { name = "pillow-heif" },
+    { name = "pillow-jxl-plugin" },
+    { name = "providers", extra = ["database", "storage"] },
+    { name = "pydantic" },
+    { name = "resolvers", extra = ["s3"] },
+    { name = "shared" },
+    { name = "types", extra = ["company"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pillow-heif", specifier = ">=1.8.0" },
+    { name = "pillow-jxl-plugin", specifier = ">=1.3.8" },
+    { name = "providers", extras = ["database", "storage"], editable = "providers/__init__" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "resolvers", extras = ["s3"], editable = "resolvers/__init__" },
+    { name = "shared", editable = "shared" },
+    { name = "types", extras = ["company"], editable = "types/__init__" },
+]
+
+[[package]]
+name = "workers-sync-product"
+version = "1.0.0"
+source = { editable = "workers/sync_product" }
+dependencies = [
+    { name = "pillow-heif" },
+    { name = "pillow-jxl-plugin" },
+    { name = "providers", extra = ["database", "storage"] },
+    { name = "pydantic" },
+    { name = "resolvers", extra = ["s3"] },
+    { name = "shared" },
+    { name = "types", extra = ["product"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pillow-heif", specifier = ">=1.8.0" },
+    { name = "pillow-jxl-plugin", specifier = ">=1.3.8" },
+    { name = "providers", extras = ["database", "storage"], editable = "providers/__init__" },
+    { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "resolvers", extras = ["s3"], editable = "resolvers/__init__" },
+    { name = "shared", editable = "shared" },
+    { name = "types", extras = ["product"], editable = "types/__init__" },
+]
+
+[[package]]
+name = "workers-sync-user"
+version = "1.0.0"
+source = { editable = "workers/sync_user" }
+dependencies = [
+    { name = "pillow-heif" },
+    { name = "pillow-jxl-plugin" },
+    { name = "providers", extra = ["identity", "storage"] },
+    { name = "pydantic" },
+    { name = "resolvers", extra = ["s3"] },
     { name = "shared" },
     { name = "types" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "provider", extras = ["search"], editable = "providers/base" },
-    { name = "resolver", extras = ["dynamodb"], editable = "resolvers/base" },
-    { name = "shared", editable = "shared" },
-    { name = "types", editable = "types/common" },
-]
-
-[[package]]
-name = "worker-index-products"
-version = "0.1.0"
-source = { editable = "workers/index_products" }
-dependencies = [
-    { name = "provider", extra = ["search"] },
-    { name = "pydantic" },
-    { name = "resolver", extra = ["dynamodb"] },
-    { name = "shared" },
-    { name = "types" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "provider", extras = ["search"], editable = "providers/base" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "resolver", extras = ["dynamodb"], editable = "resolvers/base" },
-    { name = "shared", editable = "shared" },
-    { name = "types", editable = "types/common" },
-]
-
-[[package]]
-name = "worker-sync-companies"
-version = "0.1.0"
-source = { editable = "workers/sync_companies" }
-dependencies = [
-    { name = "pillow-heif" },
-    { name = "pillow-jxl-plugin" },
-    { name = "provider", extra = ["database", "storage"] },
-    { name = "pydantic" },
-    { name = "resolver", extra = ["s3"] },
-    { name = "shared" },
-]
-
-[package.metadata]
-requires-dist = [
     { name = "pillow-heif", specifier = ">=1.8.0" },
     { name = "pillow-jxl-plugin", specifier = ">=1.3.8" },
-    { name = "provider", extras = ["database", "storage"], editable = "providers/base" },
+    { name = "providers", extras = ["identity", "storage"], editable = "providers/__init__" },
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "resolver", extras = ["s3"], editable = "resolvers/base" },
+    { name = "resolvers", extras = ["s3"], editable = "resolvers/__init__" },
     { name = "shared", editable = "shared" },
-]
-
-[[package]]
-name = "worker-sync-products"
-version = "0.1.0"
-source = { editable = "workers/sync_products" }
-dependencies = [
-    { name = "pillow-heif" },
-    { name = "pillow-jxl-plugin" },
-    { name = "provider", extra = ["database", "storage"] },
-    { name = "pydantic" },
-    { name = "resolver", extra = ["s3"] },
-    { name = "shared" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pillow-heif", specifier = ">=1.8.0" },
-    { name = "pillow-jxl-plugin", specifier = ">=1.3.8" },
-    { name = "provider", extras = ["database", "storage"], editable = "providers/base" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "resolver", extras = ["s3"], editable = "resolvers/base" },
-    { name = "shared", editable = "shared" },
-]
-
-[[package]]
-name = "worker-sync-users"
-version = "0.1.0"
-source = { editable = "workers/sync_users" }
-dependencies = [
-    { name = "pillow-heif" },
-    { name = "pillow-jxl-plugin" },
-    { name = "provider", extra = ["identity", "storage"] },
-    { name = "pydantic" },
-    { name = "resolver", extra = ["s3"] },
-    { name = "shared" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "pillow-heif", specifier = ">=1.8.0" },
-    { name = "pillow-jxl-plugin", specifier = ">=1.3.8" },
-    { name = "provider", extras = ["identity", "storage"], editable = "providers/base" },
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "resolver", extras = ["s3"], editable = "resolvers/base" },
-    { name = "shared", editable = "shared" },
+    { name = "types", editable = "types/__init__" },
 ]
 
 [[package]]

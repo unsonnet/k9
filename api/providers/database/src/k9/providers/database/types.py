@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from k9.shared.errors import DomainNotFound
+from k9.types.errors import DomainNotFound
 from types_boto3_dynamodb.type_defs import TableAttributeValueTypeDef
 
 __all__ = [
