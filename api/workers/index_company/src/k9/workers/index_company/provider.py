@@ -1,8 +1,8 @@
 from collections.abc import Iterable
 
 from k9.providers.base import BaseProvider, GrantSpec, apimethod
+from k9.providers.config import settings
 from k9.providers.search import SearchProvider
-from k9.shared.config import settings
 
 __all__ = [
     "IndexCompanyProvider",

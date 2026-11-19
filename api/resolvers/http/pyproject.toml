@@ -1,6 +1,6 @@
 [project]
 name = "resolvers-http"
-version = "1.0.0"
+version = "1.0.1"
 description = "HTTP endpoint resolver"
 requires-python = ">=3.12"
 dependencies = [
@@ -8,14 +8,12 @@ dependencies = [
     "boto3>=1.42.85",
     "pydantic>=2.12.5",
     "resolvers",
-    "shared",
     "types",
     "types-boto3[cognito-idp]>=1.42.85",
 ]
 
 [tool.uv.sources]
 resolvers = { workspace = true }
-shared = { workspace = true }
 types = { workspace = true }
 
 [build-system]

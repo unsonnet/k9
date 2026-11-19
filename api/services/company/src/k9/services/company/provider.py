@@ -2,10 +2,10 @@ from functools import cached_property
 from typing import Iterable
 
 from k9.providers.base import BaseProvider, GrantSpec, apimethod
+from k9.providers.config import settings
 from k9.providers.database import DatabaseProvider
 from k9.providers.storage import HttpUrl, StorageProvider, UploadForm
 from k9.resolvers.http.requests import ImageFormat
-from k9.shared.config import settings
 from k9.types.common import ResourceID, missing
 from k9.types.company import Company, Industry
 

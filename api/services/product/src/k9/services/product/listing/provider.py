@@ -1,8 +1,8 @@
 from typing import Iterable
 
 from k9.providers.base import BaseProvider, GrantSpec, apimethod
+from k9.providers.config import settings
 from k9.providers.database import DatabaseProvider
-from k9.shared.config import settings
 from k9.types.common import ResourceID, SubresourceID, is_set, missing
 from k9.types.product import Listing
 from pydantic import HttpUrl

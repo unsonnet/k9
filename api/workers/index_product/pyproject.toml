@@ -1,20 +1,18 @@
 [project]
 name = "workers-index-product"
-version = "1.0.0"
+version = "1.0.1"
 description = "Index product worker"
 requires-python = ">=3.12"
 dependencies = [
 	"providers[search]",
     "pydantic>=2.12.5",
 	"resolvers[dynamodb]",
-	"shared",
 	"types[product]",
 ]
 
 [tool.uv.sources]
 providers = { workspace = true }
 resolvers = { workspace = true }
-shared = { workspace = true }
 types = { workspace = true }
 
 [build-system]

@@ -1,20 +1,18 @@
 [project]
 name = "services-product"
-version = "1.0.0"
+version = "1.0.1"
 description = "Product API endpoints"
 requires-python = ">=3.12"
 dependencies = [
     "providers[database,storage]",
     "pydantic>=2.12.5",
     "resolvers[http]",
-    "shared",
     "types[product]",
 ]
 
 [tool.uv.sources]
 providers = { workspace = true }
 resolvers = { workspace = true }
-shared = { workspace = true }
 types = { workspace = true }
 
 [build-system]

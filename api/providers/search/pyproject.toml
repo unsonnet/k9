@@ -1,6 +1,6 @@
 [project]
 name = "providers-search"
-version = "1.0.0"
+version = "1.0.1"
 description = "OpenSearch provider"
 requires-python = ">=3.12"
 dependencies = [

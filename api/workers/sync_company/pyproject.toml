@@ -1,6 +1,6 @@
 [project]
 name = "workers-sync-company"
-version = "1.0.0"
+version = "1.0.1"
 description = "Sync company worker"
 requires-python = ">=3.12"
 dependencies = [
@@ -9,14 +9,12 @@ dependencies = [
     "providers[database,storage]",
     "pydantic>=2.12.5",
     "resolvers[s3]",
-    "shared",
     "types[company]",
 ]
 
 [tool.uv.sources]
 providers = { workspace = true }
 resolvers = { workspace = true }
-shared = { workspace = true }
 types = { workspace = true }
 
 [build-system]

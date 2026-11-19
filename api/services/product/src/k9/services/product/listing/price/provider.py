@@ -2,8 +2,8 @@ from decimal import Decimal
 from typing import Iterable
 
 from k9.providers.base import BaseProvider, GrantSpec, apimethod
+from k9.providers.config import settings
 from k9.providers.database import DatabaseProvider
-from k9.shared.config import settings
 from k9.types.common import DateID, ResourceID, SubresourceID, missing
 from k9.types.product import Price
 

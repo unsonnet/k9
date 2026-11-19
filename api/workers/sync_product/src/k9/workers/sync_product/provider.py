@@ -4,9 +4,9 @@ from typing import Iterable
 
 import pillow_jxl  # noqa: F401
 from k9.providers.base import BaseProvider, GrantSpec, apimethod
+from k9.providers.config import settings
 from k9.providers.database import DatabaseProvider
 from k9.providers.storage import StorageObject, StorageProvider
-from k9.shared.config import settings
 from k9.types.common import ResourceID, SubresourceID, missing
 from k9.types.product import Image as ProductImage
 from PIL import Image, ImageOps

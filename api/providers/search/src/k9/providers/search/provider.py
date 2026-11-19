@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 import boto3
 from k9.providers.base import BaseProvider, ExceptionMap, GrantSpec, apimethod
-from k9.shared.config import settings
+from k9.providers.config import settings
 from k9.types.base import Page
 from k9.types.errors import DomainForbidden, DomainInvariantViolation, DomainNotFound
 from opensearchpy import OpenSearch, RequestsHttpConnection

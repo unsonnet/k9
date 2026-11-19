@@ -1,20 +1,18 @@
 [project]
 name = "services-auth"
-version = "1.0.0"
+version = "1.0.1"
 description = "Auth API endpoints"
 requires-python = ">=3.12"
 dependencies = [
     "providers[identity]",
     "pydantic>=2.12.5",
     "resolvers[http]",
-    "shared",
     "types",
 ]
 
 [tool.uv.sources]
 providers = { workspace = true }
 resolvers = { workspace = true }
-shared = { workspace = true }
 types = { workspace = true }
 
 [build-system]

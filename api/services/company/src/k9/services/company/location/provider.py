@@ -1,9 +1,9 @@
 from typing import Iterable
 
 from k9.providers.base import BaseProvider, GrantSpec, apimethod
+from k9.providers.config import settings
 from k9.providers.database import DatabaseProvider
 from k9.providers.location import LocationProvider as GeoProvider
-from k9.shared.config import settings
 from k9.types.common import ResourceID, SubresourceID, missing
 from k9.types.company import Address, Coordinates, Location
 
