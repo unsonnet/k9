@@ -60,7 +60,7 @@ class Partial[T: BaseModel]:
         return {k: _database_value(v) for k, v in self.model_dump().items()}
 
 
-class ResourceModel(BaseModel, frozen=True, extra="forbid", validate_by_name=True):
+class ResourceModel(BaseModel, frozen=True, extra="ignore", validate_by_name=True):
     def model_dump_dynamodb(self) -> dict[str, TableAttributeValueTypeDef]:
         return {
             k: _database_value(v) for k, v in self.model_dump(by_alias=True).items()
