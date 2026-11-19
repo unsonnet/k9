@@ -1603,9 +1603,27 @@ wheels = [
 ]
 
 [[package]]
+name = "requests-aws4auth"
+version = "1.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ef/9a/d01a0246c2f5b48095a834077898ad141cb79374fe385bdffb11480e514c/requests_aws4auth-1.4.0.tar.gz", hash = "sha256:db8bbce4344e83e735bb7efd840740b57bee4d4036eb58933efabc19947e8cbb", size = 27599, upload-time = "2026-10-09T14:26:58.869Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5b/90/6d3db6633d5f27532475542787cf4ae01487b8fb4c7d2683a4a4408111fb/requests_aws4auth-1.4.0-py3-none-any.whl", hash = "sha256:d47262e3b537d2f9e0d4400ec5797230c271de45c4ec360b4695eb65002f4031", size = 25588, upload-time = "2026-10-09T14:26:57.813Z" },
+]
+
+[[package]]
 name = "resolvers"
-version = "1.1.0"
+version = "1.1.1"
 source = { editable = "resolvers/__init__" }
+dependencies = [
+    { name = "aws-lambda-powertools" },
+    { name = "boto3" },
+    { name = "requests-aws4auth" },
+    { name = "types-boto3", extra = ["ssm"] },
+]
 
 [package.optional-dependencies]
 dynamodb = [
@@ -1620,9 +1638,13 @@ s3 = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aws-lambda-powertools", specifier = ">=3.26.0" },
+    { name = "boto3", specifier = ">=1.42.85" },
+    { name = "requests-aws4auth", specifier = ">=1.3.2" },
     { name = "resolvers-dynamodb", marker = "extra == 'dynamodb'", editable = "resolvers/dynamodb" },
     { name = "resolvers-http", marker = "extra == 'http'", editable = "resolvers/http" },
     { name = "resolvers-s3", marker = "extra == 's3'", editable = "resolvers/s3" },
+    { name = "types-boto3", extras = ["ssm"], specifier = ">=1.42.85" },
 ]
 provides-extras = ["dynamodb", "http", "s3"]
 
@@ -1962,6 +1984,9 @@ geo-places = [
 s3 = [
     { name = "types-boto3-s3" },
 ]
+ssm = [
+    { name = "types-boto3-ssm" },
+]
 
 [[package]]
 name = "types-boto3-cognito-idp"
@@ -1997,6 +2022,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/32/c1/98254ef0d372b6d3fc2cff6af1e769032f5ba885be7402fd0770c6f9102e/types_boto3_s3-1.42.94.tar.gz", hash = "sha256:0a9f5e5ee4e2ee6df0a0bfce2cf31a7d2752cacb5d5a783dd2050e86894d510f", size = 76888, upload-time = "2026-04-22T21:30:47.003Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/4e/f8/5fff2d7811f0e4ad09f3cbeeb6d329c03ccddc247965d8ebcc8a67767b76/types_boto3_s3-1.42.94-py3-none-any.whl", hash = "sha256:b68fa16004000a4aeca9249e679f54c41b8ef9ccf24f8a3212fddc077042bbe0", size = 84098, upload-time = "2026-04-22T21:30:45.399Z" },
+]
+
+[[package]]
+name = "types-boto3-ssm"
+version = "1.42.54"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/84/82/beff9a0368158ebd53a5c89e870f487f5a46eaff9c29332796d630a67303/types_boto3_ssm-1.42.54.tar.gz", hash = "sha256:317257f38db758df1541f0c36aefa27bcd0fb744c0b0d4b57be73061d519cf8e", size = 94228, upload-time = "2026-02-20T20:49:45.757Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/14/1e/768cbf3e3a6bfa0b8dca15f48c60d9d22bf4c15093f25c973cea750d9afe/types_boto3_ssm-1.42.54-py3-none-any.whl", hash = "sha256:4dfceadad2a982727660b4c3a30693847df123d6caf69967ab905165d3c7c472", size = 95912, upload-time = "2026-02-20T20:49:43.079Z" },
 ]
 
 [[package]]
