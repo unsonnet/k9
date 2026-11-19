@@ -8,13 +8,11 @@ dependencies = [
     "boto3>=1.42.85",
     "pydantic>=2.12.5",
     "resolvers",
-    "shared",
     "types",
 ]
 
 [tool.uv.sources]
 resolvers = { workspace = true }
-shared = { workspace = true }
 types = { workspace = true }
 
 [build-system]

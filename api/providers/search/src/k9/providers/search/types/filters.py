@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
 
-from k9.shared.helpers import sanitize_query
 from k9.types.errors import DomainInvariantViolation
 
 from .queries import Bool, Clause, Query
@@ -18,6 +17,11 @@ __all__ = [
     "Term",
     "Text",
 ]
+
+
+def _sanitize(query: str) -> str | None:
+    query = query.strip()
+    return query.replace("\\", "\\\\").replace('"', '\\"') if query else None
 
 
 def _match(query: str, fields: list[str], type: str, **options: Any) -> Clause:
@@ -72,7 +76,7 @@ class Text:
     query: str
 
     def apply(self, acc: Bool) -> None:
-        if not (query := sanitize_query(self.query)):
+        if not (query := _sanitize(self.query)):
             return
         f = self.field
         clauses = [

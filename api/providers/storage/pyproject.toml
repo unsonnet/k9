@@ -7,14 +7,12 @@ dependencies = [
     "boto3>=1.42.85",
     "pydantic>=2.12.5",
     "providers",
-    "shared",
     "types",
     "types-boto3[s3]>=1.42.85",
 ]
 
 [tool.uv.sources]
 providers = { workspace = true }
-shared = { workspace = true }
 types = { workspace = true }
 
 [build-system]

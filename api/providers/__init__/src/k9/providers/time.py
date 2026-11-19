@@ -1,8 +1,6 @@
 from datetime import datetime, timezone
 from typing import overload
 
-# ──── Datetime ────────────────────────────────────────────────────────────────────────
-
 
 def now() -> datetime:
     return datetime.now(timezone.utc)
@@ -24,10 +22,3 @@ def dt(value: datetime | str | None, iso: bool = True) -> datetime | None:
             return datetime.strptime(s, "%Y-%m-%d %H:%M:%S %Z").astimezone(timezone.utc)
         case None:
             return None
-
-
-# ──── Query ───────────────────────────────────────────────────────────────────────────
-
-
-def sanitize_query(q: str) -> str | None:
-    return q.replace("\\", "\\\\").replace('"', '\\"') if (q := q.strip()) else None

@@ -6,7 +6,7 @@ from typing import Self
 import boto3
 from boto3.dynamodb.conditions import Key
 from k9.providers.base import BaseProvider, ExceptionMap, GrantSpec, apimethod
-from k9.shared.helpers import now
+from k9.providers.time import now
 from k9.types.base import Partial, ResourceModel
 from k9.types.errors import DomainInvariantViolation, DomainNotFound, DomainRateLimited
 from types_boto3_dynamodb.service_resource import Table

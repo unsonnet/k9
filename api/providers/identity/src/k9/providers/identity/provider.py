@@ -8,7 +8,7 @@ from urllib.parse import quote
 
 import boto3
 from k9.providers.base import BaseProvider, ExceptionMap, GrantSpec, apimethod
-from k9.shared.helpers import dt, now
+from k9.providers.time import dt, now
 from k9.types.common import is_set, missing
 from k9.types.errors import (
     DomainExpiredToken,

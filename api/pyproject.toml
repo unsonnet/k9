@@ -1,6 +1,6 @@
 [project]
 name = "k9"
-version = "1.0.0"
+version = "1.0.1"
 requires-python = ">=3.12"
 dependencies = []
 
@@ -13,7 +13,6 @@ members = [
     "providers/*",
     "resolvers/*",
     "services/*",
-    "shared",
     "types/*",
     "workers/*",
 ]
@@ -34,7 +33,6 @@ services-company = { workspace = true }
 services-contact = { workspace = true }
 services-product = { workspace = true }
 services-user = { workspace = true }
-shared = { workspace = true }
 types = { workspace = true }
 types-company = { workspace = true }
 types-contact = { workspace = true }

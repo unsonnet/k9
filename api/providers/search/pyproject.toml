@@ -1,19 +1,17 @@
 [project]
 name = "providers-search"
-version = "1.0.1"
+version = "1.0.2"
 description = "OpenSearch provider"
 requires-python = ">=3.12"
 dependencies = [
     "boto3>=1.42.85",
     "opensearch-py>=3.2.0",
     "providers",
-    "shared",
     "types",
 ]
 
 [tool.uv.sources]
 providers = { workspace = true }
-shared = { workspace = true }
 types = { workspace = true }
 
 [build-system]

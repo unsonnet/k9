@@ -7,14 +7,12 @@ dependencies = [
     "boto3>=1.42.85",
     "providers",
     "pydantic>=2.12.5",
-    "shared",
     "types",
     "types-boto3[dynamodb]>=1.42.85",
 ]
 
 [tool.uv.sources]
 providers = { workspace = true }
-shared = { workspace = true }
 types = { workspace = true }
 
 [build-system]
