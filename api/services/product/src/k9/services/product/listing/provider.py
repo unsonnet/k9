@@ -46,9 +46,9 @@ class ListingProvider(BaseProvider):
         name: str,
         website: HttpUrl | None,
     ) -> Listing:
-        with self._db.batch() as batch:
-            batch.check_item(f"companies/{vendor}")
-            batch.create_item(
+        with self._db.batch() as tx:
+            tx.check_item(f"companies/{vendor}")
+            tx.create_item(
                 f"products/{id}/listings/{sid}",
                 Listing(
                     id=sid,
@@ -82,10 +82,10 @@ class ListingProvider(BaseProvider):
         name: str | missing,
         website: HttpUrl | None | missing,
     ) -> Listing:
-        with self._db.batch() as batch:
+        with self._db.batch() as tx:
             if is_set(vendor):
-                batch.check_item(f"companies/{vendor}")
-            batch.update_item(
+                tx.check_item(f"companies/{vendor}")
+            tx.update_item(
                 f"products/{id}/listings/{sid}",
                 Listing.partial(
                     scope=scope,

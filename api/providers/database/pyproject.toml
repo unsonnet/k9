@@ -1,6 +1,6 @@
 [project]
 name = "providers-database"
-version = "1.0.0"
+version = "1.0.0.1"
 description = "DynamoDB database provider"
 requires-python = ">=3.12"
 dependencies = [

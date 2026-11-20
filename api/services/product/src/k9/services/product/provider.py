@@ -54,10 +54,10 @@ class ProductProvider(BaseProvider):
         subformats: list[Format],
         meta: bytes | None,
     ) -> Product:
-        with self._db.batch() as batch:
+        with self._db.batch() as tx:
             if brand is not None:
-                batch.check_item(f"companies/{brand}")
-            batch.create_item(
+                tx.check_item(f"companies/{brand}")
+            tx.create_item(
                 f"products/{id}",
                 Product(
                     id=id,
@@ -93,10 +93,10 @@ class ProductProvider(BaseProvider):
         subformats: list[Format] | missing,
         meta: bytes | None | missing,
     ) -> Product:
-        with self._db.batch() as batch:
+        with self._db.batch() as tx:
             if is_set(brand) and brand is not None:
-                batch.check_item(f"companies/{brand}")
-            batch.update_item(
+                tx.check_item(f"companies/{brand}")
+            tx.update_item(
                 f"products/{id}",
                 Product.partial(
                     scope=scope,

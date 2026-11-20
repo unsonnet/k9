@@ -47,18 +47,17 @@ class PriceProvider(BaseProvider):
         unit: Decimal | None,
         stock: Decimal | None,
     ) -> Price:
-        with self._db.batch() as batch:
-            batch.create_item(
-                f"products/{id}/listings/{sid}/prices/{date}",
-                Price(
-                    id=date,
-                    scope=scope,
-                    currency=currency,
-                    rate=rate,
-                    unit=unit,
-                    stock=stock,
-                ),
-            )
+        self._db.create_item(
+            f"products/{id}/listings/{sid}/prices/{date}",
+            Price(
+                id=date,
+                scope=scope,
+                currency=currency,
+                rate=rate,
+                unit=unit,
+                stock=stock,
+            ),
+        )
         return self.read_price(id=id, sid=sid, date=date)
 
     @apimethod

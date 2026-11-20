@@ -38,8 +38,8 @@ class DatabaseProvider(BaseProvider):
     def create_item(
         self, key: str, model: ResourceModel | None = None, /, **attrs: DatabaseTypes
     ) -> None:
-        with self.batch() as batch:
-            batch.create_item(key, model, **attrs)
+        with self.batch() as tx:
+            tx.create_item(key, model, **attrs)
         return None
 
     @overload
@@ -74,12 +74,12 @@ class DatabaseProvider(BaseProvider):
         /,
         **attrs: DatabaseTypes,
     ) -> None:
-        with self.batch() as batch:
-            batch.update_item(key, model, **attrs)
+        with self.batch() as tx:
+            tx.update_item(key, model, **attrs)
         return None
 
     @apimethod
     def delete_item(self, key: str, /) -> None:
-        with self.batch() as batch:
-            batch.delete_item(key)
+        with self.batch() as tx:
+            tx.delete_item(key)
         return None

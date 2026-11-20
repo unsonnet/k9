@@ -1,6 +1,6 @@
 [project]
 name = "services-product"
-version = "1.0.1"
+version = "1.0.1.1"
 description = "Product API endpoints"
 requires-python = ">=3.12"
 dependencies = [

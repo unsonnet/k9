@@ -1167,7 +1167,7 @@ provides-extras = ["database", "identity", "location", "search", "storage"]
 
 [[package]]
 name = "providers-database"
-version = "1.0.0"
+version = "1.0.0.1"
 source = { editable = "providers/database" }
 dependencies = [
     { name = "boto3" },
@@ -1802,7 +1802,7 @@ requires-dist = [
 
 [[package]]
 name = "services-contact"
-version = "1.0.2"
+version = "1.0.4"
 source = { editable = "services/contact" }
 dependencies = [
     { name = "providers", extra = ["database", "storage"] },
@@ -1821,7 +1821,7 @@ requires-dist = [
 
 [[package]]
 name = "services-product"
-version = "1.0.1"
+version = "1.0.1.1"
 source = { editable = "services/product" }
 dependencies = [
     { name = "providers", extra = ["database", "storage"] },

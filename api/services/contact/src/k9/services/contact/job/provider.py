@@ -4,6 +4,7 @@ from k9.providers.base import BaseProvider, GrantSpec, apimethod
 from k9.providers.config import settings
 from k9.providers.database import DatabaseProvider
 from k9.types.common import DateID, ResourceID, missing
+from k9.types.common.config import is_set
 from k9.types.contact import EmailStr, Job, PhoneNumber
 
 __all__ = [
@@ -45,17 +46,20 @@ class JobProvider(BaseProvider):
         email: EmailStr | None,
         phone: PhoneNumber | None,
     ) -> Job:
-        self._db.create_item(
-            f"contacts/{id}/jobs/{date}",
-            Job(
-                id=date,
-                scope=scope,
-                company=company,
-                title=title,
-                email=email,
-                phone=phone,
-            ),
-        )
+        with self._db.batch() as tx:
+            if company is not None:
+                tx.check_item(f"companies/{company}")
+            tx.create_item(
+                f"contacts/{id}/jobs/{date}",
+                Job(
+                    id=date,
+                    scope=scope,
+                    company=company,
+                    title=title,
+                    email=email,
+                    phone=phone,
+                ),
+            )
         return self.read_job(id=id, date=date)
 
     @apimethod
@@ -79,16 +83,19 @@ class JobProvider(BaseProvider):
         email: EmailStr | None | missing,
         phone: PhoneNumber | None | missing,
     ) -> Job:
-        self._db.update_item(
-            f"contacts/{id}/jobs/{date}",
-            Job.partial(
-                scope=scope,
-                company=company,
-                title=title,
-                email=email,
-                phone=phone,
-            ),
-        )
+        with self._db.batch() as tx:
+            if is_set(company) and company is not None:
+                tx.check_item(f"companies/{company}")
+            tx.update_item(
+                f"contacts/{id}/jobs/{date}",
+                Job.partial(
+                    scope=scope,
+                    company=company,
+                    title=title,
+                    email=email,
+                    phone=phone,
+                ),
+            )
         return self.read_job(id=id, date=date)
 
     @apimethod
