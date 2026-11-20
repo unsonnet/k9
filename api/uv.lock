@@ -2035,7 +2035,7 @@ wheels = [
 
 [[package]]
 name = "types-company"
-version = "1.1.1"
+version = "1.1.2"
 source = { editable = "types/company" }
 dependencies = [
     { name = "pydantic" },
@@ -2050,7 +2050,7 @@ requires-dist = [
 
 [[package]]
 name = "types-contact"
-version = "1.1.1"
+version = "1.1.2"
 source = { editable = "types/contact" }
 dependencies = [
     { name = "email-validator" },

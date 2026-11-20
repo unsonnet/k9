@@ -17,7 +17,7 @@ class Create(BaseModel, frozen=True):
     id: Path[ResourceID]
     date: Path[DateID]
     scope: Body[ResourceID | None]
-    company: Body[ResourceID]
+    company: Body[ResourceID | None]
     title: Body[str]
     email: Body[EmailStr | None]
     phone: Body[PhoneNumber | None]
@@ -27,7 +27,7 @@ class Update(BaseModel, frozen=True):
     id: Path[ResourceID]
     date: Path[DateID]
     scope: Body[ResourceID | None | missing] = missing
-    company: Body[ResourceID | missing] = missing
+    company: Body[ResourceID | None | missing] = missing
     title: Body[str | missing] = Field(missing, min_length=1)
     email: Body[EmailStr | None | missing] = missing
     phone: Body[PhoneNumber | None | missing] = missing

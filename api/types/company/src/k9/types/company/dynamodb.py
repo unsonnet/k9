@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Literal, Self
 
 from k9.types.base import Partial, ResourceModel
 from k9.types.common import ResourceID, S3Url, SubresourceID, missing
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, HttpUrl
 
 __all__ = [
     "Address",
@@ -57,7 +57,6 @@ class Company(ResourceModel, frozen=True):
     name: str
     logo: S3Url
     website: HttpUrl | None
-    locations: list[Location] = Field(default_factory=list, alias="$locations")
 
     # BEGIN GENERATED PARTIAL SIGNATURE
     if TYPE_CHECKING:
@@ -72,6 +71,5 @@ class Company(ResourceModel, frozen=True):
             name: str | missing = ...,
             logo: S3Url | missing = ...,
             website: HttpUrl | None | missing = ...,
-            locations: list[Location] | missing = ...,
         ) -> Partial[Self]: ...
     # END GENERATED PARTIAL SIGNATURE
