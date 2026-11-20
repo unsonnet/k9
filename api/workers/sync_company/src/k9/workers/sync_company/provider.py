@@ -56,7 +56,7 @@ class SyncCompanyProvider(BaseProvider):
         self._db.update_item(
             f"companies/{id}",
             Company.partial(
-                logo=self._mem.get_url(target),
+                logo=self._mem.url(target),
             ),
         )
 

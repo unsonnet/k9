@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Annotated, Literal, Self
 
 from k9.types.base import Partial, ResourceModel
-from k9.types.common import DateID, ResourceID, SubresourceID, missing
+from k9.types.common import DateID, ResourceID, S3Url, SubresourceID, missing
 from pydantic import BaseModel, Field, HttpUrl
 
 __all__ = [
@@ -88,7 +88,7 @@ class Image(ResourceModel, frozen=True):
 
     id: SubresourceID
     scope: ResourceID | None
-    url: HttpUrl
+    url: S3Url
     hom: Homomorphism
 
     # BEGIN GENERATED PARTIAL SIGNATURE
@@ -100,7 +100,7 @@ class Image(ResourceModel, frozen=True):
             *,
             id: SubresourceID | missing = ...,
             scope: ResourceID | None | missing = ...,
-            url: HttpUrl | missing = ...,
+            url: S3Url | missing = ...,
             hom: Homomorphism | missing = ...,
         ) -> Partial[Self]: ...
     # END GENERATED PARTIAL SIGNATURE

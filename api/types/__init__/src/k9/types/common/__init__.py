@@ -1,6 +1,7 @@
 from .config import is_set, missing
 from .credentials import Caller, Name, Password, Role
 from .ids import DateID, ResourceID, SubresourceID, UserID
+from .urls import S3Url
 
 __all__ = [
     "Caller",
@@ -11,6 +12,7 @@ __all__ = [
     "Password",
     "ResourceID",
     "Role",
+    "S3Url",
     "SubresourceID",
     "UserID",
 ]

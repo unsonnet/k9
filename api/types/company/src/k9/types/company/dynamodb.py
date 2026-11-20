@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Literal, Self
 
 from k9.types.base import Partial, ResourceModel
-from k9.types.common import ResourceID, SubresourceID, missing
+from k9.types.common import ResourceID, S3Url, SubresourceID, missing
 from pydantic import BaseModel, Field, HttpUrl
 
 __all__ = [
@@ -55,7 +55,7 @@ class Company(ResourceModel, frozen=True):
     scope: ResourceID | None
     type: Industry
     name: str
-    logo: HttpUrl
+    logo: S3Url
     website: HttpUrl | None
     locations: list[Location] = Field(default_factory=list, alias="$locations")
 
@@ -70,7 +70,7 @@ class Company(ResourceModel, frozen=True):
             scope: ResourceID | None | missing = ...,
             type: Industry | missing = ...,
             name: str | missing = ...,
-            logo: HttpUrl | missing = ...,
+            logo: S3Url | missing = ...,
             website: HttpUrl | None | missing = ...,
             locations: list[Location] | missing = ...,
         ) -> Partial[Self]: ...

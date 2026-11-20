@@ -6,7 +6,7 @@ from k9.providers.config import settings
 from k9.providers.database import DatabaseProvider
 from k9.providers.storage import HttpUrl, StorageProvider, UploadForm
 from k9.resolvers.http.requests import ImageFormat
-from k9.types.common import ResourceID, missing
+from k9.types.common import ResourceID, S3Url, missing
 from k9.types.company import Company, Industry
 
 __all__ = [
@@ -127,5 +127,5 @@ class CompanyProvider(BaseProvider):
     # ──── Private Methods ────
 
     @cached_property
-    def default_logo(self) -> HttpUrl:
-        return self._mem.get_url("companies/default/logo.jxl")
+    def default_logo(self) -> S3Url:
+        return self._mem.url("companies/default/logo.jxl")

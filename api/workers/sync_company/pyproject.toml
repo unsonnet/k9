@@ -1,6 +1,6 @@
 [project]
 name = "workers-sync-company"
-version = "1.0.1"
+version = "1.0.2"
 description = "Sync company worker"
 requires-python = ">=3.12"
 dependencies = [

@@ -4,9 +4,9 @@ from typing import Iterable
 from k9.providers.base import BaseProvider, GrantSpec, apimethod
 from k9.providers.config import settings
 from k9.providers.database import DatabaseProvider
-from k9.providers.storage import HttpUrl, StorageProvider, UploadForm
+from k9.providers.storage import StorageProvider, UploadForm
 from k9.resolvers.http.requests import ImageFormat
-from k9.types.common import ResourceID, missing
+from k9.types.common import ResourceID, S3Url, missing
 from k9.types.contact import Contact, EmailStr, Industry, PhoneNumber
 
 __all__ = [
@@ -85,7 +85,7 @@ class ContactProvider(BaseProvider):
         scope: ResourceID | None | missing,
         type: Industry | missing,
         name: str | missing,
-        picture: HttpUrl | None | missing,
+        picture: None | missing,
         email: EmailStr | None | missing,
         phone: PhoneNumber | None | missing,
     ) -> Contact:
@@ -128,5 +128,5 @@ class ContactProvider(BaseProvider):
     # ──── Private Methods ────
 
     @cached_property
-    def default_picture(self) -> HttpUrl:
-        return self._mem.get_url("contacts/default/picture.jxl")
+    def default_picture(self) -> S3Url:
+        return self._mem.url("contacts/default/picture.jxl")

@@ -54,7 +54,7 @@ class SyncUserProvider(BaseProvider):
         self._mem.delete(key)
         self._idp.update_user(
             username=f"id:{id}",
-            picture=str(self._mem.get_url(target)),
+            picture=self._mem.url(target),
         )
 
     # ──── Private Methods ────

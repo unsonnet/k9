@@ -1245,7 +1245,7 @@ requires-dist = [
 
 [[package]]
 name = "providers-storage"
-version = "1.0.0"
+version = "1.0.1"
 source = { editable = "providers/storage" }
 dependencies = [
     { name = "boto3" },
@@ -1783,7 +1783,7 @@ requires-dist = [
 
 [[package]]
 name = "services-company"
-version = "1.0.1"
+version = "1.0.2"
 source = { editable = "services/company" }
 dependencies = [
     { name = "providers", extra = ["database", "location", "storage"] },
@@ -1802,7 +1802,7 @@ requires-dist = [
 
 [[package]]
 name = "services-contact"
-version = "1.0.1"
+version = "1.0.2"
 source = { editable = "services/contact" }
 dependencies = [
     { name = "providers", extra = ["database", "storage"] },
@@ -1840,7 +1840,7 @@ requires-dist = [
 
 [[package]]
 name = "services-user"
-version = "1.0.2"
+version = "1.0.3"
 source = { editable = "services/user" }
 dependencies = [
     { name = "providers", extra = ["identity", "storage"] },
@@ -1917,7 +1917,7 @@ wheels = [
 
 [[package]]
 name = "types"
-version = "1.1.2"
+version = "1.1.3"
 source = { editable = "types/__init__" }
 dependencies = [
     { name = "pydantic" },
@@ -2035,7 +2035,7 @@ wheels = [
 
 [[package]]
 name = "types-company"
-version = "1.1.0"
+version = "1.1.1"
 source = { editable = "types/company" }
 dependencies = [
     { name = "pydantic" },
@@ -2050,7 +2050,7 @@ requires-dist = [
 
 [[package]]
 name = "types-contact"
-version = "1.1.0"
+version = "1.1.1"
 source = { editable = "types/contact" }
 dependencies = [
     { name = "email-validator" },
@@ -2069,7 +2069,7 @@ requires-dist = [
 
 [[package]]
 name = "types-product"
-version = "1.1.0"
+version = "1.1.1"
 source = { editable = "types/product" }
 dependencies = [
     { name = "pydantic" },
@@ -2093,7 +2093,7 @@ wheels = [
 
 [[package]]
 name = "types-user"
-version = "1.1.0"
+version = "1.1.1"
 source = { editable = "types/user" }
 dependencies = [
     { name = "pydantic" },
@@ -2195,7 +2195,7 @@ requires-dist = [
 
 [[package]]
 name = "workers-sync-company"
-version = "1.0.1"
+version = "1.0.2"
 source = { editable = "workers/sync_company" }
 dependencies = [
     { name = "pillow-heif" },
@@ -2218,7 +2218,7 @@ requires-dist = [
 
 [[package]]
 name = "workers-sync-product"
-version = "1.0.1"
+version = "1.0.2"
 source = { editable = "workers/sync_product" }
 dependencies = [
     { name = "pillow-heif" },
@@ -2241,7 +2241,7 @@ requires-dist = [
 
 [[package]]
 name = "workers-sync-user"
-version = "1.0.1"
+version = "1.0.2"
 source = { editable = "workers/sync_user" }
 dependencies = [
     { name = "pillow-heif" },

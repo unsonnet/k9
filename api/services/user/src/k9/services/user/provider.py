@@ -5,10 +5,10 @@ from typing import Iterable
 from k9.providers.base import BaseProvider, GrantSpec, apimethod
 from k9.providers.config import settings
 from k9.providers.identity import IdentityProvider
-from k9.providers.storage import HttpUrl, StorageProvider, UploadForm
+from k9.providers.storage import StorageProvider, UploadForm
 from k9.resolvers.http.requests import ImageFormat
 from k9.types.base import Page
-from k9.types.common import Name, Password, Role, UserID, is_set, missing
+from k9.types.common import Name, Password, Role, S3Url, UserID, is_set, missing
 from k9.types.user import Credentials, User
 
 __all__ = [
@@ -74,7 +74,7 @@ class UserProvider(BaseProvider):
             id=id,
             role=role,
             name=name,
-            picture=str(self.default_picture),
+            picture=self.default_picture,
             enabled=enabled,
             password=password,
         )
@@ -113,7 +113,7 @@ class UserProvider(BaseProvider):
             attrs["preferred_username"] = f"name:{self._encode(name)}"
             attrs["name"] = name
         if is_set(picture):
-            attrs["picture"] = str(self.default_picture)
+            attrs["picture"] = self.default_picture
         return User.model_validate(
             self._idp.update_user(
                 username=f"id:{id}",
@@ -171,5 +171,5 @@ class UserProvider(BaseProvider):
         return base64.b64encode(name.encode()).decode("ascii")
 
     @cached_property
-    def default_picture(self) -> HttpUrl:
-        return self._mem.get_url("users/default/picture.jxl")
+    def default_picture(self) -> S3Url:
+        return self._mem.url("users/default/picture.jxl")

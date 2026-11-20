@@ -1,8 +1,10 @@
 from collections.abc import Iterable, Mapping
+from urllib.parse import quote
 
 import boto3
 from botocore.config import Config
 from k9.providers.base import BaseProvider, ExceptionMap, GrantSpec, apimethod
+from k9.types.common import S3Url
 from k9.types.errors import DomainForbidden, DomainNotFound
 from types_boto3_s3.service_resource import Bucket
 
@@ -89,9 +91,8 @@ class StorageProvider(BaseProvider):
         )
 
     @apimethod
-    def get_url(self, key: str) -> HttpUrl:
-        bucket, region = self._s3.name, self._s3.meta.client.meta.region_name
-        return HttpUrl(f"https://{bucket}.s3.{region}.amazonaws.com/{key}")
+    def url(self, key: str) -> S3Url:
+        return S3Url(f"s3://{self._s3.name}/{quote(key, safe='/')}")
 
     @apimethod
     def read(self, key: str) -> StorageObject:

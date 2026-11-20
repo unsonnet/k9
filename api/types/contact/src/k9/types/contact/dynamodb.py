@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING, Literal, Self
 
 from k9.types.base import Partial, ResourceModel
-from k9.types.common import DateID, ResourceID, missing
-from pydantic import EmailStr, Field, HttpUrl
+from k9.types.common import DateID, ResourceID, S3Url, missing
+from pydantic import EmailStr, Field
 from pydantic_extra_types.phone_numbers import PhoneNumber
 
 __all__ = [
@@ -47,7 +47,7 @@ class Contact(ResourceModel, frozen=True):
     scope: ResourceID | None
     type: Industry
     name: str
-    picture: HttpUrl
+    picture: S3Url
     email: EmailStr | None
     phone: PhoneNumber | None
     jobs: list[Job] = Field(default_factory=list, alias="$jobs")
@@ -63,7 +63,7 @@ class Contact(ResourceModel, frozen=True):
             scope: ResourceID | None | missing = ...,
             type: Industry | missing = ...,
             name: str | missing = ...,
-            picture: HttpUrl | missing = ...,
+            picture: S3Url | missing = ...,
             email: EmailStr | None | missing = ...,
             phone: PhoneNumber | None | missing = ...,
             jobs: list[Job] | missing = ...,

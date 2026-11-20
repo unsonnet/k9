@@ -62,7 +62,7 @@ class SyncProductProvider(BaseProvider):
             ProductImage(
                 id=sid,
                 scope=scope,
-                url=self._mem.get_url(target),
+                url=self._mem.url(target),
                 hom=hom,
             ),
         )
@@ -80,7 +80,7 @@ class SyncProductProvider(BaseProvider):
             f"products/{id}/images/{sid}",
             ProductImage.partial(
                 scope=scope,
-                url=self._mem.get_url(target),
+                url=self._mem.url(target),
                 hom=hom,
             ),
         )
