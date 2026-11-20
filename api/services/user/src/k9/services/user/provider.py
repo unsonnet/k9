@@ -70,13 +70,13 @@ class UserProvider(BaseProvider):
     ) -> Credentials:
         self._idp.create_user(
             username=f"id:{id}",
-            password=password,
-            enabled=enabled,
-            id=id,
             preferred_username=f"name:{self._encode(name)}",
+            id=id,
+            role=role,
             name=name,
             picture=str(self.default_picture),
-            role=role,
+            enabled=enabled,
+            password=password,
         )
         return Credentials(
             id=id,
@@ -107,13 +107,13 @@ class UserProvider(BaseProvider):
         enabled: bool | missing,
     ) -> User:
         attrs: dict[str, str | None] = {}
+        if is_set(role):
+            attrs["role"] = role
         if is_set(name):
             attrs["preferred_username"] = f"name:{self._encode(name)}"
             attrs["name"] = name
         if is_set(picture):
             attrs["picture"] = str(self.default_picture)
-        if is_set(role):
-            attrs["role"] = role
         return User.model_validate(
             self._idp.update_user(
                 username=f"id:{id}",

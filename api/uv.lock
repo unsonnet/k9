@@ -1840,7 +1840,7 @@ requires-dist = [
 
 [[package]]
 name = "services-user"
-version = "1.0.1"
+version = "1.0.2"
 source = { editable = "services/user" }
 dependencies = [
     { name = "providers", extra = ["identity", "storage"] },
@@ -1917,7 +1917,7 @@ wheels = [
 
 [[package]]
 name = "types"
-version = "1.1.1"
+version = "1.1.2"
 source = { editable = "types/__init__" }
 dependencies = [
     { name = "pydantic" },

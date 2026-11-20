@@ -6,6 +6,7 @@ from functools import cache
 from typing import TYPE_CHECKING, Any, Self
 
 from pydantic import AnyUrl, BaseModel, create_model
+from pydantic.alias_generators import to_camel
 from pydantic_core import MISSING, MultiHostUrl, Url
 from types_boto3_dynamodb.type_defs import TableAttributeValueTypeDef
 
@@ -60,7 +61,15 @@ class Partial[T: BaseModel]:
         return {k: _database_value(v) for k, v in self.model_dump().items()}
 
 
-class ResourceModel(BaseModel, frozen=True, extra="ignore", validate_by_name=True):
+class ResourceModel(
+    BaseModel,
+    frozen=True,
+    extra="ignore",
+    alias_generator=to_camel,
+    validate_by_name=True,
+    validate_by_alias=True,
+    serialize_by_alias=True,
+):
     def model_dump_dynamodb(self) -> dict[str, TableAttributeValueTypeDef]:
         return {
             k: _database_value(v) for k, v in self.model_dump(by_alias=True).items()
